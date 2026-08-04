@@ -1,0 +1,73 @@
+{
+  "_vendor-leaflet-CSqkZJ-g.js": {
+    "file": "assets/vendor-leaflet-CSqkZJ-g.js",
+    "name": "vendor-leaflet",
+    "imports": [
+      "_vendor-ui-D4cTgO6D.js",
+      "_vendor-recharts-B63WCaKM.js"
+    ]
+  },
+  "_vendor-react-l0sNRNKZ.js": {
+    "file": "assets/vendor-react-l0sNRNKZ.js",
+    "name": "vendor-react"
+  },
+  "_vendor-recharts-B63WCaKM.js": {
+    "file": "assets/vendor-recharts-B63WCaKM.js",
+    "name": "vendor-recharts",
+    "imports": [
+      "_vendor-ui-D4cTgO6D.js"
+    ]
+  },
+  "_vendor-ui-D4cTgO6D.js": {
+    "file": "assets/vendor-ui-D4cTgO6D.js",
+    "name": "vendor-ui"
+  },
+  "node_modules/leaflet/dist/images/layers-2x.png": {
+    "file": "assets/layers-2x-Bpkbi35X.png",
+    "src": "node_modules/leaflet/dist/images/layers-2x.png"
+  },
+  "node_modules/leaflet/dist/images/layers.png": {
+    "file": "assets/layers-BWBAp2CZ.png",
+    "src": "node_modules/leaflet/dist/images/layers.png"
+  },
+  "node_modules/leaflet/dist/images/marker-icon.png": {
+    "file": "assets/marker-icon-hN30_KVU.png",
+    "src": "node_modules/leaflet/dist/images/marker-icon.png"
+  },
+  "resources/js/components/CityMapLeaflet.tsx": {
+    "file": "assets/CityMapLeaflet-BkIOPA3o.js",
+    "name": "CityMapLeaflet",
+    "src": "resources/js/components/CityMapLeaflet.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/main.tsx",
+      "_vendor-ui-D4cTgO6D.js",
+      "_vendor-leaflet-CSqkZJ-g.js",
+      "_vendor-recharts-B63WCaKM.js"
+    ],
+    "css": [
+      "assets/CityMapLeaflet-CLLlcC51.css"
+    ],
+    "assets": [
+      "assets/layers-BWBAp2CZ.png",
+      "assets/layers-2x-Bpkbi35X.png",
+      "assets/marker-icon-hN30_KVU.png"
+    ]
+  },
+  "resources/js/main.tsx": {
+    "file": "assets/main-BD00IT3e.js",
+    "name": "main",
+    "src": "resources/js/main.tsx",
+    "isEntry": true,
+    "imports": [
+      "_vendor-ui-D4cTgO6D.js",
+      "_vendor-recharts-B63WCaKM.js"
+    ],
+    "dynamicImports": [
+      "resources/js/components/CityMapLeaflet.tsx"
+    ],
+    "css": [
+      "assets/main-TripFJh1.css"
+    ]
+  }
+}

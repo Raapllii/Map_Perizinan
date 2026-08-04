@@ -1,0 +1,62 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider within a group which
+| contains the "web" middleware group. Now create something great!
+|
+*/
+
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\BusinessController;
+use App\Http\Controllers\Api\UserController;
+
+// Public React App Route (WebGIS)
+Route::get('/', function () {
+    return view('app');
+});
+
+// Fallback for any other public route (except api and admin)
+Route::get('/{any}', function () {
+    return view('app');
+})->where('any', '^(?!api|admin).*$');
+
+// Admin Login Route (Frontend)
+Route::get('/admin/login', function () {
+    return view('app');
+})->name('login');
+
+// Protected Admin SPA Routes
+Route::middleware('auth')->group(function () {
+    Route::get('/admin/{any}', function () {
+        return view('app');
+    })->where('any', '.*');
+});
+
+// Protected Admin API Routes (Stateful)
+Route::prefix('api/admin')->group(function () {
+    Route::middleware('throttle:5,1')->post('/login', [AuthController::class, 'login']);
+    
+    Route::middleware('auth')->group(function () {
+        Route::post('/logout', [AuthController::class, 'logout']);
+        Route::get('/dashboard', [DashboardController::class, 'index']);
+        
+        Route::post('/businesses', [BusinessController::class, 'store']);
+        Route::get('/businesses/{business}', [BusinessController::class, 'show']);
+        Route::put('/businesses/{business}', [BusinessController::class, 'update']);
+        Route::delete('/businesses/{business}', [BusinessController::class, 'destroy']);
+        
+        Route::get('/users', [UserController::class, 'index']);
+        
+        Route::get('/user', function (\Illuminate\Http\Request $request) {
+            return response()->json(['user' => $request->user()]);
+        });
+    });
+});
