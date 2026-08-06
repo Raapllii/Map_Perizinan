@@ -2072,6 +2072,14 @@ function PublicMapPage() {
   const [markers, setMarkers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [flyTrigger, setFlyTrigger] = useState<any>(null);
+  const [searchHistory, setSearchHistory] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem('searchHistory');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [bounds, setBounds] = useState("");
   const [mapType, setMapType] = useState<'peta' | 'satelit'>('peta');
   
@@ -2102,21 +2110,45 @@ function PublicMapPage() {
   // Autocomplete search with debounce
   useEffect(() => {
     if (searchQuery.length > 2) {
+      setIsSearching(true);
       const delayFn = setTimeout(() => {
-        axios.get(`/api/businesses?map=true&search=${encodeURIComponent(searchQuery)}`)
-          .then(res => setSearchResults(res.data.slice(0, 5)))
-          .catch(err => console.error(err));
+        axios.get(`/api/businesses/search?q=${encodeURIComponent(searchQuery)}`)
+          .then(res => {
+            setSearchResults(res.data);
+            setIsSearching(false);
+          })
+          .catch(err => {
+            console.error(err);
+            setIsSearching(false);
+          });
       }, 300);
       return () => clearTimeout(delayFn);
     } else {
       setSearchResults([]);
+      setIsSearching(false);
     }
   }, [searchQuery]);
 
-  const handleSelectBusiness = (b: any) => {
+  const saveToHistory = (item: any) => {
+    setSearchHistory(prev => {
+      const filtered = prev.filter(h => h.id !== item.id);
+      const updated = [item, ...filtered].slice(0, 5);
+      localStorage.setItem('searchHistory', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleSelectBusiness = (b: any, fromSearch: boolean = false) => {
     setSelectedBusiness(b);
     setSearchQuery("");
     setSearchResults([]);
+    
+    if (fromSearch) {
+      saveToHistory(b);
+      if (b.lat && b.lng) {
+        setFlyTrigger({ lat: parseFloat(b.lat), lng: parseFloat(b.lng), zoom: 17, ts: Date.now() });
+      }
+    }
   };
 
   const selected = selectedBusiness || {};
@@ -2157,6 +2189,7 @@ function PublicMapPage() {
                  markers={markers} 
                  onBoundsChange={setBounds}
                  mapType={mapType}
+                 flyTrigger={flyTrigger}
                />
             </Suspense>
          </div>
@@ -2164,7 +2197,7 @@ function PublicMapPage() {
          {/* Floating Search & Detail Panel */}
          <div className="absolute top-4 left-4 z-[1000] w-[360px] flex flex-col gap-2 transition-transform duration-300">
             {/* Search Bar */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 flex items-center overflow-hidden h-14 relative">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 flex items-center h-14 relative">
                <div className="pl-4 pr-3 text-gray-400"><Search size={20} /></div>
                <input 
                  type="text" 
@@ -2172,21 +2205,52 @@ function PublicMapPage() {
                  className="flex-1 h-full bg-transparent border-none focus:outline-none text-sm text-gray-800"
                  value={searchQuery}
                  onChange={(e) => setSearchQuery(e.target.value)}
+                 onFocus={() => { if (!searchQuery && searchHistory.length > 0) setSearchResults(searchHistory) }}
                />
-               {searchQuery && (
-                 <button onClick={() => setSearchQuery("")} className="px-4 text-gray-400 hover:text-gray-600"><X size={18} /></button>
-               )}
-               {searchResults.length > 0 && (
-                 <div className="absolute top-[100%] left-0 right-0 bg-white rounded-xl shadow-lg mt-1 border border-gray-100 overflow-hidden z-30 max-h-64 overflow-y-auto">
-                    {searchResults.map((res: any, idx: number) => (
-                      <div key={idx} className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-0" onClick={() => handleSelectBusiness(res)}>
-                         <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 flex-shrink-0"><MapPin size={16} /></div>
-                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{res.nama_perusahaan}</p>
-                            <p className="text-xs text-gray-500 truncate">{res.kecamatan} • {res.judul_kbli}</p>
-                         </div>
+               {isSearching ? (
+                 <div className="px-4 text-[#2E7D32]"><RefreshCw size={18} className="animate-spin" /></div>
+               ) : searchQuery ? (
+                 <button onClick={() => { setSearchQuery(""); setSearchResults([]); }} className="px-4 text-gray-400 hover:text-gray-600"><X size={18} /></button>
+               ) : null}
+               
+               {(searchResults.length > 0 || (searchQuery.length > 2 && !isSearching)) && (
+                 <div className="absolute top-[100%] left-0 right-0 bg-white rounded-xl shadow-lg mt-1 border border-gray-100 overflow-hidden z-30 max-h-80 overflow-y-auto">
+                    {searchResults.length === 0 && searchQuery.length > 2 && !isSearching ? (
+                      <div className="p-4 text-center text-sm text-gray-500">
+                        Data tidak ditemukan
                       </div>
-                    ))}
+                    ) : (
+                      <>
+                        {!searchQuery && searchHistory.length > 0 && (
+                          <div className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50 border-b border-gray-100">
+                            Pencarian Terakhir
+                          </div>
+                        )}
+                        {searchResults.map((res: any, idx: number) => (
+                          <div key={idx} className="flex items-start gap-3 p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-0" onClick={() => handleSelectBusiness(res, true)}>
+                             <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0 mt-0.5">
+                               <Building2 size={16} />
+                             </div>
+                             <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-2">
+                                  <p className="text-sm font-semibold text-gray-900 truncate">{res.nama_perusahaan}</p>
+                                  {res.status && (
+                                    <span className="px-1.5 py-0.5 text-[10px] font-medium rounded-md bg-green-100 text-green-700 flex-shrink-0">
+                                      {res.status}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-gray-500 truncate mt-0.5">{res.judul_kbli}</p>
+                                <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-400">
+                                  <span>{res.nib || '-'}</span>
+                                  <span>•</span>
+                                  <span className="truncate">{res.kecamatan}, {res.kelurahan}</span>
+                                </div>
+                             </div>
+                          </div>
+                        ))}
+                      </>
+                    )}
                  </div>
                )}
             </div>

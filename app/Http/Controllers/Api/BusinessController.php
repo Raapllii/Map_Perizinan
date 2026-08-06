@@ -93,6 +93,46 @@ class BusinessController extends Controller
         return response()->json($query->select('id', 'nama_perusahaan', 'nib', 'kecamatan', 'judul_kbli', 'status')->paginate(20));
     }
 
+    public function search(Request $request)
+    {
+        $keyword = $request->query('q', '');
+        
+        if (strlen($keyword) < 2) {
+            return response()->json([]);
+        }
+
+        $query = Business::select('id', 'nama_perusahaan', 'judul_kbli', 'nib', 'kecamatan', 'kelurahan', 'status', 'risiko', 'lat', 'lng')
+            ->whereNotNull('lat')
+            ->whereNotNull('lng');
+
+        $words = explode(' ', $keyword);
+        foreach ($words as $word) {
+            if (!empty($word)) {
+                $query->where(function($q) use ($word) {
+                    $q->where('nama_perusahaan', 'LIKE', "%{$word}%")
+                      ->orWhere('judul_kbli', 'LIKE', "%{$word}%")
+                      ->orWhere('kbli', 'LIKE', "%{$word}%")
+                      ->orWhere('nib', 'LIKE', "%{$word}%")
+                      ->orWhere('id_proyek', 'LIKE', "%{$word}%")
+                      ->orWhere('kecamatan', 'LIKE', "%{$word}%")
+                      ->orWhere('kelurahan', 'LIKE', "%{$word}%")
+                      ->orWhere('alamat_proyek', 'LIKE', "%{$word}%");
+                });
+            }
+        }
+        
+        // Sorting by relevance: Exact match first, then starts with, then anything
+        $query->orderByRaw("
+            CASE 
+                WHEN nama_perusahaan LIKE ? THEN 1
+                WHEN nama_perusahaan LIKE ? THEN 2
+                ELSE 3
+            END
+        ", [$keyword, "{$keyword}%"]);
+
+        return response()->json($query->limit(10)->get());
+    }
+
     public function show($id)
     {
         $business = Business::findOrFail($id);

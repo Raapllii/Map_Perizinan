@@ -24,6 +24,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 // Public API Routes (Map Data & Filter References)
+Route::get('/businesses/search', [BusinessController::class, 'search']);
 Route::get('/businesses', [BusinessController::class, 'index']);
 Route::get('/districts', [DistrictController::class, 'index']);
 Route::get('/categories', [CategoryController::class, 'index']);

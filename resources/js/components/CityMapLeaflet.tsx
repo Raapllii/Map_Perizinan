@@ -19,6 +19,7 @@ interface CityMapLeafletProps {
   onBoundsChange?: (bounds: string) => void;
   className?: string;
   mapType?: 'peta' | 'satelit';
+  flyTrigger?: { lat: number, lng: number, zoom: number, ts: number } | null;
 }
 
 const getRiskColor = (risiko: string) => {
@@ -32,9 +33,8 @@ const getRiskColor = (risiko: string) => {
   }
 };
 
-const customIcon = (risiko: string, isSelected: boolean = false) => {
+const customIcon = (risiko: string) => {
   const markerColor = getRiskColor(risiko);
-  const scale = isSelected ? 'scale(1.25)' : 'scale(1)';
   
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" style="filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));">
@@ -44,10 +44,9 @@ const customIcon = (risiko: string, isSelected: boolean = false) => {
   `;
   return new L.DivIcon({
     className: 'custom-svg-icon bg-transparent border-none',
-    html: `<div style="transition: transform 0.2s ease; cursor: pointer; transform: ${scale};" onmouseover="this.style.transform='scale(1.25)'" onmouseout="this.style.transform='${scale}'">${svg}</div>`,
+    html: `<div style="cursor: pointer;">${svg}</div>`,
     iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32]
+    iconAnchor: [16, 32]
   });
 };
 
@@ -73,85 +72,59 @@ function MapEventsHandler({ onBoundsChange }: { onBoundsChange?: (bounds: string
   return null;
 }
 
-function MapController({ center }: { center: [number, number] }) {
+function MapFlyer({ trigger }: { trigger?: { lat: number, lng: number, zoom: number, ts: number } | null }) {
   const map = useMap();
   useEffect(() => {
-    map.flyTo(center, 15, { duration: 1.5 });
-  }, [center, map]);
+    if (trigger) {
+      map.flyTo([trigger.lat, trigger.lng], trigger.zoom, { duration: 1.5 });
+    }
+  }, [trigger?.ts, map]);
   return null;
 }
 
-export default function CityMapLeaflet({ height = "100%", markers = [], onSelectMarker, selectedMarker, onBoundsChange, className = "", mapType = 'peta' }: CityMapLeafletProps) {
+
+
+export default function CityMapLeaflet({ height = "100%", markers = [], onSelectMarker, selectedMarker, onBoundsChange, className = "", mapType = 'peta', flyTrigger = null }: CityMapLeafletProps) {
   const defaultCenter: [number, number] = [-0.502106, 117.153709]; // Default to Samarinda
   
   const center = selectedMarker && selectedMarker.lat && selectedMarker.lng 
     ? [parseFloat(selectedMarker.lat), parseFloat(selectedMarker.lng)] as [number, number]
     : defaultCenter;
 
-  const processedMarkers = useMemo(() => {
-    const locationCounts: Record<string, number> = {};
-    const locationIndices: Record<string, number> = {};
-    
-    // Count markers at each exact location
+  const groupedMarkers = useMemo(() => {
+    const groups: Record<string, any[]> = {};
     markers.forEach(m => {
       if (m.lat && m.lng) {
         const key = `${m.lat},${m.lng}`;
-        locationCounts[key] = (locationCounts[key] || 0) + 1;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(m);
       }
     });
-
-    return markers.filter(m => m.lat && m.lng).map(marker => {
-      const key = `${marker.lat},${marker.lng}`;
-      const total = locationCounts[key];
-      const currentIndex = locationIndices[key] || 0;
-      locationIndices[key] = currentIndex + 1;
-      
-      let finalLat = parseFloat(marker.lat);
-      let finalLng = parseFloat(marker.lng);
-      
-      if (total > 1) {
-        // Spiral/circle offset for overlapping coordinates
-        const radiusLat = 0.00015 + (Math.floor(currentIndex / 8) * 0.0001);
-        const radiusLng = 0.00015 + (Math.floor(currentIndex / 8) * 0.0001);
-        const angle = (currentIndex / Math.min(total, 8)) * Math.PI * 2;
-        
-        finalLat += radiusLat * Math.cos(angle);
-        finalLng += radiusLng * Math.sin(angle);
-      }
-      
-      return { ...marker, finalLat, finalLng };
-    });
+    return Object.values(groups);
   }, [markers]);
 
   const renderedMarkers = useMemo(() => {
-    return processedMarkers.map((marker, index) => {
-      const isSelected = selectedMarker?.id === marker.id;
+    return groupedMarkers.map((group, index) => {
+      const primaryMarker = group[0];
+      const isSelected = selectedMarker && group.some((m: any) => m.id === selectedMarker.id);
+      
       return (
         <Marker 
           key={index} 
-          position={[marker.finalLat, marker.finalLng]}
-          icon={customIcon(marker.risiko, isSelected)}
+          position={[parseFloat(primaryMarker.lat), parseFloat(primaryMarker.lng)]}
+          icon={customIcon(primaryMarker.risiko)}
           zIndexOffset={isSelected ? 1000 : 0}
           eventHandlers={{
-            click: () => onSelectMarker && onSelectMarker(marker),
+            click: () => {
+                if (onSelectMarker) {
+                    onSelectMarker(primaryMarker);
+                }
+            }
           }}
-        >
-          <Popup className="custom-popup" closeButton={false}>
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4 min-w-[200px] flex flex-col items-center text-center">
-              <h3 className="font-bold text-sm text-gray-900 mb-1">{marker.nama_perusahaan}</h3>
-              <p className="text-xs text-gray-500 mb-3">{marker.judul_kbli}</p>
-              <button 
-                onClick={(e) => { e.stopPropagation(); onSelectMarker && onSelectMarker(marker); }}
-                className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1"
-              >
-                Lihat detail &gt;
-              </button>
-            </div>
-          </Popup>
-        </Marker>
+        />
       );
     });
-  }, [processedMarkers, selectedMarker, onSelectMarker]);
+  }, [groupedMarkers, selectedMarker, onSelectMarker]);
 
   const tileUrl = mapType === 'satelit' 
     ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
@@ -174,17 +147,10 @@ export default function CityMapLeaflet({ height = "100%", markers = [], onSelect
         
         {renderedMarkers}
         
-        {selectedMarker && selectedMarker.lat && selectedMarker.lng && (
-           <MapController center={[parseFloat(selectedMarker.lat), parseFloat(selectedMarker.lng)]} />
-        )}
+        <MapFlyer trigger={flyTrigger} />
       </MapContainer>
       
-      {/* Global styles for Leaflet Popup to match design (no borders/padding from leaflet defaults) */}
-      <style>{`
-        .leaflet-popup-content-wrapper { padding: 0; overflow: hidden; border-radius: 12px; }
-        .leaflet-popup-content { margin: 0; }
-        .leaflet-popup-tip { box-shadow: none; }
-      `}</style>
+
     </div>
   );
 }
