@@ -33,25 +33,30 @@ const getRiskColor = (risiko: string) => {
   }
 };
 
-const customIcon = (risiko: string) => {
-  const markerColor = getRiskColor(risiko);
-  
+const customIcon = (risiko: string, isSelected: boolean = false) => {
+  const markerColor = isSelected ? '#34A853' : getRiskColor(risiko);
+
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" style="filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" style="filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3)); outline: none;">
       <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="${markerColor}" stroke="#fff" stroke-width="1"/>
       <circle cx="12" cy="9" r="3.5" fill="#fff"/>
     </svg>
   `;
   return new L.DivIcon({
-    className: 'custom-svg-icon bg-transparent border-none',
-    html: `<div style="cursor: pointer;">${svg}</div>`,
+    className: 'custom-svg-icon bg-transparent border-none outline-none focus:outline-none focus-visible:outline-none [&:focus]:outline-none',
+    html: `<div style="cursor: pointer; outline: none;" tabindex="-1">${svg}</div>`,
     iconSize: [32, 32],
     iconAnchor: [16, 32]
   });
 };
 
-function MapEventsHandler({ onBoundsChange }: { onBoundsChange?: (bounds: string) => void }) {
+function MapEventsHandler({ onBoundsChange, onSelectMarker }: { onBoundsChange?: (bounds: string) => void, onSelectMarker?: (marker: any) => void }) {
   const map = useMapEvents({
+    click: () => {
+      if (onSelectMarker) {
+        onSelectMarker(null);
+      }
+    },
     moveend: () => {
       if (onBoundsChange) {
         const bounds = map.getBounds();
@@ -86,53 +91,38 @@ function MapFlyer({ trigger }: { trigger?: { lat: number, lng: number, zoom: num
 
 export default function CityMapLeaflet({ height = "100%", markers = [], onSelectMarker, selectedMarker, onBoundsChange, className = "", mapType = 'peta', flyTrigger = null }: CityMapLeafletProps) {
   const defaultCenter: [number, number] = [-0.502106, 117.153709]; // Default to Samarinda
-  
-  const center = selectedMarker && selectedMarker.lat && selectedMarker.lng 
-    ? [parseFloat(selectedMarker.lat), parseFloat(selectedMarker.lng)] as [number, number]
-    : defaultCenter;
-
-  const groupedMarkers = useMemo(() => {
-    const groups: Record<string, any[]> = {};
-    markers.forEach(m => {
-      if (m.lat && m.lng) {
-        const key = `${m.lat},${m.lng}`;
-        if (!groups[key]) groups[key] = [];
-        groups[key].push(m);
-      }
-    });
-    return Object.values(groups);
-  }, [markers]);
 
   const renderedMarkers = useMemo(() => {
-    return groupedMarkers.map((group, index) => {
-      const primaryMarker = group[0];
-      const isSelected = selectedMarker && group.some((m: any) => m.id === selectedMarker.id);
-      
+    return markers.map((marker, index) => {
+      if (!marker.lat || !marker.lng) return null;
+      const isSelected = selectedMarker && marker.id === selectedMarker.id;
+
       return (
-        <Marker 
-          key={index} 
-          position={[parseFloat(primaryMarker.lat), parseFloat(primaryMarker.lng)]}
-          icon={customIcon(primaryMarker.risiko)}
+        <Marker
+          key={`${marker.id || index}-${index}`}
+          position={[parseFloat(marker.lat), parseFloat(marker.lng)]}
+          icon={customIcon(marker.risiko, isSelected)}
           zIndexOffset={isSelected ? 1000 : 0}
           eventHandlers={{
-            click: () => {
-                if (onSelectMarker) {
-                    onSelectMarker(primaryMarker);
-                }
+            click: (e) => {
+              e.originalEvent.stopPropagation();
+              if (onSelectMarker) {
+                onSelectMarker(marker);
+              }
             }
           }}
         />
       );
     });
-  }, [groupedMarkers, selectedMarker, onSelectMarker]);
+  }, [markers, selectedMarker, onSelectMarker]);
 
-  const tileUrl = mapType === 'satelit' 
+  const tileUrl = mapType === 'satelit'
     ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
     : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
   const attribution = mapType === 'satelit'
     ? '&copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-    : '&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors';
+    : '&copy; <a href="https://osm.org/copyright"></a>';
 
   return (
     <div style={{ height, width: '100%', position: 'relative' }} className={className}>
@@ -143,13 +133,13 @@ export default function CityMapLeaflet({ height = "100%", markers = [], onSelect
         />
         <ZoomControl position="bottomright" />
         <ScaleControl position="bottomright" />
-        <MapEventsHandler onBoundsChange={onBoundsChange} />
-        
+        <MapEventsHandler onBoundsChange={onBoundsChange} onSelectMarker={onSelectMarker} />
+
         {renderedMarkers}
-        
+
         <MapFlyer trigger={flyTrigger} />
       </MapContainer>
-      
+
 
     </div>
   );

@@ -1,25 +1,25 @@
 {
-  "_vendor-leaflet-DvTkQju3.js": {
-    "file": "assets/vendor-leaflet-DvTkQju3.js",
+  "_vendor-leaflet-FYonYY3m.js": {
+    "file": "assets/vendor-leaflet-FYonYY3m.js",
     "name": "vendor-leaflet",
     "imports": [
-      "_vendor-ui-CqFbfHGd.js",
-      "_vendor-recharts-CA4Y_dm8.js"
+      "_vendor-ui-OpGQ1Zj8.js",
+      "_vendor-recharts-UQae2Itt.js"
     ]
   },
   "_vendor-react-l0sNRNKZ.js": {
     "file": "assets/vendor-react-l0sNRNKZ.js",
     "name": "vendor-react"
   },
-  "_vendor-recharts-CA4Y_dm8.js": {
-    "file": "assets/vendor-recharts-CA4Y_dm8.js",
+  "_vendor-recharts-UQae2Itt.js": {
+    "file": "assets/vendor-recharts-UQae2Itt.js",
     "name": "vendor-recharts",
     "imports": [
-      "_vendor-ui-CqFbfHGd.js"
+      "_vendor-ui-OpGQ1Zj8.js"
     ]
   },
-  "_vendor-ui-CqFbfHGd.js": {
-    "file": "assets/vendor-ui-CqFbfHGd.js",
+  "_vendor-ui-OpGQ1Zj8.js": {
+    "file": "assets/vendor-ui-OpGQ1Zj8.js",
     "name": "vendor-ui"
   },
   "node_modules/leaflet/dist/images/layers-2x.png": {
@@ -34,40 +34,23 @@
     "file": "assets/marker-icon-hN30_KVU.png",
     "src": "node_modules/leaflet/dist/images/marker-icon.png"
   },
-  "resources/js/components/CityMapLeaflet.tsx": {
-    "file": "assets/CityMapLeaflet-DNvcRYvK.js",
-    "name": "CityMapLeaflet",
-    "src": "resources/js/components/CityMapLeaflet.tsx",
-    "isDynamicEntry": true,
+  "resources/js/main.tsx": {
+    "file": "assets/main-CSB-QHPu.js",
+    "name": "main",
+    "src": "resources/js/main.tsx",
+    "isEntry": true,
     "imports": [
-      "resources/js/main.tsx",
-      "_vendor-ui-CqFbfHGd.js",
-      "_vendor-leaflet-DvTkQju3.js",
-      "_vendor-recharts-CA4Y_dm8.js"
+      "_vendor-ui-OpGQ1Zj8.js",
+      "_vendor-recharts-UQae2Itt.js",
+      "_vendor-leaflet-FYonYY3m.js"
     ],
     "css": [
-      "assets/CityMapLeaflet-CLLlcC51.css"
+      "assets/main-4Fd_QH1D.css"
     ],
     "assets": [
       "assets/layers-BWBAp2CZ.png",
       "assets/layers-2x-Bpkbi35X.png",
       "assets/marker-icon-hN30_KVU.png"
-    ]
-  },
-  "resources/js/main.tsx": {
-    "file": "assets/main-DufCpFnZ.js",
-    "name": "main",
-    "src": "resources/js/main.tsx",
-    "isEntry": true,
-    "imports": [
-      "_vendor-ui-CqFbfHGd.js",
-      "_vendor-recharts-CA4Y_dm8.js"
-    ],
-    "dynamicImports": [
-      "resources/js/components/CityMapLeaflet.tsx"
-    ],
-    "css": [
-      "assets/main-YaLoCnWq.css"
     ]
   }
 }
