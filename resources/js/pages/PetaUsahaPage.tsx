@@ -38,8 +38,8 @@ export default function PetaUsahaPage() {
       {showFilters && (
         <Card className="w-56 flex-shrink-0 flex flex-col" padding="p-4">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-semibold text-gray-900">Filter Usaha</span>
-            <button onClick={() => setShowFilters(false)} className="text-gray-400 hover:text-gray-600">
+            <span className="text-sm font-semibold text-foreground">Filter Usaha</span>
+            <button onClick={() => setShowFilters(false)} className="text-muted-foreground hover:text-foreground">
               <X size={14} />
             </button>
           </div>
@@ -51,25 +51,25 @@ export default function PetaUsahaPage() {
               { label: "Status", opts: ["Semua", "Aktif", "Pending", "Kadaluarsa", "Ditolak"] },
             ].map((f) => (
               <div key={f.label}>
-                <label className="block text-xs font-medium text-gray-600 mb-1">{f.label}</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">{f.label}</label>
                 <div className="relative">
-                  <select className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white appearance-none focus:outline-none focus:border-[#2E7D32]">
+                  <select className="w-full text-xs border border-border rounded-lg px-2.5 py-1.5 bg-background appearance-none focus:outline-none focus:border-primary">
                     {f.opts.map(o => <option key={o}>{o}</option>)}
                   </select>
-                  <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                 </div>
               </div>
             ))}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Nama Usaha</label>
-              <input type="text" placeholder="Cari nama..." className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#2E7D32]" />
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Nama Usaha</label>
+              <input type="text" placeholder="Cari nama..." className="w-full text-xs border border-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-primary bg-background" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Rentang Tanggal</label>
-              <input type="date" className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#2E7D32]" />
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Rentang Tanggal</label>
+              <input type="date" className="w-full text-xs border border-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-primary bg-background" />
             </div>
             <Btn variant="primary" size="sm" Icon={Search} className="w-full justify-center">Terapkan</Btn>
-            <Btn variant="ghost" size="sm" Icon={RotateCcw} className="w-full justify-center text-gray-500">Reset Filter</Btn>
+            <Btn variant="ghost" size="sm" Icon={RotateCcw} className="w-full justify-center text-muted-foreground">Reset Filter</Btn>
           </div>
         </Card>
       )}
@@ -83,17 +83,17 @@ export default function PetaUsahaPage() {
               {!showFilters && (
                 <Btn variant="outline" size="sm" Icon={Filter} onClick={() => setShowFilters(true)}>Filter</Btn>
               )}
-              <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+              <div className="flex items-center gap-1 bg-muted rounded-xl p-1">
                 {["cluster", "heatmap", "boundary"].map(l => (
                   <button key={l} onClick={() => setActiveLayer(l)}
-                    className={`px-3 py-1 text-xs font-medium rounded-lg transition-all capitalize ${activeLayer === l ? "bg-white shadow-sm text-[#2E7D32]" : "text-gray-500"}`}>
+                    className={`px-3 py-1 text-xs font-medium rounded-lg transition-all capitalize ${activeLayer === l ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"}`}>
                     {l}
                   </button>
                 ))}
               </div>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">
+              <div className="text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-lg border border-border">
                 📍 -6.2088°, 106.8456°
               </div>
               <Btn variant="outline" size="sm" Icon={ZoomIn} />
@@ -106,52 +106,52 @@ export default function PetaUsahaPage() {
 
         <div className="flex-1 relative">
           <Card className="h-full" padding="p-0">
-            <Suspense fallback={<div className="flex items-center justify-center h-full w-full bg-gray-50 text-gray-400">Memuat Peta...</div>}>
+            <Suspense fallback={<div className="flex items-center justify-center h-full w-full bg-muted text-muted-foreground">Memuat Peta...</div>}>
               <CityMapLeaflet height="100%" selectedMarker={selected} onSelectMarker={setSelectedBusiness} markers={markers} onBoundsChange={handleBoundsChange} />
             </Suspense>
           </Card>
 
           {/* Map legend */}
-          <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-xl border border-gray-200 p-3 shadow-sm">
-            <p className="text-xs font-semibold text-gray-700 mb-2">Legenda</p>
+          <div className="absolute bottom-4 left-4 bg-card/95 backdrop-blur-sm rounded-xl border border-border p-3 shadow-sm z-10">
+            <p className="text-xs font-semibold text-foreground mb-2">Legenda</p>
             {[
-              { color: "#2E7D32", label: "Izin Aktif" },
-              { color: "#F57F17", label: "Pending Verifikasi" },
-              { color: "#E65100", label: "Kadaluarsa" },
-              { color: "#C62828", label: "Ditolak" },
+              { color: "var(--success)", label: "Izin Aktif" },
+              { color: "var(--info)", label: "Pending Verifikasi" },
+              { color: "var(--warning)", label: "Kadaluarsa" },
+              { color: "var(--danger)", label: "Ditolak" },
             ].map(l => (
               <div key={l.label} className="flex items-center gap-2 mb-1.5 last:mb-0">
                 <div className="w-3 h-3 rounded-full" style={{ background: l.color }} />
-                <span className="text-xs text-gray-600">{l.label}</span>
+                <span className="text-xs text-muted-foreground">{l.label}</span>
               </div>
             ))}
           </div>
 
           {/* Zoom count */}
-          <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-xl border border-gray-200 px-3 py-2 shadow-sm">
-            <span className="text-xs text-gray-500">Zoom: </span>
-            <span className="text-xs font-semibold text-gray-900">14</span>
+          <div className="absolute top-4 left-4 bg-card/95 backdrop-blur-sm rounded-xl border border-border px-3 py-2 shadow-sm z-10">
+            <span className="text-xs text-muted-foreground">Zoom: </span>
+            <span className="text-xs font-semibold text-foreground">14</span>
           </div>
         </div>
       </div>
 
       {/* Detail sidebar */}
       {selected && (
-        <Card className="w-64 flex-shrink-0 flex flex-col" padding="p-0">
-          <div className="p-4 bg-[#2E7D32] rounded-t-2xl flex items-center justify-between">
+        <Card className="w-64 flex-shrink-0 flex flex-col overflow-hidden" padding="p-0">
+          <div className="p-4 bg-primary flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-green-200 mb-1">Detail Usaha</p>
-              <h4 className="text-sm font-semibold text-white leading-snug">{selected.nama_perusahaan}</h4>
+              <p className="text-xs font-medium text-primary-foreground/80 mb-1">Detail Usaha</p>
+              <h4 className="text-sm font-semibold text-primary-foreground leading-snug">{selected.nama_perusahaan}</h4>
             </div>
-            <button onClick={() => setSelectedBusiness(null)} className="text-white/80 hover:text-white transition-colors">
+            <button onClick={() => setSelectedBusiness(null)} className="text-primary-foreground/80 hover:text-primary-foreground transition-colors">
               <X size={16} />
             </button>
           </div>
           <div className="flex-1 overflow-auto p-4 space-y-3">
-            <div className="w-full h-28 rounded-xl bg-gradient-to-br from-green-50 to-green-100 border border-green-200 flex items-center justify-center">
+            <div className="w-full h-28 rounded-xl bg-muted border border-border flex items-center justify-center">
               <div className="text-center">
-                <Building2 size={28} className="text-green-400 mx-auto mb-1" />
-                <p className="text-xs text-green-600">Foto Usaha</p>
+                <Building2 size={28} className="text-muted-foreground mx-auto mb-1" />
+                <p className="text-xs text-muted-foreground">Foto Usaha</p>
               </div>
             </div>
 
@@ -162,18 +162,18 @@ export default function PetaUsahaPage() {
               { label: "Kecamatan", value: selected.kecamatan || '-' },
               { label: "Koordinat", value: selected.lat && selected.lng ? `${selected.lat}, ${selected.lng}` : '-' },
             ].map((f) => (
-              <div key={f.label} className="border-b border-gray-50 pb-2.5 last:border-0">
-                <p className="text-xs text-gray-400 mb-0.5">{f.label}</p>
+              <div key={f.label} className="border-b border-border pb-2.5 last:border-0">
+                <p className="text-xs text-muted-foreground mb-0.5">{f.label}</p>
                 {f.badge ? <StatusBadge status={f.value} /> : (
-                  <p className="text-xs font-medium text-gray-800">{f.value}</p>
+                  <p className="text-xs font-medium text-foreground">{f.value}</p>
                 )}
               </div>
             ))}
           </div>
-          <div className="p-4 border-t border-gray-100 space-y-2">
+          <div className="p-4 border-t border-border space-y-2">
             <Btn variant="primary" size="sm" Icon={Eye} className="w-full justify-center">Lihat Detail</Btn>
             <Btn variant="secondary" size="sm" Icon={Edit} className="w-full justify-center">Edit Data</Btn>
-            <Btn variant="outline" size="sm" Icon={Navigation} className="w-full justify-center text-blue-600">Rute</Btn>
+            <Btn variant="outline" size="sm" Icon={Navigation} className="w-full justify-center">Rute</Btn>
           </div>
         </Card>
       )}

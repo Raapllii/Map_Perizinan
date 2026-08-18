@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router";
-import { Home, ChevronRight, Search, Sun, Moon, Bell, ChevronDown } from "lucide-react";
+import { Home, ChevronRight, Search, Sun, Moon, Bell, ChevronDown, Menu } from "lucide-react";
 import { PAGE_TITLES } from "../../constants";
 
-export default function TopBar({ darkMode, setDarkMode }: any) {
+export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
   const [showNotifs, setShowNotifs] = useState(false);
   const [time, setTime] = useState(new Date());
   const location = useLocation();
@@ -25,85 +25,94 @@ export default function TopBar({ darkMode, setDarkMode }: any) {
   ];
 
   return (
-    <header className="h-16 flex-shrink-0 bg-white border-b border-gray-100 flex items-center px-6 gap-4 relative z-20">
+    <header className="h-16 flex-shrink-0 bg-card border-b border-border flex items-center px-4 lg:px-6 gap-3 lg:gap-4 relative z-20">
+      {/* Mobile Menu Button */}
+      <button 
+        className="lg:hidden p-2 -ml-2 text-muted-foreground hover:bg-muted hover:text-foreground rounded-md transition-colors"
+        onClick={onMenuClick}
+        aria-label="Open menu"
+      >
+        <Menu size={20} />
+      </button>
+
       {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-sm text-gray-500 mr-4">
-        <Home size={13} className="text-gray-400" />
-        <ChevronRight size={12} className="text-gray-300" />
-        <span className="text-gray-400">Sistem NIB</span>
-        <ChevronRight size={12} className="text-gray-300" />
-        <span className="font-medium text-gray-700">{pageInfo?.title}</span>
+      <div className="hidden md:flex items-center gap-1.5 text-sm text-muted-foreground mr-2">
+        <Home size={14} className="text-muted-foreground/70" />
+        <ChevronRight size={14} className="text-muted-foreground/50" />
+        <span>Sistem NIB</span>
+        <ChevronRight size={14} className="text-muted-foreground/50" />
+        <span className="font-medium text-foreground">{pageInfo?.title}</span>
       </div>
 
       {/* Search */}
-      <div className="relative flex-1 max-w-sm">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input placeholder="Cari usaha, NIB, atau lokasi..."
-          className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-[#2E7D32] transition-all" />
+      <div className="relative flex-1 max-w-sm ml-auto md:ml-0">
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <input placeholder="Cari usaha, NIB..."
+          className="w-full pl-9 pr-4 py-2 text-sm border border-input rounded-md bg-input-background focus:bg-background focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" />
       </div>
 
-      <div className="flex-1" />
+      <div className="flex-1 hidden md:block" />
 
       {/* Date time */}
-      <div className="text-xs text-gray-500 bg-gray-50 px-3 py-2 rounded-xl border border-gray-100 font-mono tabular-nums">
+      <div className="hidden lg:block text-xs text-muted-foreground bg-muted px-3 py-2 rounded-md border border-border font-mono tabular-nums">
         {time.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}
         {" "}
-        <span className="font-semibold text-gray-700">
+        <span className="font-semibold text-foreground">
           {time.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
         </span>
       </div>
 
       {/* Dark mode */}
       <button onClick={() => setDarkMode(!darkMode)}
-        className="p-2.5 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 transition-all hover:text-gray-700">
-        {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+        className="p-2 rounded-md border border-input text-muted-foreground hover:bg-muted transition-all hover:text-foreground">
+        {darkMode ? <Sun size={18} /> : <Moon size={18} />}
       </button>
 
       {/* Notifications */}
       <div className="relative">
         <button onClick={() => setShowNotifs(!showNotifs)}
-          className="relative p-2.5 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 transition-all hover:text-gray-700">
-          <Bell size={16} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+          className="relative p-2 rounded-md border border-input text-muted-foreground hover:bg-muted transition-all hover:text-foreground">
+          <Bell size={18} />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-danger rounded-full ring-2 ring-card" />
         </button>
 
         {showNotifs && (
-          <div className="absolute right-0 top-12 w-80 bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden z-50">
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <span className="text-sm font-semibold text-gray-900">Notifikasi</span>
-              <span className="text-xs text-[#2E7D32] font-medium cursor-pointer hover:underline">Tandai semua dibaca</span>
+          <div className="absolute right-0 top-12 w-80 bg-popover border border-border rounded-xl shadow-lg overflow-hidden z-50">
+            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+              <span className="text-sm font-semibold text-popover-foreground">Notifikasi</span>
+              <span className="text-xs text-primary font-medium cursor-pointer hover:underline">Tandai semua dibaca</span>
             </div>
             <div className="max-h-72 overflow-y-auto">
               {notifications.map((n, i) => (
-                <div key={i} className={`px-4 py-3 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors ${!n.read ? "bg-green-50/30" : ""}`}>
-                  <div className="flex items-start gap-2">
-                    {!n.read && <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-1.5 flex-shrink-0" />}
+                <div key={i} className={`px-4 py-3 border-b border-border/50 hover:bg-muted cursor-pointer transition-colors ${!n.read ? "bg-primary/5" : ""}`}>
+                  <div className="flex items-start gap-3">
+                    {!n.read && <div className="w-1.5 h-1.5 bg-primary rounded-full mt-1.5 flex-shrink-0" />}
                     {n.read && <div className="w-1.5 h-1.5 flex-shrink-0" />}
                     <div>
-                      <p className={`text-xs ${!n.read ? "font-semibold text-gray-900" : "text-gray-700"}`}>{n.title}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{n.desc}</p>
+                      <p className={`text-sm ${!n.read ? "font-semibold text-foreground" : "text-muted-foreground"}`}>{n.title}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{n.desc}</p>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-            <div className="px-4 py-2.5 text-center">
-              <button className="text-xs text-[#2E7D32] font-medium hover:underline">Lihat semua notifikasi</button>
+            <div className="px-4 py-3 text-center border-t border-border bg-muted/30">
+              <button className="text-xs text-primary font-medium hover:underline">Lihat semua notifikasi</button>
             </div>
           </div>
         )}
       </div>
 
       {/* Profile */}
-      <div className="flex items-center gap-2.5 pl-3 border-l border-gray-100 cursor-pointer group">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2E7D32] to-[#66BB6A] flex items-center justify-center text-white text-xs font-bold">
+      <div className="flex items-center gap-2.5 pl-3 border-l border-border cursor-pointer group">
+        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold shadow-sm">
           AK
         </div>
-        <div className="leading-tight">
-          <p className="text-xs font-semibold text-gray-900">Dr. Andi K.</p>
-          <p className="text-xs text-gray-400">Super Admin</p>
+        <div className="hidden sm:block leading-tight">
+          <p className="text-xs font-semibold text-foreground">Dr. Andi K.</p>
+          <p className="text-[10px] text-muted-foreground">Super Admin</p>
         </div>
-        <ChevronDown size={13} className="text-gray-400 group-hover:text-gray-600 transition-colors" />
+        <ChevronDown size={14} className="text-muted-foreground group-hover:text-foreground transition-colors hidden sm:block" />
       </div>
     </header>
   );

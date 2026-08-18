@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useLocation, Navigate } from "react-router";
 import { RefreshCw, Download } from "lucide-react";
 import Sidebar from "./Sidebar";
@@ -17,6 +18,7 @@ import PenggunaPage from "../../pages/PenggunaPage";
 import PengaturanPage from "../../pages/PengaturanPage";
 
 export default function AdminLayout({ darkMode, setDarkMode, setUser }: any) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const activePage = location.pathname.split('/').pop() || 'dashboard';
   const pageInfo = PAGE_TITLES[activePage as keyof typeof PAGE_TITLES] || PAGE_TITLES['dashboard'];
@@ -38,27 +40,42 @@ export default function AdminLayout({ darkMode, setDarkMode, setUser }: any) {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#F7F8FA] font-[Inter,sans-serif]">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <TopBar darkMode={darkMode} setDarkMode={setDarkMode} />
+    <div className="flex h-screen overflow-hidden bg-muted font-sans text-foreground">
+      {/* Mobile backdrop */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+      
+      <Sidebar isOpen={isMobileMenuOpen} setIsOpen={setIsMobileMenuOpen} />
+      
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0 relative">
+        <TopBar 
+          darkMode={darkMode} 
+          setDarkMode={setDarkMode} 
+          onMenuClick={() => setIsMobileMenuOpen(true)} 
+        />
+        
         <main className="flex-1 overflow-auto">
           {/* Page header */}
-          <div className="px-6 pt-5 pb-4">
-            <div className="flex items-center justify-between">
+          <div className="px-4 md:px-6 pt-5 pb-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h1 className="text-xl font-bold text-gray-900">{pageInfo?.title}</h1>
-                <p className="text-sm text-gray-500 mt-0.5">{pageInfo?.subtitle}</p>
+                <h1 className="text-2xl font-bold text-foreground">{pageInfo?.title}</h1>
+                <p className="text-sm text-muted-foreground mt-0.5">{pageInfo?.subtitle}</p>
               </div>
               {activePage === "dashboard" && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 self-start md:self-auto">
                   <Btn variant="outline" size="sm" Icon={RefreshCw}>Refresh</Btn>
-                  <Btn variant="primary" size="sm" Icon={Download}>Export Laporan</Btn>
+                  <Btn variant="primary" size="sm" Icon={Download}>Export</Btn>
                 </div>
               )}
             </div>
           </div>
-          <div className="px-6 pb-6">
+          
+          <div className="px-4 md:px-6 pb-6">
             {renderPage()}
           </div>
         </main>

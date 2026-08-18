@@ -8,10 +8,11 @@ use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Concerns\WithCustomCsvSettings;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 use Carbon\Carbon;
 
-class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
+class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading, WithCustomCsvSettings
 {
     public $importedCount = 0;
     public $updatedCount = 0;
@@ -19,7 +20,7 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
 
     public function collection(Collection $rows)
     {
-        $batch = [];
+        $batch = []; // This will be an associative array keyed by 'nib|id_proyek'
         $now = now();
         
         $existingKeys = [];
@@ -45,8 +46,8 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
         DB::beginTransaction();
         try {
             foreach ($rows as $row) {
-                $idProyek = $row['id_proyek'] ?? null;
-                $nib = $row['nib'] ?? null;
+                $idProyek = isset($row['id_proyek']) ? trim((string) $row['id_proyek']) : null;
+                $nib = isset($row['nib']) ? trim((string) $row['nib']) : null;
 
                 if (empty($idProyek) || empty($nib)) {
                     $fails++;
@@ -92,14 +93,14 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
                 $data = [
                     'id_proyek' => $idProyek,
                     'nib' => $nib,
-                    'nama_perusahaan' => $row['nama_perusahaan'] ?? null,
-                    'risiko' => $row['risiko_proyek'] ?? null,
+                    'nama_perusahaan' => !empty($row['nama_perusahaan']) ? $row['nama_perusahaan'] : (!empty($row['nama_user']) ? $row['nama_user'] : '-'),
+                    'risiko' => $row['uraian_risiko_proyek'] ?? ($row['risiko_proyek'] ?? null),
                     'kbli' => $row['kbli'] ?? null,
                     'judul_kbli' => $row['judul_kbli'] ?? null,
                     'alamat_proyek' => $row['alamat_usaha'] ?? null,
-                    'kecamatan' => $row['kecamatan'] ?? null,
-                    'kelurahan' => $row['kelurahan'] ?? null,
-                    'status_pm' => $row['status_penanaman_modal'] ?? null,
+                    'kecamatan' => $row['kecamatan_usaha'] ?? ($row['kecamatan'] ?? null),
+                    'kelurahan' => $row['kelurahan_usaha'] ?? ($row['kelurahan'] ?? null),
+                    'status_pm' => $row['uraian_status_penanaman_modal'] ?? ($row['status_penanaman_modal'] ?? null),
                     'status' => 'Aktif',
                     'tgl_terbit' => $tglTerbit,
                     'lat' => $lat,
@@ -107,19 +108,19 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
                     
                     // New Columns Mapping
                     'jenis_perusahaan' => $row['jenis_perusahaan'] ?? null,
-                    'skala_usaha' => $row['skala_usaha'] ?? null,
+                    'skala_usaha' => $row['uraian_skala_usaha'] ?? ($row['skala_usaha'] ?? null),
                     'propinsi' => $row['propinsi'] ?? null,
-                    'kabupaten' => $row['kabupaten'] ?? null,
+                    'kabupaten' => $row['kab_kota_usaha'] ?? ($row['kabupaten'] ?? null),
                     'profile_name' => $row['profile_name'] ?? null,
-                    'day_of_tanggal_terbit_oss' => $row['day_of_tanggal_terbit_oss'] ?? null,
+                    'day_of_tanggal_terbit_oss' => $row['day_of_tanggal_pengajuan_proyek'] ?? ($row['day_of_tanggal_terbit_oss'] ?? null),
                     'uraian_jenis_perusahaan' => $row['uraian_jenis_perusahaan'] ?? null,
-                    'sektor' => $row['sektor'] ?? null,
+                    'sektor' => $row['kl_sektor_pembina'] ?? ($row['sektor'] ?? null),
                     'nama_user' => $row['nama_user'] ?? null,
                     'nik' => $row['nik'] ?? null,
                     'email' => $row['email'] ?? null,
-                    'telp' => $row['telp'] ?? null,
-                    'luasan_pd' => $parseDecimal($row['luasan_pd'] ?? null),
-                    'satuan_luasan_pd' => $row['satuan_luasan_pd'] ?? null,
+                    'telp' => $row['nomor_telp'] ?? ($row['telp'] ?? null),
+                    'luasan_pd' => $parseDecimal($row['luas_tanah'] ?? ($row['luasan_pd'] ?? null)),
+                    'satuan_luasan_pd' => $row['satuan_tanah'] ?? ($row['satuan_luasan_pd'] ?? null),
                     'mesin_peralatan_impor' => $parseDecimal($row['mesin_peralatan_impor'] ?? null),
                     'mesin_peralatan_lokal' => $parseDecimal($row['mesin_peralatan_lokal'] ?? null),
                     'pembelian_pematangan_tanah' => $parseDecimal($row['pembelian_pematangan_tanah'] ?? null),
@@ -134,20 +135,23 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
                     'updated_at' => $now,
                 ];
 
-                $batch[] = $data;
-                
                 $key = $nib . '|' . $idProyek;
+                
+                // Keep only the latest entry for each unique key to prevent PostgreSQL 'cannot affect row a second time' error
+                $batch[$key] = $data;
+                
                 if (isset($existingKeys[$key])) {
                     $updates++;
                 } else {
                     $inserts++;
-                    $existingKeys[$key] = true; 
+                    $existingKeys[$key] = true; // Mark as existing for subsequent chunks
                 }
             }
 
             if (!empty($batch)) {
+                $uniqueBatch = array_values($batch);
                 DB::table('businesses')->upsert(
-                    $batch,
+                    $uniqueBatch,
                     ['nib', 'id_proyek'],
                     [
                         'nama_perusahaan', 'risiko', 'kbli', 'judul_kbli', 'alamat_proyek',
@@ -177,6 +181,13 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
 
     public function chunkSize(): int
     {
-        return 1000;
+        return 500;
+    }
+
+    public function getCsvSettings(): array
+    {
+        return [
+            'delimiter' => ';'
+        ];
     }
 }

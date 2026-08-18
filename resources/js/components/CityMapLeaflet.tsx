@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, ZoomControl, ScaleControl } from 'react-leaflet';
+import React, { useEffect, useMemo } from 'react';
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents, ZoomControl, ScaleControl } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -20,31 +21,33 @@ interface CityMapLeafletProps {
   className?: string;
   mapType?: 'peta' | 'satelit';
   flyTrigger?: { lat: number, lng: number, zoom: number, ts: number } | null;
+  showHeatmap?: boolean;
 }
 
 const getRiskColor = (risiko: string) => {
   switch (risiko?.toLowerCase()) {
-    case 'rendah': return '#34A853'; // Hijau
-    case 'menengah rendah': return '#4285F4'; // Biru
-    case 'menengah tinggi': return '#FBBC05'; // Kuning
-    case 'tinggi': return '#EA4335'; // Merah
-    case 'sangat tinggi': return '#9C27B0'; // Ungu
-    default: return '#9E9E9E'; // Abu-abu
+    case 'rendah': return 'var(--success)';
+    case 'menengah rendah': return 'var(--info)';
+    case 'menengah tinggi': return 'var(--warning)';
+    case 'tinggi': return 'var(--danger)';
+    case 'sangat tinggi': return 'var(--critical)';
+    default: return 'var(--muted-foreground)';
   }
 };
 
 const customIcon = (risiko: string, isSelected: boolean = false) => {
-  const markerColor = isSelected ? '#34A853' : getRiskColor(risiko);
+  const markerColor = isSelected ? 'var(--primary)' : getRiskColor(risiko);
+  const scale = isSelected ? 'transform: scale(1.1);' : '';
 
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" style="filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3)); outline: none;">
-      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="${markerColor}" stroke="#fff" stroke-width="1"/>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" style="outline: none; ${scale}">
+      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="${markerColor}" stroke="#fff" stroke-width="1.5"/>
       <circle cx="12" cy="9" r="3.5" fill="#fff"/>
     </svg>
   `;
   return new L.DivIcon({
-    className: 'custom-svg-icon bg-transparent border-none outline-none focus:outline-none focus-visible:outline-none [&:focus]:outline-none',
-    html: `<div style="cursor: pointer; outline: none;" tabindex="-1">${svg}</div>`,
+    className: 'custom-svg-icon bg-transparent border-none outline-none focus:outline-none',
+    html: `<div style="cursor: pointer;" tabindex="0" aria-label="Marker Lokasi Usaha">${svg}</div>`,
     iconSize: [32, 32],
     iconAnchor: [16, 32]
   });
@@ -58,14 +61,6 @@ function MapEventsHandler({ onBoundsChange, onSelectMarker }: { onBoundsChange?:
       }
     },
     moveend: () => {
-      if (onBoundsChange) {
-        const bounds = map.getBounds();
-        const sw = bounds.getSouthWest();
-        const ne = bounds.getNorthEast();
-        onBoundsChange(`${sw.lat},${sw.lng},${ne.lat},${ne.lng}`);
-      }
-    },
-    zoomend: () => {
       if (onBoundsChange) {
         const bounds = map.getBounds();
         const sw = bounds.getSouthWest();
@@ -87,10 +82,21 @@ function MapFlyer({ trigger }: { trigger?: { lat: number, lng: number, zoom: num
   return null;
 }
 
-
+function InvalidateSizeObserver() {
+  const map = useMap();
+  useEffect(() => {
+    const observer = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+    const container = map.getContainer();
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [map]);
+  return null;
+}
 
 export default function CityMapLeaflet({ height = "100%", markers = [], onSelectMarker, selectedMarker, onBoundsChange, className = "", mapType = 'peta', flyTrigger = null }: CityMapLeafletProps) {
-  const defaultCenter: [number, number] = [-0.502106, 117.153709]; // Default to Samarinda
+  const defaultCenter: [number, number] = [-0.502106, 117.153709];
 
   const renderedMarkers = useMemo(() => {
     return markers.map((marker, index) => {
@@ -109,6 +115,11 @@ export default function CityMapLeaflet({ height = "100%", markers = [], onSelect
               if (onSelectMarker) {
                 onSelectMarker(marker);
               }
+            },
+            keypress: (e) => {
+              if (e.originalEvent.key === 'Enter' && onSelectMarker) {
+                onSelectMarker(marker);
+              }
             }
           }}
         />
@@ -121,26 +132,29 @@ export default function CityMapLeaflet({ height = "100%", markers = [], onSelect
     : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
   const attribution = mapType === 'satelit'
-    ? '&copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-    : '&copy; <a href="https://osm.org/copyright"></a>';
+    ? '&copy; Esri'
+    : '&copy; OpenStreetMap';
 
   return (
     <div style={{ height, width: '100%', position: 'relative' }} className={className}>
       <MapContainer center={defaultCenter} zoom={12} style={{ height: '100%', width: '100%' }} zoomControl={false}>
-        <TileLayer
-          attribution={attribution}
-          url={tileUrl}
-        />
+        <TileLayer attribution={attribution} url={tileUrl} />
         <ZoomControl position="bottomright" />
         <ScaleControl position="bottomright" />
         <MapEventsHandler onBoundsChange={onBoundsChange} onSelectMarker={onSelectMarker} />
-
-        {renderedMarkers}
+        <InvalidateSizeObserver />
+        
+        <MarkerClusterGroup 
+          chunkedLoading 
+          maxClusterRadius={60} 
+          spiderfyOnMaxZoom={true}
+          showCoverageOnHover={false}
+        >
+          {renderedMarkers}
+        </MarkerClusterGroup>
 
         <MapFlyer trigger={flyTrigger} />
       </MapContainer>
-
-
     </div>
   );
 }

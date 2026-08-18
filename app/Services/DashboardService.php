@@ -40,12 +40,12 @@ class DashboardService
         $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
         
         $monthlyQuery = Business::select(
-                DB::raw('MONTH(tgl_terbit) as month'), 
+                DB::raw('EXTRACT(MONTH FROM tgl_terbit) as month'), 
                 'status', 
                 DB::raw('count(*) as total')
             )
             ->whereYear('tgl_terbit', '2024')
-            ->groupBy(DB::raw('MONTH(tgl_terbit)'), 'status')
+            ->groupBy(DB::raw('EXTRACT(MONTH FROM tgl_terbit)'), 'status')
             ->get();
             
         $monthly = [];
@@ -148,9 +148,9 @@ class DashboardService
 
     private function getTrendData()
     {
-        $trendQuery = Business::select(DB::raw('YEAR(tgl_terbit) as year'), 'status', DB::raw('count(*) as total'))
+        $trendQuery = Business::select(DB::raw('EXTRACT(YEAR FROM tgl_terbit) as year'), 'status', DB::raw('count(*) as total'))
             ->whereNotNull('tgl_terbit')
-            ->groupBy(DB::raw('YEAR(tgl_terbit)'), 'status')
+            ->groupBy(DB::raw('EXTRACT(YEAR FROM tgl_terbit)'), 'status')
             ->orderBy('year', 'asc')
             ->get();
             

@@ -23,6 +23,7 @@ export default function LaporanPage() {
         setLoading(false);
       });
   }, []);
+  
   const [activeTab, setActiveTab] = useState("kecamatan");
   const [year, setYear] = useState("2025");
 
@@ -34,49 +35,49 @@ export default function LaporanPage() {
   ];
 
   const statusPie = [
-    { name: "Aktif", value: 1923, color: "#2E7D32" },
-    { name: "Kadaluarsa", value: 156, color: "#F57C00" },
-    { name: "Pending", value: 234, color: "#F57F17" },
-    { name: "Ditolak", value: 89, color: "#C62828" },
-    { name: "Lainnya", value: 445, color: "#9E9E9E" },
+    { name: "Aktif", value: 1923, color: "var(--success)" },
+    { name: "Kadaluarsa", value: 156, color: "var(--warning)" },
+    { name: "Pending", value: 234, color: "var(--info)" },
+    { name: "Ditolak", value: 89, color: "var(--danger)" },
+    { name: "Lainnya", value: 445, color: "var(--muted-foreground)" },
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* KPI summary */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {[
-          { label: "Total Usaha Terdaftar", value: "2.847", sub: "Per Juli 2025", color: "text-[#2E7D32]" },
-          { label: "Tingkat Verifikasi", value: "87.4%", sub: "+2.1% dari bulan lalu", color: "text-blue-600" },
-          { label: "Rata-rata/Bulan", value: "237", sub: "Pendaftaran baru", color: "text-purple-600" },
-          { label: "Tingkat Kepatuhan", value: "92.3%", sub: "Izin yang masih berlaku", color: "text-teal-600" },
+          { label: "Total Usaha Terdaftar", value: "2.847", sub: "Per Juli 2025", color: "text-primary" },
+          { label: "Tingkat Verifikasi", value: "87.4%", sub: "+2.1% dari bulan lalu", color: "text-info" },
+          { label: "Rata-rata/Bulan", value: "237", sub: "Pendaftaran baru", color: "text-secondary" },
+          { label: "Tingkat Kepatuhan", value: "92.3%", sub: "Izin yang masih berlaku", color: "text-success" },
         ].map(k => (
-          <Card key={k.label} padding="p-4">
-            <div className={`text-2xl font-bold ${k.color} mb-1`}>{k.value}</div>
-            <div className="text-sm font-medium text-gray-700">{k.label}</div>
-            <div className="text-xs text-gray-400 mt-0.5">{k.sub}</div>
+          <Card key={k.label} padding="p-5" className="hover:shadow-md transition-shadow">
+            <div className={`text-3xl font-bold ${k.color} mb-1.5 tracking-tight`}>{k.value}</div>
+            <div className="text-sm font-bold text-foreground">{k.label}</div>
+            <div className="text-xs font-medium text-muted-foreground mt-1">{k.sub}</div>
           </Card>
         ))}
       </div>
 
       {/* Tabs */}
-      <Card padding="p-5">
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+      <Card padding="p-5" className="flex flex-col">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div className="flex flex-wrap gap-1 bg-muted/30 rounded-xl p-1 w-full md:w-auto">
             {tabs.map(t => (
               <button key={t.id} onClick={() => setActiveTab(t.id)}
-                className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all ${activeTab === t.id ? "bg-white shadow-sm text-[#2E7D32]" : "text-gray-500 hover:text-gray-700"}`}>
+                className={`flex-1 md:flex-none px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === t.id ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"}`}>
                 {t.label}
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="relative">
               <select value={year} onChange={e => setYear(e.target.value)}
-                className="text-sm border border-gray-200 rounded-xl px-3 py-2 appearance-none focus:outline-none focus:border-[#2E7D32] bg-white pr-8">
+                className="text-sm font-medium border border-border rounded-xl px-4 py-2 appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-background pr-9 transition-colors">
                 {["2025", "2024", "2023", "2022"].map(y => <option key={y}>{y}</option>)}
               </select>
-              <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             </div>
             <Btn variant="outline" size="sm" Icon={FileText}>PDF</Btn>
             <Btn variant="outline" size="sm" Icon={FileSpreadsheet}>Excel</Btn>
@@ -85,37 +86,39 @@ export default function LaporanPage() {
         </div>
 
         {activeTab === "kecamatan" && (
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={districts} layout="vertical" barGap={2} barCategoryGap="25%">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "#6B7280" }} axisLine={false} tickLine={false} width={90} />
-                  <Tooltip contentStyle={{ borderRadius: "12px", border: "1px solid #e5e7eb", fontSize: "12px" }} />
-                  <Bar dataKey="active" name="Aktif" fill="#2E7D32" radius={[0, 4, 4, 0]} />
-                  <Bar dataKey="pending" name="Pending" fill="#FFA726" radius={[0, 4, 4, 0]} />
-                  <Bar dataKey="expired" name="Kadaluarsa" fill="#EF5350" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            <div className="w-full overflow-x-auto">
+              <div className="min-w-[400px]">
+                <ResponsiveContainer width="100%" height={320}>
+                  <BarChart data={districts} layout="vertical" barGap={4} barCategoryGap="20%" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+                    <XAxis type="number" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
+                    <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "var(--muted-foreground)", fontWeight: 500 }} axisLine={false} tickLine={false} width={100} />
+                    <Tooltip contentStyle={{ borderRadius: "12px", border: "1px solid var(--border)", fontSize: "12px", backgroundColor: "var(--card)" }} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
+                    <Bar dataKey="active" name="Aktif" fill="var(--success)" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="pending" name="Pending" fill="var(--warning)" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="expired" name="Kadaluarsa" fill="var(--danger)" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-            <div className="overflow-auto">
-              <table className="w-full text-sm">
+            <div className="overflow-x-auto border border-border rounded-xl">
+              <table className="w-full text-sm text-left">
                 <thead>
-                  <tr className="border-b border-gray-100">
+                  <tr className="border-b border-border bg-muted/30">
                     {["Kecamatan", "Total", "Aktif", "Pending", "Kadaluarsa"].map(h => (
-                      <th key={h} className="text-left py-2 px-2 text-xs font-semibold text-gray-500">{h}</th>
+                      <th key={h} className="py-3.5 px-4 text-xs font-bold text-muted-foreground tracking-wider uppercase">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-border/50">
                   {districts.map(d => (
-                    <tr key={d.name} className="border-b border-gray-50 hover:bg-gray-50">
-                      <td className="py-2.5 px-2 text-xs font-medium text-gray-900">{d.name}</td>
-                      <td className="py-2.5 px-2 text-xs text-gray-700 font-semibold">{d.total}</td>
-                      <td className="py-2.5 px-2 text-xs text-green-600">{d.active}</td>
-                      <td className="py-2.5 px-2 text-xs text-amber-600">{d.pending}</td>
-                      <td className="py-2.5 px-2 text-xs text-red-600">{d.expired}</td>
+                    <tr key={d.name} className="hover:bg-muted/20 transition-colors">
+                      <td className="py-3 px-4 text-xs font-bold text-foreground">{d.name}</td>
+                      <td className="py-3 px-4 text-xs font-bold text-foreground">{d.total}</td>
+                      <td className="py-3 px-4 text-xs font-bold text-success bg-success/5">{d.active}</td>
+                      <td className="py-3 px-4 text-xs font-bold text-warning bg-warning/5">{d.pending}</td>
+                      <td className="py-3 px-4 text-xs font-bold text-danger bg-danger/5">{d.expired}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -125,30 +128,30 @@ export default function LaporanPage() {
         )}
 
         {activeTab === "kategori" && (
-          <div className="grid grid-cols-2 gap-6">
-            <ResponsiveContainer width="100%" height={280}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            <ResponsiveContainer width="100%" height={320}>
               <PieChart>
-                <Pie data={distribution} cx="50%" cy="50%" outerRadius={110} dataKey="value" paddingAngle={2}
+                <Pie data={distribution} cx="50%" cy="50%" outerRadius={120} dataKey="value" paddingAngle={3} stroke="var(--card)"
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   labelLine={false}>
-                  {distribution.map((d, i) => <Cell key={i} fill={d.color} />)}
+                  {distribution.map((d, i) => <Cell key={i} fill={d.color || `var(--chart-${(i % 5) + 1})`} />)}
                 </Pie>
                 <Tooltip formatter={(v: any) => [v.toLocaleString("id"), "Usaha"]}
-                  contentStyle={{ borderRadius: "12px", border: "1px solid #e5e7eb", fontSize: "12px" }} />
+                  contentStyle={{ borderRadius: "12px", border: "1px solid var(--border)", fontSize: "12px", backgroundColor: "var(--card)" }} />
               </PieChart>
             </ResponsiveContainer>
-            <div className="space-y-3 pt-4">
-              {distribution.map(d => (
+            <div className="space-y-4 lg:pl-4">
+              {distribution.map((d, i) => (
                 <div key={d.name}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ background: d.color }} />
-                      <span className="text-sm text-gray-700">{d.name}</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-3.5 h-3.5 rounded-full shadow-sm" style={{ background: d.color || `var(--chart-${(i % 5) + 1})` }} />
+                      <span className="text-sm font-bold text-foreground">{d.name}</span>
                     </div>
-                    <span className="text-sm font-semibold text-gray-900">{d.value.toLocaleString("id")}</span>
+                    <span className="text-sm font-bold text-foreground">{d.value.toLocaleString("id")}</span>
                   </div>
-                  <div className="h-1.5 bg-gray-100 rounded-full">
-                    <div className="h-full rounded-full" style={{ width: `${(d.value / 2847) * 100}%`, background: d.color }} />
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${(d.value / 2847) * 100}%`, background: d.color || `var(--chart-${(i % 5) + 1})` }} />
                   </div>
                 </div>
               ))}
@@ -157,38 +160,44 @@ export default function LaporanPage() {
         )}
 
         {activeTab === "tren" && (
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={trendData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="year" tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ borderRadius: "12px", border: "1px solid #e5e7eb", fontSize: "12px" }} />
-              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "12px" }} />
-              <Line type="monotone" dataKey="total" name="Total Usaha" stroke="#2E7D32" strokeWidth={3} dot={{ r: 5, fill: "#2E7D32" }} />
-              <Line type="monotone" dataKey="active" name="Izin Aktif" stroke="#66BB6A" strokeWidth={2.5} dot={{ r: 4, fill: "#66BB6A" }} />
-              <Line type="monotone" dataKey="expired" name="Kadaluarsa" stroke="#EF5350" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 4, fill: "#EF5350" }} />
-            </LineChart>
-          </ResponsiveContainer>
+          <div className="w-full overflow-x-auto">
+            <div className="min-w-[600px]">
+              <ResponsiveContainer width="100%" height={340}>
+                <LineChart data={trendData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                  <XAxis dataKey="year" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} dy={10} />
+                  <YAxis tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ borderRadius: "12px", border: "1px solid var(--border)", fontSize: "12px", backgroundColor: "var(--card)" }} />
+                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "12px", paddingTop: "20px" }} />
+                  <Line type="monotone" dataKey="total" name="Total Usaha" stroke="var(--primary)" strokeWidth={3} dot={{ r: 5, fill: "var(--primary)", strokeWidth: 2, stroke: "var(--card)" }} activeDot={{ r: 7 }} />
+                  <Line type="monotone" dataKey="active" name="Izin Aktif" stroke="var(--success)" strokeWidth={2.5} dot={{ r: 4, fill: "var(--success)", strokeWidth: 2, stroke: "var(--card)" }} />
+                  <Line type="monotone" dataKey="expired" name="Kadaluarsa" stroke="var(--danger)" strokeWidth={2.5} strokeDasharray="6 6" dot={{ r: 4, fill: "var(--danger)", strokeWidth: 2, stroke: "var(--card)" }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         )}
 
         {activeTab === "status" && (
-          <div className="grid grid-cols-2 gap-6 items-center">
-            <ResponsiveContainer width="100%" height={260}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            <ResponsiveContainer width="100%" height={300}>
               <PieChart>
-                <Pie data={statusPie} cx="50%" cy="50%" innerRadius={60} outerRadius={100} dataKey="value" paddingAngle={3}>
+                <Pie data={statusPie} cx="50%" cy="50%" innerRadius={70} outerRadius={110} dataKey="value" paddingAngle={4} stroke="var(--card)">
                   {statusPie.map((d, i) => <Cell key={i} fill={d.color} />)}
                 </Pie>
                 <Tooltip formatter={(v: any) => [v.toLocaleString("id"), "Usaha"]}
-                  contentStyle={{ borderRadius: "12px", border: "1px solid #e5e7eb", fontSize: "12px" }} />
+                  contentStyle={{ borderRadius: "12px", border: "1px solid var(--border)", fontSize: "12px", backgroundColor: "var(--card)" }} />
               </PieChart>
             </ResponsiveContainer>
-            <div className="space-y-3">
+            <div className="space-y-3 lg:pl-4">
               {statusPie.map(d => (
-                <div key={d.name} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
-                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: d.color }} />
-                  <span className="text-sm text-gray-700 flex-1">{d.name}</span>
-                  <span className="text-sm font-bold text-gray-900">{d.value.toLocaleString("id")}</span>
-                  <span className="text-xs text-gray-400">{((d.value / 2847) * 100).toFixed(1)}%</span>
+                <div key={d.name} className="flex items-center gap-4 p-4 rounded-xl bg-muted/20 border border-transparent hover:border-border hover:bg-muted/40 transition-colors">
+                  <div className="w-3.5 h-3.5 rounded-full flex-shrink-0 shadow-sm" style={{ background: d.color }} />
+                  <span className="text-sm font-bold text-foreground flex-1">{d.name}</span>
+                  <div className="text-right">
+                    <span className="text-base font-bold text-foreground block">{d.value.toLocaleString("id")}</span>
+                    <span className="text-xs font-semibold text-muted-foreground">{((d.value / 2847) * 100).toFixed(1)}%</span>
+                  </div>
                 </div>
               ))}
             </div>

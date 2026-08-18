@@ -48,7 +48,7 @@ class BusinessService
         return $query->select('id', 'lat', 'lng', 'color', 'nama_perusahaan', 'nib', 'judul_kbli', 'status', 'kecamatan', 'kelurahan', 'risiko')
             ->whereNotNull('lat')
             ->whereNotNull('lng')
-            ->limit(1500)
+            ->limit(50000)
             ->get();
     }
 

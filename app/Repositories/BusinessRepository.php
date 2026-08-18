@@ -27,10 +27,12 @@ class BusinessRepository
         }
 
         if ($request->has('search') && !empty($request->search)) {
-            $query->where(function($q) use ($request) {
-                $q->where('nama_perusahaan', 'like', '%' . $request->search . '%')
-                  ->orWhere('nib', 'like', '%' . $request->search . '%')
-                  ->orWhere('id_proyek', 'like', '%' . $request->search . '%');
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->whereRaw("to_tsvector('simple', COALESCE(nama_perusahaan, '') || ' ' || COALESCE(judul_kbli, '') || ' ' || COALESCE(kbli, '') || ' ' || COALESCE(nib, '') || ' ' || COALESCE(id_proyek, '') || ' ' || COALESCE(kecamatan, '') || ' ' || COALESCE(kelurahan, '') || ' ' || COALESCE(alamat_proyek, '')) @@ plainto_tsquery('simple', ?)", [$search])
+                  ->orWhere('nama_perusahaan', 'ILIKE', '%' . $search . '%')
+                  ->orWhere('nib', 'ILIKE', '%' . $search . '%')
+                  ->orWhere('id_proyek', 'ILIKE', '%' . $search . '%');
             });
         }
 
@@ -56,26 +58,18 @@ class BusinessRepository
             ->whereNotNull('lat')
             ->whereNotNull('lng');
 
-        $words = explode(' ', $keyword);
-        foreach ($words as $word) {
-            if (!empty($word)) {
-                $query->where(function($q) use ($word) {
-                    $q->where('nama_perusahaan', 'LIKE', "%{$word}%")
-                      ->orWhere('judul_kbli', 'LIKE', "%{$word}%")
-                      ->orWhere('kbli', 'LIKE', "%{$word}%")
-                      ->orWhere('nib', 'LIKE', "%{$word}%")
-                      ->orWhere('id_proyek', 'LIKE', "%{$word}%")
-                      ->orWhere('kecamatan', 'LIKE', "%{$word}%")
-                      ->orWhere('kelurahan', 'LIKE', "%{$word}%")
-                      ->orWhere('alamat_proyek', 'LIKE', "%{$word}%");
-                });
-            }
+        if (!empty($keyword)) {
+            $query->where(function($q) use ($keyword) {
+                $q->whereRaw("to_tsvector('simple', COALESCE(nama_perusahaan, '') || ' ' || COALESCE(judul_kbli, '') || ' ' || COALESCE(kbli, '') || ' ' || COALESCE(nib, '') || ' ' || COALESCE(id_proyek, '') || ' ' || COALESCE(kecamatan, '') || ' ' || COALESCE(kelurahan, '') || ' ' || COALESCE(alamat_proyek, '')) @@ plainto_tsquery('simple', ?)", [$keyword])
+                  ->orWhere('nama_perusahaan', 'ILIKE', "%{$keyword}%")
+                  ->orWhere('nib', 'ILIKE', "%{$keyword}%");
+            });
         }
-        
+
         $query->orderByRaw("
             CASE 
-                WHEN nama_perusahaan LIKE ? THEN 1
-                WHEN nama_perusahaan LIKE ? THEN 2
+                WHEN nama_perusahaan ILIKE ? THEN 1
+                WHEN nama_perusahaan ILIKE ? THEN 2
                 ELSE 3
             END
         ", [$keyword, "{$keyword}%"]);

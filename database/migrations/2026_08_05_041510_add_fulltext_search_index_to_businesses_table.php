@@ -1,8 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 class AddFulltextSearchIndexToBusinessesTable extends Migration
 {
@@ -13,10 +12,23 @@ class AddFulltextSearchIndexToBusinessesTable extends Migration
      */
     public function up()
     {
-        Schema::table('businesses', function (Blueprint $table) {
-            // Check if column id_proyek is not null or whatever, but FULLTEXT works on all VARCHAR/TEXT
-            \DB::statement('ALTER TABLE businesses ADD FULLTEXT search_fulltext (nama_perusahaan, judul_kbli, kbli, nib, id_proyek, kecamatan, kelurahan, alamat_proyek)');
-        });
+        DB::statement("
+            CREATE INDEX search_fulltext
+            ON businesses
+            USING GIN (
+                to_tsvector(
+                    'simple',
+                    COALESCE(nama_perusahaan, '') || ' ' ||
+                    COALESCE(judul_kbli, '') || ' ' ||
+                    COALESCE(kbli, '') || ' ' ||
+                    COALESCE(nib, '') || ' ' ||
+                    COALESCE(id_proyek, '') || ' ' ||
+                    COALESCE(kecamatan, '') || ' ' ||
+                    COALESCE(kelurahan, '') || ' ' ||
+                    COALESCE(alamat_proyek, '')
+                )
+            )
+        ");
     }
 
     /**
@@ -26,8 +38,6 @@ class AddFulltextSearchIndexToBusinessesTable extends Migration
      */
     public function down()
     {
-        Schema::table('businesses', function (Blueprint $table) {
-            \DB::statement('ALTER TABLE businesses DROP INDEX search_fulltext');
-        });
+        DB::statement('DROP INDEX IF EXISTS search_fulltext');
     }
 }
