@@ -39,18 +39,24 @@ class BusinessRepository
         if ($request->has('bounds') && !empty($request->bounds)) {
             $bounds = explode(',', $request->bounds);
             if (count($bounds) === 4) {
-                $swLat = min($bounds[0], $bounds[2]);
-                $neLat = max($bounds[0], $bounds[2]);
-                $swLng = min($bounds[1], $bounds[3]);
-                $neLng = max($bounds[1], $bounds[3]);
+                // PostGIS expects ST_MakeEnvelope(xmin, ymin, xmax, ymax, SRID)
+                // x = longitude, y = latitude
+                $swLat = min((float)$bounds[0], (float)$bounds[2]);
+                $neLat = max((float)$bounds[0], (float)$bounds[2]);
+                $swLng = min((float)$bounds[1], (float)$bounds[3]);
+                $neLng = max((float)$bounds[1], (float)$bounds[3]);
 
-                $query->whereBetween('lat', [$swLat, $neLat])
-                      ->whereBetween('lng', [$swLng, $neLng]);
+                $query->whereRaw(
+                    'location && ST_MakeEnvelope(?, ?, ?, ?, 4326)',
+                    [$swLng, $swLat, $neLng, $neLat]
+                );
             }
         }
 
         return $query;
     }
+
+
 
     public function searchByKeyword(string $keyword)
     {

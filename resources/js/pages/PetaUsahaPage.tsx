@@ -19,7 +19,7 @@ export default function PetaUsahaPage() {
       url += `&bounds=${mapBounds}`;
     }
     axios.get(url)
-      .then(res => setMarkers(res.data))
+      .then(res => setMarkers(res.data.data || (Array.isArray(res.data) ? res.data : [])))
       .catch(err => console.error(err));
   }, [mapBounds]);
 

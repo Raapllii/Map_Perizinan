@@ -219,3 +219,21 @@
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }*/
 }
+
+/* Custom Popup for Map */
+.custom-popup .leaflet-popup-content-wrapper {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+.custom-popup .leaflet-popup-content {
+  margin: 0 !important;
+  width: auto !important;
+  line-height: normal !important;
+}
+
+.custom-popup .leaflet-popup-tip-container {
+  display: none !important;
+}

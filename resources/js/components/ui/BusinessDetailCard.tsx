@@ -1,11 +1,11 @@
 import * as React from "react";
-import { motion } from "motion/react";
-import { MapPin, X, Navigation } from "lucide-react";
-
+import { motion, HTMLMotionProps } from "motion/react";
+import { X, Navigation, Building2 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Button } from "./button";
+import { StatusBadge } from "./StatusBadge";
 
-interface BusinessDetailCardProps extends React.HTMLAttributes<HTMLDivElement> {
+interface BusinessDetailCardProps extends Omit<HTMLMotionProps<"div">, "ref"> {
   business: any; // The selectedBusiness object
   onClose?: () => void;
   onDirectionsClick?: () => void;
@@ -13,8 +13,8 @@ interface BusinessDetailCardProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const StatItem = ({ label, value }: { label: string; value: string }) => (
   <div className="flex flex-col">
-    <span className="text-sm font-semibold text-foreground line-clamp-1" title={value}>{value || '-'}</span>
-    <span className="text-xs text-muted-foreground">{label}</span>
+    <span className="text-[10px] font-bold text-muted-foreground uppercase">{label}</span>
+    <span className="text-xs font-medium text-foreground line-clamp-1" title={value}>{value || '-'}</span>
   </div>
 );
 
@@ -22,81 +22,83 @@ const BusinessDetailCard = React.forwardRef<HTMLDivElement, BusinessDetailCardPr
   ({ className, business, onClose, onDirectionsClick, ...props }, ref) => {
     if (!business) return null;
 
-    // Gunakan placeholder bertema arsitektur/kantor yang elegan (Green Enterprise Vibe)
-    const imageUrl = "";
+    const imageUrl = business.image_url || business.photo_url || "";
 
     return (
       <motion.div
         ref={ref}
         className={cn(
-          "w-full max-w-sm overflow-hidden rounded-2xl bg-card text-card-foreground shadow-2xl border border-border relative pointer-events-auto",
+          "w-[260px] overflow-hidden rounded-2xl bg-card text-card-foreground shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-border relative pointer-events-auto",
           className
         )}
-        initial={{ y: 20, opacity: 0, scale: 0.95 }}
+        initial={{ y: 15, opacity: 0, scale: 0.95 }}
         animate={{ y: 0, opacity: 1, scale: 1 }}
-        exit={{ y: 20, opacity: 0, scale: 0.95 }}
-        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+        exit={{ y: 15, opacity: 0, scale: 0.95 }}
+        transition={{ type: "spring", stiffness: 350, damping: 25 }}
         {...props}
       >
-        {/* Close Button */}
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="absolute top-3 right-3 z-10 p-1.5 bg-black/40 hover:bg-black/60 rounded-full text-white backdrop-blur-sm transition-colors"
-            aria-label="Tutup Detail"
-          >
-            <X size={16} />
-          </button>
-        )}
-
-        {/* Top section with background image and content */}
-        <div className="relative h-48 w-full group">
-          <img
-            src={imageUrl}
-            alt={business.nama_perusahaan}
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-          <div className="absolute bottom-0 left-0 flex w-full items-end justify-between p-4">
-            <div className="text-white pr-2 w-full">
-              <h3 className="text-lg font-bold leading-tight line-clamp-2">{business.nama_perusahaan}</h3>
-              <p className="text-sm text-white/80 mt-1 flex items-start gap-1.5">
-                <MapPin className="size-3.5 shrink-0 mt-0.5 text-white/70" />
-                <span className="line-clamp-2">{business.alamat_proyek}</span>
-              </p>
+        {/* Top section with background image or placeholder */}
+        <div className="relative h-28 w-full bg-muted flex items-center justify-center overflow-hidden">
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={business.nama_perusahaan || "Business Image"}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-primary/10 flex items-center justify-center">
+              <Building2 className="text-primary/40 size-10" />
             </div>
-          </div>
+          )}
+          
+          {/* Close Button */}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="absolute top-2 right-2 z-10 p-1.5 bg-black/40 hover:bg-black/60 rounded-full text-white backdrop-blur-sm transition-colors"
+              aria-label="Tutup detail usaha"
+            >
+              <X size={14} strokeWidth={2.5} />
+            </button>
+          )}
         </div>
 
-        {/* Bottom section with trail details */}
-        <div className="p-5 bg-card">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="font-bold text-foreground text-xs uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                  {business.risiko_proyek || 'Tidak Diketahui'}
-                </p>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1.5 font-medium">NIB: <span className="text-foreground">{business.nib}</span></p>
-            </div>
-
+        {/* Content section */}
+        <div className="p-4 bg-card flex flex-col gap-3">
+          {/* Row 1: Status & Rute */}
+          <div className="flex items-start justify-between gap-2">
+            <StatusBadge status={business.status} />
             <Button
-              variant="default"
+              variant="outline"
               size="sm"
               onClick={onDirectionsClick}
-              className="h-8 px-3 shrink-0 rounded-full shadow-md hover:shadow-lg transition-all"
+              className="h-7 px-2.5 text-[11px] shrink-0 rounded-lg shadow-sm"
+              aria-label={`Rute ke ${business.nama_perusahaan}`}
             >
-              <Navigation className="mr-1.5 h-3.5 w-3.5" />
+              <Navigation className="mr-1 h-3 w-3" />
               Rute
             </Button>
           </div>
 
-          <div className="my-4 h-px w-full bg-border" />
+          {/* Row 2: NIB */}
+          <div>
+            <p className="text-[11px] text-muted-foreground font-medium">NIB: <span className="text-foreground font-mono">{business.nib || '-'}</span></p>
+          </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <StatItem label="Kategori" value={business.kategori} />
-            <StatItem label="Skala Usaha" value={business.skala_usaha} />
-            <StatItem label="Status PM" value={business.status_pm} />
+          {/* Row 3: Nama Usaha */}
+          <div>
+            <h3 className="text-sm font-bold leading-tight line-clamp-2 text-foreground" title={business.nama_perusahaan}>
+              {business.nama_perusahaan || '-'}
+            </h3>
+          </div>
+
+          <div className="h-px w-full bg-border" />
+
+          {/* Row 4: Grid Kategori, Skala, Status PM */}
+          <div className="grid grid-cols-3 gap-2">
+            <StatItem label="Kategori" value={business.kategori || business.judul_kbli} />
+            <StatItem label="Skala" value={business.skala_usaha || business.risiko_proyek || business.risiko} />
+            <StatItem label="Status PM" value={business.status_pm || '-'} />
           </div>
         </div>
       </motion.div>

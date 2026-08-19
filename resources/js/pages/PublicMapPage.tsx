@@ -35,16 +35,19 @@ export default function PublicMapPage() {
   });
 
   const [showFilters, setShowFilters] = useState(false);
+  const [isFetchingMap, setIsFetchingMap] = useState(false);
 
-  // Debounced Bounds
+  // Debounced Bounds & Zoom
   const [mapBounds, setMapBounds] = useState("");
+  const [mapZoom, setMapZoom] = useState(12);
   const debounceTimer = useRef<any>(null);
 
-  const handleBoundsChange = useCallback((bounds: string) => {
+  const handleBoundsChange = useCallback((bounds: string, zoom: number) => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(() => {
       setMapBounds(bounds);
-    }, 600);
+      setMapZoom(zoom);
+    }, 400);
   }, []);
 
   useEffect(() => {
@@ -54,17 +57,37 @@ export default function PublicMapPage() {
   }, []);
 
   useEffect(() => {
-    let url = `/api/businesses?map=true`;
+    const minZoom = 8;
+    if (mapZoom < minZoom || !mapBounds) {
+      setMarkers([]);
+      setIsFetchingMap(false);
+      return;
+    }
+
+    let url = `/api/businesses?map=true&zoom=${mapZoom}`;
     if (mapBounds) url += `&bounds=${mapBounds}`;
     if (filters.kecamatan !== "Semua") url += `&kecamatan=${encodeURIComponent(filters.kecamatan)}`;
     if (filters.kategori !== "Semua") url += `&kategori=${encodeURIComponent(filters.kategori)}`;
     if (filters.risiko !== "Semua") url += `&risiko=${encodeURIComponent(filters.risiko)}`;
     if (filters.status !== "Semua") url += `&status=${encodeURIComponent(filters.status)}`;
 
-    axios.get(url)
-      .then(res => setMarkers(res.data))
-      .catch(console.error);
-  }, [mapBounds, filters]);
+    const controller = new AbortController();
+
+    setIsFetchingMap(true);
+    axios.get(url, { signal: controller.signal })
+      .then(res => {
+        setMarkers(res.data.data || []);
+        setIsFetchingMap(false);
+      })
+      .catch(err => {
+        if (!axios.isCancel(err)) {
+          console.error(err);
+          setIsFetchingMap(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [mapBounds, mapZoom, filters]);
 
   // Autocomplete search with debounce
   useEffect(() => {
@@ -98,7 +121,6 @@ export default function PublicMapPage() {
     setSelectedBusiness(b);
     setSearchQuery("");
     setSearchResults([]);
-    setIsBottomSheetOpen(true);
 
     if (fromSearch) {
       saveToHistory(b);
@@ -118,7 +140,7 @@ export default function PublicMapPage() {
 
   return (
     <div className="w-screen h-screen overflow-hidden bg-background flex flex-col md:flex-row font-[Inter,sans-serif]">
-      <Navbar 
+      <Navbar
         searchQuery={searchQuery}
         onSearch={setSearchQuery}
         onFocus={() => { if (!searchQuery && searchHistory.length > 0) setSearchResults(searchHistory) }}
@@ -176,22 +198,27 @@ export default function PublicMapPage() {
               onBoundsChange={handleBoundsChange}
               mapType={mapType}
               flyTrigger={flyTrigger}
+              isMobile={isMobile}
+              renderPopup={(marker) => (
+                <BusinessDetailCard
+                  business={marker}
+                  onClose={() => setSelectedBusiness(null)}
+                  onDirectionsClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${marker.lat},${marker.lng}`, '_blank')}
+                />
+              )}
             />
           </Suspense>
         </div>
 
-        {/* Desktop Detail Card */}
-        <AnimatePresence>
-          {!isMobile && selectedBusiness && (
-            <div className="absolute top-20 left-6 z-40">
-              <BusinessDetailCard 
-                business={selectedBusiness}
-                onClose={() => setSelectedBusiness(null)}
-                onDirectionsClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lng}`, '_blank')}
-              />
+        {/* Zoom Overlay */}
+        {mapZoom < 8 && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+            <div className="bg-background/80 backdrop-blur-md px-6 py-3 rounded-full shadow-lg border border-border text-sm font-semibold text-foreground flex items-center gap-2">
+              <Search size={18} className="text-primary" />
+              Perbesar peta (zoom in) untuk melihat sebaran data usaha.
             </div>
-          )}
-        </AnimatePresence>
+          </div>
+        )}
 
         {/* Map Controls */}
         <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">

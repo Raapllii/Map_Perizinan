@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, useMap, useMapEvents, ZoomControl, ScaleControl } from 'react-leaflet';
-import MarkerClusterGroup from 'react-leaflet-cluster';
+import { MapContainer, TileLayer, useMap, useMapEvents, ZoomControl, ScaleControl, Popup, CircleMarker, Marker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -17,11 +16,13 @@ interface CityMapLeafletProps {
   markers?: any[];
   onSelectMarker?: (marker: any) => void;
   selectedMarker?: any;
-  onBoundsChange?: (bounds: string) => void;
+  onBoundsChange?: (bounds: string, zoom: number) => void;
   className?: string;
   mapType?: 'peta' | 'satelit';
   flyTrigger?: { lat: number, lng: number, zoom: number, ts: number } | null;
   showHeatmap?: boolean;
+  isMobile?: boolean;
+  renderPopup?: (marker: any) => React.ReactNode;
 }
 
 const getRiskColor = (risiko: string) => {
@@ -35,25 +36,25 @@ const getRiskColor = (risiko: string) => {
   }
 };
 
-const customIcon = (risiko: string, isSelected: boolean = false) => {
-  const markerColor = isSelected ? 'var(--primary)' : getRiskColor(risiko);
-  const scale = isSelected ? 'transform: scale(1.1);' : '';
+const customSvgIcon = (isSelected: boolean = false) => {
+  const fillColor = isSelected ? '#22c55e' : '#096e2eff';
+  const scale = isSelected ? 'transform: scale(1.15); transition: transform 0.2s ease;' : 'transition: transform 0.2s ease;';
 
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" style="outline: none; ${scale}">
-      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="${markerColor}" stroke="#fff" stroke-width="1.5"/>
-      <circle cx="12" cy="9" r="3.5" fill="#fff"/>
+    <svg enable-background="new 0 0 500 500" viewBox="0 0 500 500" width="32" height="32" style="outline: none; ${scale}">
+      <path clip-rule="evenodd" d="M227.788,172.774c0-12.538,10.177-22.713,22.713-22.713  c12.536,0,22.715,10.175,22.715,22.713c0,12.536-10.179,22.713-22.715,22.713C237.964,195.487,227.788,185.31,227.788,172.774z   M250.501,113.718c-32.619,0-59.056,26.441-59.056,59.056c0,32.615,26.437,59.056,59.056,59.056  c32.614,0,59.056-26.44,59.056-59.056C309.557,140.159,283.115,113.718,250.501,113.718z M109.676,170.228  c0,92.672,109.297,163.992,118.112,270.569v4.543c0,12.536,10.177,22.711,22.713,22.711c12.536,0,22.715-10.175,22.715-22.711  v-4.543c9.35-106.577,118.108-177.897,118.108-270.569c0-76.407-63.045-138.278-140.823-138.278  C172.729,31.949,109.676,93.821,109.676,170.228z M250.501,77.375c52.693,0,95.396,42.705,95.396,95.398  c0,52.694-42.702,95.398-95.398,95.398c-52.694,0-95.398-42.704-95.398-95.398C155.103,120.08,197.807,77.375,250.501,77.375z" fill="${fillColor}" fill-rule="evenodd"/>
     </svg>
   `;
   return new L.DivIcon({
-    className: 'custom-svg-icon bg-transparent border-none outline-none focus:outline-none',
-    html: `<div style="cursor: pointer;" tabindex="0" aria-label="Marker Lokasi Usaha">${svg}</div>`,
+    className: 'custom-svg-icon bg-transparent border-none outline-none focus:outline-none flex items-center justify-center',
+    html: `<div style="cursor: pointer; display: flex; align-items: center; justify-content: center; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));" tabindex="0" aria-label="Marker Lokasi Usaha">${svg}</div>`,
     iconSize: [32, 32],
-    iconAnchor: [16, 32]
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32]
   });
 };
 
-function MapEventsHandler({ onBoundsChange, onSelectMarker }: { onBoundsChange?: (bounds: string) => void, onSelectMarker?: (marker: any) => void }) {
+function MapEventsHandler({ onBoundsChange, onSelectMarker }: { onBoundsChange?: (bounds: string, zoom: number) => void, onSelectMarker?: (marker: any) => void }) {
   const map = useMapEvents({
     click: () => {
       if (onSelectMarker) {
@@ -62,13 +63,23 @@ function MapEventsHandler({ onBoundsChange, onSelectMarker }: { onBoundsChange?:
     },
     moveend: () => {
       if (onBoundsChange) {
-        const bounds = map.getBounds();
+        const bounds = map.getBounds().pad(0.05);
         const sw = bounds.getSouthWest();
         const ne = bounds.getNorthEast();
-        onBoundsChange(`${sw.lat},${sw.lng},${ne.lat},${ne.lng}`);
+        onBoundsChange(`${sw.lat},${sw.lng},${ne.lat},${ne.lng}`, map.getZoom());
       }
     }
   });
+
+  useEffect(() => {
+    if (onBoundsChange) {
+      const bounds = map.getBounds().pad(0.05);
+      const sw = bounds.getSouthWest();
+      const ne = bounds.getNorthEast();
+      onBoundsChange(`${sw.lat},${sw.lng},${ne.lat},${ne.lng}`, map.getZoom());
+    }
+  }, [map, onBoundsChange]);
+
   return null;
 }
 
@@ -95,23 +106,25 @@ function InvalidateSizeObserver() {
   return null;
 }
 
-export default function CityMapLeaflet({ height = "100%", markers = [], onSelectMarker, selectedMarker, onBoundsChange, className = "", mapType = 'peta', flyTrigger = null }: CityMapLeafletProps) {
+export default function CityMapLeaflet({ height = "100%", markers = [], onSelectMarker, selectedMarker, onBoundsChange, className = "", mapType = 'peta', flyTrigger = null, isMobile = false, renderPopup }: CityMapLeafletProps) {
   const defaultCenter: [number, number] = [-0.502106, 117.153709];
 
   const renderedMarkers = useMemo(() => {
-    return markers.map((marker, index) => {
+    const safeMarkers = Array.isArray(markers) ? markers : [];
+    return safeMarkers.map((marker, index) => {
       if (!marker.lat || !marker.lng) return null;
+
       const isSelected = selectedMarker && marker.id === selectedMarker.id;
 
       return (
         <Marker
           key={`${marker.id || index}-${index}`}
           position={[parseFloat(marker.lat), parseFloat(marker.lng)]}
-          icon={customIcon(marker.risiko, isSelected)}
+          icon={customSvgIcon(isSelected)}
           zIndexOffset={isSelected ? 1000 : 0}
           eventHandlers={{
             click: (e) => {
-              e.originalEvent.stopPropagation();
+              L.DomEvent.stopPropagation(e as any);
               if (onSelectMarker) {
                 onSelectMarker(marker);
               }
@@ -122,10 +135,11 @@ export default function CityMapLeaflet({ height = "100%", markers = [], onSelect
               }
             }
           }}
-        />
+        >
+        </Marker>
       );
     });
-  }, [markers, selectedMarker, onSelectMarker]);
+  }, [markers, selectedMarker, onSelectMarker, isMobile, renderPopup]);
 
   const tileUrl = mapType === 'satelit'
     ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
@@ -137,21 +151,26 @@ export default function CityMapLeaflet({ height = "100%", markers = [], onSelect
 
   return (
     <div style={{ height, width: '100%', position: 'relative' }} className={className}>
-      <MapContainer center={defaultCenter} zoom={12} style={{ height: '100%', width: '100%' }} zoomControl={false}>
+      <MapContainer preferCanvas={true} center={defaultCenter} zoom={12} style={{ height: '100%', width: '100%' }} zoomControl={false}>
         <TileLayer attribution={attribution} url={tileUrl} />
         <ZoomControl position="bottomright" />
         <ScaleControl position="bottomright" />
         <MapEventsHandler onBoundsChange={onBoundsChange} onSelectMarker={onSelectMarker} />
         <InvalidateSizeObserver />
-        
-        <MarkerClusterGroup 
-          chunkedLoading 
-          maxClusterRadius={60} 
-          spiderfyOnMaxZoom={true}
-          showCoverageOnHover={false}
-        >
-          {renderedMarkers}
-        </MarkerClusterGroup>
+
+        {renderedMarkers}
+
+        {selectedMarker && !isMobile && renderPopup && selectedMarker.lat && selectedMarker.lng && (
+          <Popup
+            position={[parseFloat(selectedMarker.lat), parseFloat(selectedMarker.lng)]}
+            className="custom-popup"
+            closeButton={false}
+            autoPan={true}
+            minWidth={260}
+          >
+            {renderPopup(selectedMarker)}
+          </Popup>
+        )}
 
         <MapFlyer trigger={flyTrigger} />
       </MapContainer>

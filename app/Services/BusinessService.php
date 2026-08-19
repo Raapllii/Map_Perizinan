@@ -23,33 +23,86 @@ class BusinessService
 
     public function getBusinessesForMap(Request $request)
     {
-        $query = $this->repository->getFilteredQuery($request);
+        $zoom = (int) $request->query('zoom', 15);
         
-        $hasFilters = $request->has('kecamatan') && $request->kecamatan !== 'Semua' ||
-                      $request->has('kelurahan') && $request->kelurahan !== 'Semua' ||
-                      $request->has('kategori') && $request->kategori !== 'Semua' ||
-                      $request->has('status') && $request->status !== 'Semua' ||
-                      $request->has('risiko') && $request->risiko !== 'Semua' ||
-                      $request->has('tahun') && $request->tahun !== 'Semua' ||
-                      $request->has('search') && !empty($request->search) ||
-                      $request->has('bounds');
+        $cacheKey = 'province-map:' . md5(json_encode([
+            'zoom' => $zoom,
+            'bounds' => $request->bounds,
+            'kecamatan' => $request->kecamatan,
+            'kelurahan' => $request->kelurahan,
+            'kategori' => $request->kategori,
+            'status' => $request->status,
+            'risiko' => $request->risiko,
+            'tahun' => $request->tahun,
+            'search' => $request->search,
+        ]));
 
-        if (!$hasFilters) {
-            return Cache::remember('map_markers_all', 3600, function() use ($query) {
-                return $this->executeMapQuery($query);
-            });
-        }
+        $ttl = config('map.cache_ttl', 30);
 
-        return $this->executeMapQuery($query);
+        return Cache::remember($cacheKey, $ttl, function() use ($request, $zoom) {
+            $query = $this->repository->getFilteredQuery($request);
+            $hasSearch = !empty($request->search);
+            return $this->executeIndividualQuery($query, 'individual', $zoom, $hasSearch);
+        });
     }
 
-    private function executeMapQuery($query)
+    private function executeIndividualQuery($query, $mode, $zoom, $hasSearch = false)
     {
-        return $query->select('id', 'lat', 'lng', 'color', 'nama_perusahaan', 'nib', 'judul_kbli', 'status', 'kecamatan', 'kelurahan', 'risiko')
+        $limit = 0;
+
+        if ($zoom < 8) {
+            $limit = 0;
+        } elseif ($zoom >= 8 && $zoom <= 9) {
+            $limit = 20;
+        } elseif ($zoom >= 10 && $zoom <= 11) {
+            $limit = 50;
+        } elseif ($zoom == 12) {
+            $limit = 100;
+        } elseif ($zoom >= 13 && $zoom <= 14) {
+            $limit = 250;
+        } elseif ($zoom >= 15 && $zoom <= 16) {
+            $limit = 350;
+        } else {
+            $limit = null; // zoom 15+ -> unlimited in viewport
+        }
+        
+        $clonedQuery = clone $query;
+        
+        // Return immediately if limit is 0
+        if ($limit === 0) {
+            return [
+                'meta' => [
+                    'zoom' => $zoom,
+                    'mode' => $mode,
+                    'count' => 0,
+                    'limit' => $limit
+                ],
+                'data' => []
+            ];
+        }
+
+        $clonedQuery->selectRaw("
+                'individual' as type,
+                id, lat, lng, color, nama_perusahaan, nib, judul_kbli, status, kecamatan, kelurahan, risiko, skala_usaha
+            ")
             ->whereNotNull('lat')
-            ->whereNotNull('lng')
-            ->limit(50000)
-            ->get();
+            ->whereNotNull('lng');
+
+        if ($limit !== null) {
+            $clonedQuery->limit($limit);
+        }
+
+        $data = $clonedQuery->get();
+
+        return [
+            'meta' => [
+                'zoom' => $zoom,
+                'mode' => $mode,
+                'count' => count($data),
+                'limit' => $limit
+            ],
+            'data' => $data
+        ];
     }
 
     public function search(Request $request)
