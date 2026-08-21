@@ -23,6 +23,7 @@ interface CityMapLeafletProps {
   showHeatmap?: boolean;
   isMobile?: boolean;
   renderPopup?: (marker: any) => React.ReactNode;
+  isMiniMap?: boolean;
 }
 
 const getRiskColor = (risiko: string) => {
@@ -106,7 +107,7 @@ function InvalidateSizeObserver() {
   return null;
 }
 
-export default function CityMapLeaflet({ height = "100%", markers = [], onSelectMarker, selectedMarker, onBoundsChange, className = "", mapType = 'peta', flyTrigger = null, isMobile = false, renderPopup }: CityMapLeafletProps) {
+export default function CityMapLeaflet({ height = "100%", markers = [], onSelectMarker, selectedMarker, onBoundsChange, className = "", mapType = 'peta', flyTrigger = null, isMobile = false, renderPopup, isMiniMap = false }: CityMapLeafletProps) {
   const defaultCenter: [number, number] = [-0.502106, 117.153709];
 
   const renderedMarkers = useMemo(() => {
@@ -153,8 +154,8 @@ export default function CityMapLeaflet({ height = "100%", markers = [], onSelect
     <div style={{ height, width: '100%', position: 'relative' }} className={className}>
       <MapContainer preferCanvas={true} center={defaultCenter} zoom={12} style={{ height: '100%', width: '100%' }} zoomControl={false}>
         <TileLayer attribution={attribution} url={tileUrl} />
-        <ZoomControl position="bottomright" />
-        <ScaleControl position="bottomright" />
+        <ZoomControl position={isMiniMap ? "topright" : "bottomright"} />
+        {!isMiniMap && <ScaleControl position="bottomright" />}
         <MapEventsHandler onBoundsChange={onBoundsChange} onSelectMarker={onSelectMarker} />
         <InvalidateSizeObserver />
 

@@ -80,9 +80,8 @@ export default function DashboardPage() {
           <SectionHeader title="Pendaftaran Usaha Bulanan" subtitle="Tahun 2025 — registrasi, terverifikasi, dan ditolak">
             <Btn variant="outline" size="sm" Icon={Download}>Export</Btn>
           </SectionHeader>
-          <div className="w-full overflow-x-auto">
-            <div className="min-w-[500px]">
-              <ResponsiveContainer width="100%" height={260}>
+          <div className="w-full min-w-0">
+            <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={monthlyData} barGap={4} barCategoryGap="20%" margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border, #e5e7eb)" vertical={false} />
                   <XAxis dataKey="month" tick={{ fontSize: 12, fill: "var(--muted-foreground, #6b7280)" }} axisLine={false} tickLine={false} dy={10} />
@@ -96,8 +95,7 @@ export default function DashboardPage() {
                   <Bar dataKey="terverifikasi" name="Terverifikasi" fill="var(--success, #10B981)" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="ditolak" name="Ditolak" fill="var(--danger, #EF4444)" radius={[4, 4, 0, 0]} />
                 </BarChart>
-              </ResponsiveContainer>
-            </div>
+            </ResponsiveContainer>
           </div>
         </Card>
 
@@ -153,9 +151,9 @@ export default function DashboardPage() {
           <div className="space-y-4">
             {districtData.map((d: any, i: number) => (
               <div key={d.name}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-semibold text-foreground">{d.name}</span>
-                  <span className="text-xs font-medium text-muted-foreground">{d.active} / {d.total} aktif</span>
+                <div className="flex items-center justify-between mb-2 gap-2">
+                  <span className="text-xs sm:text-sm font-semibold text-foreground truncate min-w-0">{d.name}</span>
+                  <span className="text-[10px] sm:text-xs font-medium text-muted-foreground flex-shrink-0">{d.active} / {d.total} aktif</span>
                 </div>
                 <div className="h-2.5 bg-muted rounded-full overflow-hidden flex">
                   <div className="h-full rounded-full transition-all duration-1000 ease-out" 
@@ -169,8 +167,8 @@ export default function DashboardPage() {
         {/* Mini map + quick actions */}
         <Card className="xl:col-span-3" padding="p-5 flex flex-col">
           <SectionHeader title="Pratinjau Peta" />
-          <div className="rounded-xl overflow-hidden h-40 mb-5 border border-border shadow-inner flex-shrink-0 relative z-0">
-            <CityMapLeaflet height="100%" />
+          <div className="rounded-xl overflow-hidden h-40 md:h-48 mb-5 border border-border shadow-inner flex-shrink-0 relative z-0">
+            <CityMapLeaflet height="100%" isMiniMap={true} />
           </div>
           <div className="space-y-2.5 flex-1 flex flex-col justify-end">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Aksi Cepat</p>

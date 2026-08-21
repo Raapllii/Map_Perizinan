@@ -50,32 +50,34 @@ export default function TambahUsahaPage() {
   return (
     <div className="max-w-6xl mx-auto">
       {/* Step indicator */}
-      <Card padding="px-6 py-4" className="mb-5">
-        <div className="flex items-center gap-0">
-          {["Informasi Usaha", "Lokasi & Koordinat", "Dokumen & Foto", "Konfirmasi"].map((s, i) => (
-            <div key={s} className="flex items-center flex-1 last:flex-none">
-              <div className="flex items-center gap-2.5">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all
-                  ${step > i + 1 ? "bg-[#2E7D32] text-white" : step === i + 1 ? "bg-[#2E7D32] text-white ring-4 ring-green-100" : "bg-gray-100 text-gray-400"}`}>
-                  {step > i + 1 ? <Check size={13} /> : i + 1}
+      <Card padding="p-0" className="mb-5 overflow-hidden">
+        <div className="overflow-x-auto w-full min-w-0">
+          <div className="flex items-center gap-0 min-w-max px-6 py-4">
+            {["Informasi Usaha", "Lokasi & Koordinat", "Dokumen & Foto", "Konfirmasi"].map((s, i) => (
+              <div key={s} className="flex items-center flex-1 last:flex-none mr-2 lg:mr-0">
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all flex-shrink-0
+                    ${step > i + 1 ? "bg-[#2E7D32] text-white" : step === i + 1 ? "bg-[#2E7D32] text-white ring-4 ring-green-100" : "bg-gray-100 text-gray-400"}`}>
+                    {step > i + 1 ? <Check size={13} /> : i + 1}
+                  </div>
+                  <span className={`text-xs font-medium whitespace-nowrap ${step === i + 1 ? "text-[#2E7D32]" : "text-gray-400"}`}>{s}</span>
                 </div>
-                <span className={`text-xs font-medium ${step === i + 1 ? "text-[#2E7D32]" : "text-gray-400"}`}>{s}</span>
+                {i < 3 && <div className={`w-8 lg:flex-1 h-0.5 mx-3 flex-shrink-0 ${step > i + 1 ? "bg-[#2E7D32]" : "bg-gray-200"}`} />}
               </div>
-              {i < 3 && <div className={`flex-1 h-0.5 mx-3 ${step > i + 1 ? "bg-[#2E7D32]" : "bg-gray-200"}`} />}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </Card>
 
-      <div className="grid grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5">
         {/* Left: Form */}
-        <div className="col-span-2 space-y-5">
+        <div className="lg:col-span-2 min-w-0 space-y-5">
           {step === 1 && (
             <Card>
               <SectionHeader title="Informasi Dasar Usaha" subtitle="Isi data identitas dan informasi umum usaha" />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <InputField label="Nama Usaha" placeholder="Contoh: Toko Maju Bersama" required
-                  value={form.namaUsaha} onChange={(e: any) => setForm({ ...form, namaUsaha: e.target.value })} className="col-span-2" />
+                  value={form.namaUsaha} onChange={(e: any) => setForm({ ...form, namaUsaha: e.target.value })} className="sm:col-span-2" />
                 <InputField label="Nomor Induk Berusaha (NIB)" placeholder="12 digit NIB" required
                   value={form.nib} onChange={(e: any) => setForm({ ...form, nib: e.target.value })} />
                 <InputField label="Nama Pemilik" placeholder="Nama lengkap pemilik" required
@@ -87,7 +89,7 @@ export default function TambahUsahaPage() {
                 <SelectField label="Kelurahan" required options={["Kel. Merdeka", "Kel. Damai", "Kel. Sejahtera", "Kel. Makmur"]}
                   value={form.kelurahan} onChange={(e: any) => setForm({ ...form, kelurahan: e.target.value })} />
                 <InputField label="Alamat Lengkap" placeholder="Jl., No., RT/RW" required
-                  value={form.alamat} onChange={(e: any) => setForm({ ...form, alamat: e.target.value })} className="col-span-2" />
+                  value={form.alamat} onChange={(e: any) => setForm({ ...form, alamat: e.target.value })} className="sm:col-span-2" />
                 <InputField label="Nomor Telepon" type="tel" placeholder="+62 812 xxxx xxxx"
                   value={form.telepon} onChange={(e: any) => setForm({ ...form, telepon: e.target.value })} />
                 <InputField label="Email Usaha" type="email" placeholder="usaha@email.com"
@@ -99,7 +101,7 @@ export default function TambahUsahaPage() {
           {step === 2 && (
             <Card>
               <SectionHeader title="Lokasi & Koordinat" subtitle="Tandai lokasi usaha pada peta atau masukkan koordinat secara manual" />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <InputField label="Latitude" value={form.lat} onChange={(e: any) => setForm({ ...form, lat: e.target.value })} placeholder="-6.2088" />
                 <InputField label="Longitude" value={form.lng} onChange={(e: any) => setForm({ ...form, lng: e.target.value })} placeholder="106.8456" />
               </div>
@@ -129,17 +131,17 @@ export default function TambahUsahaPage() {
                   </div>
                 </div>
                 {["Surat Izin Usaha (SIUP)", "Kartu Tanda Penduduk (KTP) Pemilik", "NPWP Perusahaan", "Sertifikat Tanah / Surat Sewa"].map((doc) => (
-                  <div key={doc} className="flex items-center justify-between p-3 border border-gray-200 rounded-xl hover:border-[#2E7D32] transition-all">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                  <div key={doc} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border border-gray-200 rounded-xl hover:border-[#2E7D32] transition-all gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
                         <FileText size={15} className="text-blue-500" />
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">{doc}</p>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-700 truncate">{doc}</p>
                         <p className="text-xs text-gray-400">PDF, JPG — maks. 10MB</p>
                       </div>
                     </div>
-                    <Btn variant="outline" size="sm" Icon={Upload}>Upload</Btn>
+                    <Btn variant="outline" size="sm" Icon={Upload} className="w-full sm:w-auto justify-center">Upload</Btn>
                   </div>
                 ))}
               </div>
@@ -154,7 +156,7 @@ export default function TambahUsahaPage() {
                   <CheckCircle size={16} className="text-green-600" />
                   <span className="text-sm font-semibold text-green-700">Data siap disimpan</span>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
                     { label: "Nama Usaha", value: form.namaUsaha || "Belum diisi" },
                     { label: "NIB", value: form.nib || "Belum diisi" },
@@ -163,14 +165,14 @@ export default function TambahUsahaPage() {
                     { label: "Koordinat", value: `${form.lat}, ${form.lng}` },
                     { label: "Dokumen", value: "4 file siap upload" },
                   ].map((f) => (
-                    <div key={f.label} className="text-xs">
+                    <div key={f.label} className="text-xs min-w-0">
                       <span className="text-gray-500">{f.label}: </span>
-                      <span className="font-medium text-gray-800">{f.value}</span>
+                      <span className="font-medium text-gray-800 break-words">{f.value}</span>
                     </div>
                   ))}
                 </div>
                 <div className="mt-4 pt-4 border-t border-green-100 flex justify-end">
-                  <Btn variant="primary" type="submit" Icon={Save} disabled={uploading}>
+                  <Btn variant="primary" type="submit" Icon={Save} disabled={uploading} className="w-full sm:w-auto justify-center">
                     {uploading ? "Menyimpan..." : "Simpan Usaha"}
                   </Btn>
                 </div>
@@ -178,17 +180,19 @@ export default function TambahUsahaPage() {
             </Card>
           )}
 
-          <div className="flex items-center justify-between">
-            <div className="flex gap-2">
-              {step > 1 && (
-                <Btn variant="outline" Icon={ChevronLeft} onClick={() => setStep((s: number) => s - 1)}>Sebelumnya</Btn>
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 mt-4">
+            <div className="grid grid-cols-2 sm:flex gap-2">
+              {step > 1 ? (
+                <Btn variant="outline" Icon={ChevronLeft} onClick={() => setStep((s: number) => s - 1)} className="w-full justify-center">Sebelumnya</Btn>
+              ) : (
+                <div className="hidden sm:block"></div>
               )}
-              <Btn variant="ghost" Icon={RotateCcw}>Reset Form</Btn>
+              <Btn variant="ghost" Icon={RotateCcw} className="w-full justify-center col-start-2 sm:col-auto">Reset Form</Btn>
             </div>
-            <div className="flex gap-2">
-              <Btn variant="outline">Batal</Btn>
+            <div className="grid grid-cols-2 sm:flex gap-2">
+              <Btn variant="outline" className="w-full justify-center">Batal</Btn>
               {step < 4 && (
-                <Btn variant="primary" onClick={() => setStep((s: number) => s + 1)}>
+                <Btn variant="primary" onClick={() => setStep((s: number) => s + 1)} className="w-full justify-center">
                   Lanjut <ChevronRight size={15} />
                 </Btn>
               )}
@@ -197,7 +201,7 @@ export default function TambahUsahaPage() {
         </div>
 
         {/* Right: Info + tips */}
-        <div className="space-y-4">
+        <div className="lg:col-span-1 min-w-0 space-y-4">
           <Card padding="p-4">
             <h4 className="text-sm font-semibold text-gray-900 mb-3">Panduan Pengisian</h4>
             <div className="space-y-2.5">

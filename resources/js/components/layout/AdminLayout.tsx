@@ -61,15 +61,15 @@ export default function AdminLayout({ darkMode, setDarkMode, setUser }: any) {
         <main className="flex-1 overflow-auto">
           {/* Page header */}
           <div className="px-4 md:px-6 pt-5 pb-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">{pageInfo?.title}</h1>
-                <p className="text-sm text-muted-foreground mt-0.5">{pageInfo?.subtitle}</p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">{pageInfo?.title}</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 truncate">{pageInfo?.subtitle}</p>
               </div>
               {activePage === "dashboard" && (
-                <div className="flex items-center gap-2 self-start md:self-auto">
-                  <Btn variant="outline" size="sm" Icon={RefreshCw}>Refresh</Btn>
-                  <Btn variant="primary" size="sm" Icon={Download}>Export</Btn>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <Btn variant="outline" size="sm" Icon={RefreshCw} className="flex-1 sm:flex-none justify-center">Refresh</Btn>
+                  <Btn variant="primary" size="sm" Icon={Download} className="flex-1 sm:flex-none justify-center">Export</Btn>
                 </div>
               )}
             </div>
