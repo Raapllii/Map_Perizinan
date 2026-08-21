@@ -75,85 +75,62 @@ export default function PetaUsahaPage() {
   return (
     <div className="flex flex-col md:flex-row gap-3 md:gap-4 h-[calc(100dvh-10rem)]">
 
-      {/* Desktop Filter panel */}
-      {showFilters && (
-        <Card className="hidden md:flex w-56 flex-shrink-0 flex-col" padding="p-4">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-semibold text-foreground">Filter Usaha</span>
-            <button onClick={() => setShowFilters(false)} className="text-muted-foreground hover:text-foreground">
-              <X size={14} />
-            </button>
-          </div>
-          <div className="flex-1 overflow-auto">
-            <FilterContent />
-          </div>
-        </Card>
-      )}
-
       {/* Map area — full width on mobile */}
-      <div className="flex-1 flex flex-col gap-3 min-w-0 h-full">
-        {/* Map toolbar */}
-        <Card padding="px-3 py-2 md:px-4 md:py-2.5">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="flex-1 relative min-w-0 h-full overflow-hidden rounded-xl border border-border bg-card">
+
+        {/* Floating Controls Overlay */}
+        <div className="absolute top-4 left-4 right-4 z-[400] pointer-events-none flex flex-col items-start gap-2">
+          <div className="flex w-full items-start justify-between gap-2 flex-wrap">
+            <div className="flex flex-wrap items-center gap-2 pointer-events-auto">
               <Btn
                 variant="outline"
                 size="sm"
                 Icon={Filter}
+                className="bg-card/95 backdrop-blur-sm shadow-sm"
                 onClick={() => isMobile ? setShowFilterDrawer(true) : setShowFilters(!showFilters)}
               >
                 Filter
               </Btn>
-              <div className="flex items-center gap-0.5 bg-muted rounded-xl p-1">
+              <div className="flex items-center gap-0.5 bg-card/95 backdrop-blur-sm shadow-sm rounded-xl p-1 border border-border">
                 {["cluster", "heatmap", "boundary"].map(l => (
                   <button key={l} onClick={() => setActiveLayer(l)}
-                    className={`px-2 md:px-3 py-1 text-xs font-medium rounded-lg transition-all capitalize ${activeLayer === l ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                    className={`px-2 md:px-3 py-1 text-xs font-medium rounded-lg transition-all capitalize ${activeLayer === l ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
                     {l}
                   </button>
                 ))}
               </div>
             </div>
-            <div className="flex items-center gap-1">
-              <span className="hidden lg:flex text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-lg border border-border">
+
+            <div className="flex items-center gap-2 pointer-events-auto">
+              <span className="hidden lg:flex text-xs text-muted-foreground bg-card/95 backdrop-blur-sm shadow-sm px-3 py-1.5 rounded-lg border border-border">
                 📍 -6.2088°, 106.8456°
               </span>
-              <Btn variant="outline" size="sm" Icon={ZoomIn} />
-              <Btn variant="outline" size="sm" Icon={ZoomOut} />
-              <Btn variant="outline" size="sm" Icon={Layers} className="hidden sm:flex" />
-              <Btn variant="outline" size="sm" Icon={Maximize2} className="hidden sm:flex" />
             </div>
           </div>
-        </Card>
 
-        <div className="flex-1 relative min-h-0">
-          <Card className="h-full" padding="p-0">
-            <Suspense fallback={<div className="flex items-center justify-center h-full w-full bg-muted text-muted-foreground">Memuat Peta...</div>}>
-              <CityMapLeaflet height="100%" selectedMarker={selected} onSelectMarker={setSelectedBusiness} markers={markers} onBoundsChange={handleBoundsChange} />
-            </Suspense>
-          </Card>
-
-          {/* Map legend */}
-          <div className="absolute bottom-4 left-4 bg-card/95 backdrop-blur-sm rounded-xl border border-border p-3 shadow-sm z-10">
-            <p className="text-xs font-semibold text-foreground mb-2">Legenda</p>
-            {[
-              { color: "var(--success)", label: "Izin Aktif" },
-              { color: "var(--info)", label: "Pending Verifikasi" },
-              { color: "var(--warning)", label: "Kadaluarsa" },
-              { color: "var(--danger)", label: "Ditolak" },
-            ].map(l => (
-              <div key={l.label} className="flex items-center gap-2 mb-1.5 last:mb-0">
-                <div className="w-3 h-3 rounded-full" style={{ background: l.color }} />
-                <span className="text-xs text-muted-foreground">{l.label}</span>
+          {/* Desktop Floating Filter Panel */}
+          {showFilters && !isMobile && (
+            <Card className="w-64 flex-shrink-0 flex-col pointer-events-auto shadow-xl" padding="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm font-semibold text-foreground">Filter Usaha</span>
+                <button onClick={() => setShowFilters(false)} className="text-muted-foreground hover:text-foreground">
+                  <X size={14} />
+                </button>
               </div>
-            ))}
-          </div>
-
-          {/* Zoom count */}
-          <div className="absolute top-4 left-4 bg-card/95 backdrop-blur-sm rounded-xl border border-border px-3 py-2 shadow-sm z-10">
-            <span className="text-xs text-muted-foreground">Zoom: </span>
-            <span className="text-xs font-semibold text-foreground">14</span>
-          </div>
+              <div className="max-h-[60vh] overflow-auto pr-1">
+                <FilterContent />
+              </div>
+            </Card>
+          )}
         </div>
+
+        {/* Map Container */}
+        <div className="absolute inset-0 z-0">
+          <Suspense fallback={<div className="flex items-center justify-center h-full w-full bg-muted text-muted-foreground">Memuat Peta...</div>}>
+            <CityMapLeaflet height="100%" selectedMarker={selected} onSelectMarker={setSelectedBusiness} markers={markers} onBoundsChange={handleBoundsChange} />
+          </Suspense>
+        </div>
+
       </div>
 
       {/* Desktop Detail sidebar */}
@@ -200,7 +177,7 @@ export default function PetaUsahaPage() {
 
       {/* Mobile: Detail bottom sheet */}
       {isMobile && selected && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end md:hidden">
+        <div className="fixed inset-0 z-[1000] flex flex-col justify-end md:hidden">
           <div className="absolute inset-0 bg-black/30" onClick={() => setSelectedBusiness(null)} />
           <div className="bg-card rounded-t-3xl border-t border-border shadow-xl max-h-[70vh] flex flex-col relative">
             <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mt-3 mb-1 flex-shrink-0" />
@@ -238,7 +215,7 @@ export default function PetaUsahaPage() {
 
       {/* Mobile: Filter bottom sheet */}
       {isMobile && showFilterDrawer && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end md:hidden">
+        <div className="fixed inset-0 z-[1000] flex flex-col justify-end md:hidden">
           <div className="absolute inset-0 bg-black/30" onClick={() => setShowFilterDrawer(false)} />
           <div className="bg-card rounded-t-3xl border-t border-border shadow-xl max-h-[80vh] flex flex-col relative">
             <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mt-3 mb-1 flex-shrink-0" />

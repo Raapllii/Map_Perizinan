@@ -77,12 +77,12 @@ export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
         </button>
 
         {showNotifs && (
-          <div className="absolute right-0 top-12 w-80 bg-popover border border-border rounded-xl shadow-lg overflow-hidden z-50">
+          <div className="absolute -right-2 sm:right-0 top-12 w-[calc(100vw-1rem)] sm:w-80 bg-popover border border-border rounded-xl shadow-lg overflow-hidden z-50 max-w-sm">
             <div className="px-4 py-3 border-b border-border flex items-center justify-between">
               <span className="text-sm font-semibold text-popover-foreground">Notifikasi</span>
               <span className="text-xs text-primary font-medium cursor-pointer hover:underline">Tandai semua dibaca</span>
             </div>
-            <div className="max-h-72 overflow-y-auto">
+            <div className="max-h-[calc(100dvh-120px)] sm:max-h-72 overflow-y-auto">
               {notifications.map((n, i) => (
                 <div key={i} className={`px-4 py-3 border-b border-border/50 hover:bg-muted cursor-pointer transition-colors ${!n.read ? "bg-primary/5" : ""}`}>
                   <div className="flex items-start gap-3">

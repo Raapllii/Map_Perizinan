@@ -169,7 +169,7 @@ export default function DashboardPage() {
         {/* Mini map + quick actions */}
         <Card className="xl:col-span-3" padding="p-5 flex flex-col">
           <SectionHeader title="Pratinjau Peta" />
-          <div className="rounded-xl overflow-hidden h-40 mb-5 border border-border shadow-inner flex-shrink-0">
+          <div className="rounded-xl overflow-hidden h-40 mb-5 border border-border shadow-inner flex-shrink-0 relative z-0">
             <CityMapLeaflet height="100%" />
           </div>
           <div className="space-y-2.5 flex-1 flex flex-col justify-end">

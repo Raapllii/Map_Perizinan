@@ -16,9 +16,7 @@ class DummyDataSeeder extends Seeder
     {
         // 1. Users
         $users = [
-            ['name' => 'Dr. Andi Kurniawan', 'email' => 'andi.k@pemkab.go.id', 'role' => 'Super Admin', 'status' => 'Aktif', 'avatar' => 'AK', 'actions' => 342],
-            ['name' => 'Admin', 'email' => 'admin@admin.co.id', 'role' => 'Super Admin', 'status' => 'Aktif', 'avatar' => 'AK', 'actions' => 342],
-            ['name' => 'Siti Rahayu, SE', 'email' => 'siti.r@pemkab.go.id', 'role' => 'Administrator', 'status' => 'Aktif', 'avatar' => 'SR', 'actions' => 218],
+            ['name' => 'Dr. Andi Kurniawan', 'email' => 'andi.k@pemkab.go.id', 'role' => 'Super Admin', 'status' => 'Aktif', 'avatar' => 'AK', 'actions' => 342],            ['name' => 'Siti Rahayu, SE', 'email' => 'siti.r@pemkab.go.id', 'role' => 'Administrator', 'status' => 'Aktif', 'avatar' => 'SR', 'actions' => 218],
             ['name' => 'Budi Hartono', 'email' => 'budi.h@pemkab.go.id', 'role' => 'Verifier', 'status' => 'Aktif', 'avatar' => 'BH', 'actions' => 156],
             ['name' => 'Fitriani Dewi', 'email' => 'fitri.d@pemkab.go.id', 'role' => 'Surveyor', 'status' => 'Aktif', 'avatar' => 'FD', 'actions' => 89],
             ['name' => 'Rahmat Hidayat', 'email' => 'rahmat.h@pemkab.go.id', 'role' => 'Surveyor', 'status' => 'Aktif', 'avatar' => 'RH', 'actions' => 74],

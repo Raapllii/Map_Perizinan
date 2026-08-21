@@ -44,14 +44,14 @@ export default function AdminLayout({ darkMode, setDarkMode, setUser }: any) {
       {/* Mobile backdrop */}
       {isMobileMenuOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity"
+          className="fixed inset-0 bg-black/50 z-[900] lg:hidden transition-opacity"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
       
       <Sidebar isOpen={isMobileMenuOpen} setIsOpen={setIsMobileMenuOpen} />
       
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0 relative">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0 relative z-0">
         <TopBar 
           darkMode={darkMode} 
           setDarkMode={setDarkMode} 
