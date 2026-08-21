@@ -1,7 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense, useRef, useCallback } from "react";
 import axios from 'axios';
-import { Menu, Map, Filter, Layers, Info, Search, RefreshCw, X, Building2, ChevronLeft, Check, Briefcase, Package, AlertTriangle, CheckCircle, MapPin, Home, Calendar, RotateCcw, Navigation, Eye, ChevronUp, ChevronDown } from "lucide-react";
-import { Command } from "cmdk";
+import { Map, Search, X, Navigation, Eye } from "lucide-react";
 import { Drawer } from "vaul";
 import { motion } from "motion/react";
 import { StatusBadge, Btn } from "../components/ui";
@@ -27,14 +26,7 @@ export default function PublicMapPage() {
   });
   const [mapType, setMapType] = useState<'peta' | 'satelit'>('peta');
 
-  const [filters, setFilters] = useState({
-    kecamatan: "Semua",
-    kategori: "Semua",
-    risiko: "Semua",
-    status: "Semua",
-  });
-
-  const [showFilters, setShowFilters] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<any[]>([]);
   const [isFetchingMap, setIsFetchingMap] = useState(false);
 
   // Debounced Bounds & Zoom
@@ -66,10 +58,16 @@ export default function PublicMapPage() {
 
     let url = `/api/businesses?map=true&zoom=${mapZoom}`;
     if (mapBounds) url += `&bounds=${mapBounds}`;
-    if (filters.kecamatan !== "Semua") url += `&kecamatan=${encodeURIComponent(filters.kecamatan)}`;
-    if (filters.kategori !== "Semua") url += `&kategori=${encodeURIComponent(filters.kategori)}`;
-    if (filters.risiko !== "Semua") url += `&risiko=${encodeURIComponent(filters.risiko)}`;
-    if (filters.status !== "Semua") url += `&status=${encodeURIComponent(filters.status)}`;
+    
+    activeFilters.forEach((f: any) => {
+      const key = f.type.toLowerCase();
+      if (f.value && f.value.length > 0) {
+        url += `&${key}=${encodeURIComponent(f.value.join(','))}`;
+      }
+      if (f.operator === 'bukan') {
+        url += `&${key}_operator=bukan`;
+      }
+    });
 
     const controller = new AbortController();
 
@@ -87,7 +85,7 @@ export default function PublicMapPage() {
       });
 
     return () => controller.abort();
-  }, [mapBounds, mapZoom, filters]);
+  }, [mapBounds, mapZoom, activeFilters]);
 
   // Autocomplete search with debounce
   useEffect(() => {
@@ -131,8 +129,7 @@ export default function PublicMapPage() {
   };
 
   const resetFilters = () => {
-    setFilters({ kecamatan: "Semua", kategori: "Semua", risiko: "Semua", status: "Semua" });
-    setShowFilters(false);
+    setActiveFilters([]);
   };
 
   const selected = selectedBusiness || {};
@@ -144,46 +141,8 @@ export default function PublicMapPage() {
         searchQuery={searchQuery}
         onSearch={setSearchQuery}
         onFocus={() => { if (!searchQuery && searchHistory.length > 0) setSearchResults(searchHistory) }}
+        onFilterChange={setActiveFilters}
       />
-      <div className="md:hidden flex flex-col w-full absolute top-0 z-40 bg-card border-b border-border">
-        <div className="flex items-center gap-3 p-3">
-          <button className="p-2 bg-muted/50 rounded-lg text-muted-foreground"><Menu size={20} /></button>
-          <Command className="relative flex-1" shouldFilter={false} loop>
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground z-10 pointer-events-none" />
-            <Command.Input
-              placeholder="Cari NIB, Nama Usaha..."
-              className="w-full pl-9 pr-3 py-2 bg-muted/30 border border-border rounded-lg text-sm focus:outline-none focus:border-primary"
-              value={searchQuery}
-              onValueChange={setSearchQuery}
-              onFocus={() => { if (!searchQuery && searchHistory.length > 0) setSearchResults(searchHistory) }}
-            />
-            {(searchResults.length > 0 || (searchQuery.length > 2 && !isSearching)) && (
-              <Command.List className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-xl shadow-lg max-h-[60vh] overflow-y-auto">
-                {searchResults.length === 0 && searchQuery.length > 2 && !isSearching ? (
-                  <Command.Empty className="p-4 text-center text-sm text-muted-foreground">Data tidak ditemukan</Command.Empty>
-                ) : (
-                  <>
-                    {searchResults.map((res: any, idx: number) => (
-                      <Command.Item
-                        key={idx}
-                        onSelect={() => handleSelectBusiness(res, true)}
-                        className="flex items-center gap-3 p-3 border-b border-border aria-selected:bg-muted/50"
-                      >
-                        <Building2 size={14} className="text-primary flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-foreground truncate">{res.nama_perusahaan}</p>
-                          <p className="text-xs text-muted-foreground truncate">{res.judul_kbli}</p>
-                        </div>
-                      </Command.Item>
-                    ))}
-                  </>
-                )}
-              </Command.List>
-            )}
-          </Command>
-        </div>
-      </div>
-
 
 
       {/* Main Map Container */}
@@ -220,15 +179,25 @@ export default function PublicMapPage() {
           </div>
         )}
 
+        {/* Empty State Overlay */}
+        {mapZoom >= 8 && markers.length === 0 && activeFilters.length > 0 && !isFetchingMap && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+            <div className="bg-background/90 backdrop-blur-md px-6 py-4 rounded-xl shadow-lg border border-border text-sm font-semibold text-foreground flex flex-col items-center gap-2">
+              <Search size={24} className="text-muted-foreground" />
+              Tidak ada data yang sesuai dengan filter.
+            </div>
+          </div>
+        )}
+
         {/* Map Controls */}
-        <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
-          <div className="bg-card rounded-xl shadow-sm border border-border flex overflow-hidden p-1 gap-1">
-            <button onClick={() => setMapType('peta')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors relative z-10 ${mapType === 'peta' ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-              {mapType === 'peta' && <motion.div layoutId="map-tab" className="absolute inset-0 bg-primary z-[-1] rounded-lg" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />}
+        <div className={`absolute z-20 flex-col gap-2 transition-opacity duration-300 md:top-4 md:right-4 md:bottom-auto md:left-auto top-auto right-auto left-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] ${isMobile && selectedBusiness ? 'hidden md:flex' : 'flex'}`}>
+          <div className="bg-card shadow-sm border border-border flex overflow-hidden p-0.5 md:p-1 gap-1 rounded-lg md:rounded-xl">
+            <button onClick={() => setMapType('peta')} className={`px-3 md:px-4 py-1.5 rounded-md md:rounded-lg text-[11px] md:text-xs font-bold transition-colors relative z-10 ${mapType === 'peta' ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+              {mapType === 'peta' && <motion.div layoutId="map-tab" className="absolute inset-0 bg-primary z-[-1] rounded-md md:rounded-lg" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />}
               Peta
             </button>
-            <button onClick={() => setMapType('satelit')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors relative z-10 ${mapType === 'satelit' ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-              {mapType === 'satelit' && <motion.div layoutId="map-tab" className="absolute inset-0 bg-primary z-[-1] rounded-lg" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />}
+            <button onClick={() => setMapType('satelit')} className={`px-3 md:px-4 py-1.5 rounded-md md:rounded-lg text-[11px] md:text-xs font-bold transition-colors relative z-10 ${mapType === 'satelit' ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+              {mapType === 'satelit' && <motion.div layoutId="map-tab" className="absolute inset-0 bg-primary z-[-1] rounded-md md:rounded-lg" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />}
               Satelit
             </button>
           </div>

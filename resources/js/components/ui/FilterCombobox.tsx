@@ -63,7 +63,7 @@ const FilterOperatorDropdown = ({ filterType, operator, filterValues, setOperato
 
   return (
     <DropdownMenuPrimitive.Root>
-      <DropdownMenuPrimitive.Trigger className="shrink-0 bg-muted px-1.5 py-1 text-muted-foreground transition hover:bg-muted/50 hover:text-primary outline-none text-xs flex items-center rounded-sm">
+      <DropdownMenuPrimitive.Trigger className="shrink-0 bg-background border border-border px-2 py-1.5 text-foreground transition hover:bg-muted outline-none text-xs font-medium flex items-center rounded-md">
         {operator}
       </DropdownMenuPrimitive.Trigger>
       <DropdownMenuPrimitive.Portal>
@@ -94,7 +94,7 @@ const FilterValueCombobox = ({ filterType, filterValues, setFilterValues }: any)
 
   return (
     <PopoverPrimitive.Root open={open} onOpenChange={(next) => { setOpen(next); if (!next) setTimeout(() => setCommandInput(""), 200); }}>
-      <PopoverPrimitive.Trigger className="shrink-0 rounded-none bg-muted px-1.5 py-1 text-muted-foreground transition hover:bg-muted/50 hover:text-primary outline-none text-xs flex items-center">
+      <PopoverPrimitive.Trigger className="shrink-0 rounded-md bg-background border border-border px-2 py-1.5 text-foreground transition hover:bg-muted outline-none text-xs font-medium flex items-center">
         {filterValues.length === 1 ? filterValues[0] : `${filterValues.length} dipilih`}
       </PopoverPrimitive.Trigger>
       <PopoverPrimitive.Portal>
@@ -165,39 +165,41 @@ const FilterValueCombobox = ({ filterType, filterValues, setFilterValues }: any)
 
 const ActiveFilters = ({ filters, setFilters }: any) => {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-col gap-4">
       {filters.filter((f: any) => f.value?.length > 0).map((filter: any) => {
         const icon = filterViewOptions.find(o => o.name === filter.type)?.icon;
         return (
-          <div key={filter.id} className="flex items-center gap-px text-xs">
-            <div className="flex shrink-0 items-center gap-1.5 rounded-l bg-muted px-1.5 py-1 text-muted-foreground border-r border-border/50">
-              {icon}
-              <span className="font-medium text-foreground">{filter.type}</span>
+          <div key={filter.id} className="flex flex-col gap-2">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+              {icon} {filter.type}
             </div>
             
-            <FilterOperatorDropdown
-              filterType={filter.type}
-              operator={filter.operator}
-              filterValues={filter.value}
-              setOperator={(operator: any) => {
-                setFilters((prev: any) => prev.map((item: any) => item.id === filter.id ? { ...item, operator } : item));
-              }}
-            />
-            
-            <FilterValueCombobox
-              filterType={filter.type}
-              filterValues={filter.value}
-              setFilterValues={(val: any) => {
-                setFilters((prev: any) => prev.map((item: any) => item.id === filter.id ? { ...item, value: val } : item));
-              }}
-            />
-            
-            <button
-              onClick={() => setFilters((prev: any) => prev.filter((item: any) => item.id !== filter.id))}
-              className="flex items-center justify-center h-6 w-6 shrink-0 rounded-r-sm bg-muted text-muted-foreground transition hover:bg-muted/50 hover:text-foreground border-l border-border/50"
-            >
-              <X className="size-3" />
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <FilterOperatorDropdown
+                filterType={filter.type}
+                operator={filter.operator}
+                filterValues={filter.value}
+                setOperator={(operator: any) => {
+                  setFilters((prev: any) => prev.map((item: any) => item.id === filter.id ? { ...item, operator } : item));
+                }}
+              />
+              
+              <FilterValueCombobox
+                filterType={filter.type}
+                filterValues={filter.value}
+                setFilterValues={(val: any) => {
+                  setFilters((prev: any) => prev.map((item: any) => item.id === filter.id ? { ...item, value: val } : item));
+                }}
+              />
+              
+              <button
+                onClick={() => setFilters((prev: any) => prev.filter((item: any) => item.id !== filter.id))}
+                className="flex items-center justify-center h-7 w-7 shrink-0 rounded-md bg-muted text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+                title="Hapus Filter"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
           </div>
         );
       })}
@@ -224,35 +226,60 @@ export function FilterCombobox({ onChange }: { onChange?: (filters: Filter[]) =>
   const activeFilters = filters.filter((f) => f.value?.length > 0);
 
   return (
-    <div className="flex flex-wrap gap-2 items-center">
-      <ActiveFilters filters={filters} setFilters={setFilters} />
-
-      {activeFilters.length > 0 && (
-        <button
-          className="h-6 px-2 rounded-sm text-xs font-medium bg-muted text-muted-foreground transition hover:bg-muted/50 hover:text-foreground"
-          onClick={() => setFilters([])}
-        >
-          Reset
-        </button>
-      )}
-
+    <div className="relative inline-flex">
       <PopoverPrimitive.Root open={open} onOpenChange={(next) => { setOpen(next); if (!next) setTimeout(() => { setSelectedView(null); setCommandInput(""); }, 200); }}>
-        <PopoverPrimitive.Trigger className={cn("group flex h-6 items-center justify-center gap-1.5 rounded-sm text-xs transition px-2 hover:bg-muted/50", activeFilters.length > 0 ? "w-6 px-0" : "text-muted-foreground")}>
-          <ListFilter className="size-3.5 shrink-0 transition-all group-hover:text-primary" />
-          {!activeFilters.length && <span className="font-medium text-foreground">Filter</span>}
+        <PopoverPrimitive.Trigger className={cn("group inline-flex h-9 items-center justify-center gap-2 rounded-full text-sm font-medium transition px-4 relative flex-shrink-0 whitespace-nowrap outline-none", activeFilters.length > 0 ? "bg-primary/10 text-primary hover:bg-primary/20" : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground")}>
+          <ListFilter className="size-4 shrink-0 transition-all" />
+          <span>Filter</span>
+          {activeFilters.length > 0 && (
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+              {activeFilters.length}
+            </span>
+          )}
         </PopoverPrimitive.Trigger>
 
         <PopoverPrimitive.Portal>
-          <PopoverPrimitive.Content align="start" className="z-[70] w-[200px] p-0 bg-card border border-border rounded-md shadow-md overflow-hidden">
+          <PopoverPrimitive.Content 
+            align="center" 
+            side="bottom" 
+            sideOffset={8}
+            collisionPadding={12}
+            avoidCollisions
+            className="z-[70] w-[calc(100vw-24px)] md:w-[340px] max-w-[360px] p-0 bg-card border border-border rounded-xl shadow-xl overflow-hidden flex flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/20">
+              <span className="font-semibold text-sm text-foreground flex items-center gap-2">
+                Filter
+                {activeFilters.length > 0 && (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                    {activeFilters.length}
+                  </span>
+                )}
+              </span>
+              {activeFilters.length > 0 && (
+                <button onClick={() => setFilters([])} className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                  Reset Semua
+                </button>
+              )}
+            </div>
+
+            {/* Active Filters list */}
+            {activeFilters.length > 0 && (
+              <div className="p-4 border-b border-border max-h-[40vh] overflow-y-auto bg-card">
+                <ActiveFilters filters={filters} setFilters={setFilters} />
+              </div>
+            )}
+
             <Command className="w-full flex flex-col bg-transparent">
               <Command.Input
-                placeholder={selectedView ? selectedView : "Tambah Filter..."}
+                placeholder={selectedView ? selectedView : "Tambah filter..."}
                 value={commandInput}
                 onValueChange={setCommandInput}
-                className="h-9 px-3 border-b border-border bg-transparent outline-none text-sm w-full"
+                className="h-11 px-4 border-b border-border bg-transparent outline-none text-sm w-full"
               />
-              <Command.List className="max-h-[250px] overflow-y-auto p-1">
-                <Command.Empty className="py-2 text-center text-xs text-muted-foreground">Tidak ditemukan.</Command.Empty>
+              <Command.List className="max-h-[250px] overflow-y-auto p-1.5">
+                <Command.Empty className="py-3 text-center text-xs text-muted-foreground">Tidak ditemukan.</Command.Empty>
 
                 {selectedView ? (
                   <Command.Group>
@@ -265,6 +292,7 @@ export function FilterCombobox({ onChange }: { onChange?: (filters: Filter[]) =>
                             // Cek jika filter dengan tipe yang sama sudah ada
                             const existing = prev.find(f => f.type === selectedView);
                             if (existing) {
+                              if (existing.value.includes(filter.name)) return prev;
                               return prev.map(f => f.type === selectedView ? { ...f, value: [...f.value, filter.name] } : f);
                             }
                             return [

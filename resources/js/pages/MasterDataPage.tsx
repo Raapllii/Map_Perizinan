@@ -24,7 +24,7 @@ export default function MasterDataPage() {
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {tabs.map(t => (
           <button key={t.id} onClick={() => setActiveTab(t.id)}
             className={`p-3.5 rounded-2xl border text-left transition-all ${activeTab === t.id ? "bg-[#2E7D32] text-white border-[#2E7D32] shadow-sm" : "bg-white border-gray-200 hover:border-[#2E7D32]/40"}`}>
@@ -35,24 +35,27 @@ export default function MasterDataPage() {
       </div>
 
       <Card padding="p-0" className="overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">
-              {tabs.find(t => t.id === activeTab)?.label}
-            </h3>
-            <p className="text-xs text-gray-500 mt-0.5">Manajemen data referensi sistem</p>
-          </div>
-          <div className="flex gap-2">
-            <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input placeholder="Cari data..." className="pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#2E7D32] bg-white w-48" />
+        <div className="px-4 py-4 border-b border-gray-100">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">
+                {tabs.find(t => t.id === activeTab)?.label}
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">Manajemen data referensi sistem</p>
             </div>
-            <Btn variant="primary" size="sm" Icon={Plus} onClick={() => setShowAddModal(true)}>Tambah Data</Btn>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input placeholder="Cari data..." className="pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#2E7D32] bg-white w-full sm:w-48" />
+              </div>
+              <Btn variant="primary" size="sm" Icon={Plus} onClick={() => setShowAddModal(true)}>Tambah Data</Btn>
+            </div>
           </div>
         </div>
 
         {(activeTab === "kecamatan") && (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[640px]">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
                 {["Kode", "Nama Kecamatan", "Jml. Kelurahan", "Luas Wilayah", "Populasi", "Status", "Aksi"].map(h => (
@@ -79,11 +82,13 @@ export default function MasterDataPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         )}
 
         {(activeTab === "kategori") && (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[560px]">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
                 {["Kode", "Nama Kategori", "Deskripsi", "Total Usaha", "Status", "Aksi"].map(h => (
@@ -110,7 +115,8 @@ export default function MasterDataPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         )}
 
         {(activeTab === "kelurahan" || activeTab === "jenis-izin" || activeTab === "status") && (
@@ -128,8 +134,8 @@ export default function MasterDataPage() {
       </Card>
 
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={() => setShowAddModal(false)}>
-          <div className="bg-white rounded-2xl p-6 w-[480px] shadow-xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4" onClick={() => setShowAddModal(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-[480px] shadow-xl" onClick={e => e.stopPropagation()}>
             <h3 className="text-base font-semibold text-gray-900 mb-4">Tambah {tabs.find(t => t.id === activeTab)?.label}</h3>
             <div className="space-y-3">
               <InputField label="Kode" placeholder="KEC00X" required />

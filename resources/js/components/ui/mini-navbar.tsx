@@ -7,9 +7,10 @@ export type NavbarProps = {
   onSearch?: (query: string) => void;
   searchQuery?: string;
   onFocus?: () => void;
+  onFilterChange?: (filters: any[]) => void;
 };
 
-export function Navbar({ onSearch, searchQuery = "", onFocus }: NavbarProps) {
+export function Navbar({ onSearch, searchQuery = "", onFocus, onFilterChange }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [localQuery, setLocalQuery] = useState(searchQuery);
@@ -104,7 +105,7 @@ export function Navbar({ onSearch, searchQuery = "", onFocus }: NavbarProps) {
         {/* Desktop Links & Mobile Toggle */}
         <motion.div layout className="flex items-center flex-shrink-0">
           <div className="hidden md:flex items-center gap-4 text-sm font-medium">
-            <FilterCombobox />
+            <FilterCombobox onChange={onFilterChange} />
             <a href="/map" className="text-primary font-bold whitespace-nowrap px-2">Peta</a>
           </div>
 
@@ -130,7 +131,10 @@ export function Navbar({ onSearch, searchQuery = "", onFocus }: NavbarProps) {
           >
             <a href="/" className="text-sm font-medium text-muted-foreground hover:text-primary">Beranda</a>
             <a href="/map" className="text-sm font-bold text-primary">Peta</a>
-            <a href="/filter" className="text-sm font-medium text-muted-foreground hover:text-primary">Filter</a>
+            <div className="flex flex-col gap-2 mt-2 pt-2 border-t border-border">
+              <span className="text-xs font-bold text-muted-foreground uppercase">Filter Map</span>
+              <FilterCombobox onChange={onFilterChange} />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

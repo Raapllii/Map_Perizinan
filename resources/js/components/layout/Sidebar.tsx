@@ -14,7 +14,7 @@ export default function Sidebar({ isOpen = false, setIsOpen = () => {} }: any) {
   };
 
   return (
-    <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 transform ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 transition-transform duration-200 ease-in-out flex-shrink-0 h-full bg-sidebar flex flex-col overflow-hidden shadow-xl lg:shadow-none`}>
+    <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-[min(20rem,88vw)] lg:w-64 transform ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 transition-transform duration-200 ease-in-out flex-shrink-0 h-full bg-sidebar flex flex-col overflow-hidden shadow-xl lg:shadow-none`}>
       {/* Mobile Close Button */}
       <button 
         onClick={() => setIsOpen(false)}

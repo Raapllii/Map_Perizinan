@@ -11,15 +11,33 @@ class BusinessRepository
     {
         $query = Business::query();
 
-        $filters = ['kecamatan', 'kelurahan', 'risiko', 'status'];
-        foreach ($filters as $filter) {
-            if ($request->has($filter) && $request->get($filter) !== 'Semua') {
-                $query->where($filter, $request->get($filter));
-            }
-        }
+        $filters = [
+            'kecamatan' => 'kecamatan',
+            'kelurahan' => 'kelurahan',
+            'risiko' => 'risiko',
+            'status' => 'status',
+            'kategori' => 'judul_kbli'
+        ];
 
-        if ($request->has('kategori') && $request->get('kategori') !== 'Semua') {
-            $query->where('judul_kbli', $request->get('kategori'));
+        foreach ($filters as $requestKey => $dbColumn) {
+            if ($request->has($requestKey) && $request->get($requestKey) !== 'Semua') {
+                $val = $request->get($requestKey);
+                $operator = $request->get($requestKey . '_operator', 'adalah');
+                
+                $values = is_array($val) ? $val : explode(',', $val);
+                $values = array_map('trim', $values);
+
+                if ($operator === 'bukan') {
+                    $query->whereNotIn($dbColumn, $values);
+                } else {
+                    // untuk 'adalah' atau 'salah satu dari'
+                    if (count($values) > 1) {
+                        $query->whereIn($dbColumn, $values);
+                    } else {
+                        $query->where($dbColumn, $values[0]);
+                    }
+                }
+            }
         }
 
         if ($request->has('tahun') && $request->get('tahun') !== 'Semua') {

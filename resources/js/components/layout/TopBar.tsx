@@ -45,7 +45,7 @@ export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
       </div>
 
       {/* Search */}
-      <div className="relative flex-1 max-w-sm ml-auto md:ml-0">
+      <div className="relative flex-1 min-w-0">
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <input placeholder="Cari usaha, NIB..."
           className="w-full pl-9 pr-4 py-2 text-sm border border-input rounded-md bg-input-background focus:bg-background focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" />
@@ -64,7 +64,7 @@ export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
 
       {/* Dark mode */}
       <button onClick={() => setDarkMode(!darkMode)}
-        className="p-2 rounded-md border border-input text-muted-foreground hover:bg-muted transition-all hover:text-foreground">
+        className="hidden sm:flex p-2 rounded-md border border-input text-muted-foreground hover:bg-muted transition-all hover:text-foreground">
         {darkMode ? <Sun size={18} /> : <Moon size={18} />}
       </button>
 
