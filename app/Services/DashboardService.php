@@ -9,8 +9,12 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardService
 {
-    public function getDashboardData()
+    public function getDashboardData($forceRefresh = false)
     {
+        if ($forceRefresh) {
+            Cache::forget('dashboard_data');
+        }
+
         return Cache::remember('dashboard_data', 3600, function () {
             return [
                 'kpi' => $this->getKpiData(),
@@ -19,19 +23,85 @@ class DashboardService
                 'districts' => $this->getDistrictData(),
                 'activities' => $this->getActivityFeed(),
                 'trend' => $this->getTrendData(),
+                'markers' => $this->getMapMarkers(),
             ];
         });
     }
 
     private function getKpiData()
     {
+        // Calculate current and previous periods for trends
+        $currentDate = now();
+        $thirtyDaysAgo = now()->subDays(30);
+        $sixtyDaysAgo = now()->subDays(60);
+
+        // Helper to calculate percentage change
+        $calcChange = function($current, $previous) {
+            if ($previous == 0) return $current > 0 ? 100 : 0;
+            return round((($current - $previous) / $previous) * 100, 1);
+        };
+
+        // Total
+        $totalCurrent = Business::count();
+        $totalPrevious = Business::where('created_at', '<', $thirtyDaysAgo)->count();
+        $totalChange = $calcChange($totalCurrent, $totalPrevious);
+
+        // Active
+        $activeCurrent = Business::where('status', 'Aktif')->count();
+        $activePrevious = Business::where('status', 'Aktif')->where('created_at', '<', $thirtyDaysAgo)->count();
+        $activeChange = $calcChange($activeCurrent, $activePrevious);
+
+        // Pending
+        $pendingCurrent = Business::where('status', 'Pending')->count();
+        $pendingPrevious = Business::where('status', 'Pending')->where('created_at', '<', $thirtyDaysAgo)->count();
+        $pendingChange = $calcChange($pendingCurrent, $pendingPrevious);
+
+        // Expired
+        $expiredCurrent = Business::where('status', 'Kadaluarsa')->count();
+        $expiredPrevious = Business::where('status', 'Kadaluarsa')->where('created_at', '<', $thirtyDaysAgo)->count();
+        $expiredChange = $calcChange($expiredCurrent, $expiredPrevious);
+        
+        // Rejected
+        $rejectedCurrent = Business::where('status', 'Ditolak')->count();
+        $rejectedPrevious = Business::where('status', 'Ditolak')->where('created_at', '<', $thirtyDaysAgo)->count();
+        $rejectedChange = $calcChange($rejectedCurrent, $rejectedPrevious);
+
+        // New (last 30 days vs previous 30 days)
+        $newCurrent = Business::where('tgl_terbit', '>=', $thirtyDaysAgo)->count();
+        $newPrevious = Business::whereBetween('tgl_terbit', [$sixtyDaysAgo, $thirtyDaysAgo])->count();
+        $newChange = $calcChange($newCurrent, $newPrevious);
+
         return [
-            'total' => Business::count(),
-            'active' => Business::where('status', 'Aktif')->count(),
-            'pending' => Business::where('status', 'Pending')->count(),
-            'expired' => Business::where('status', 'Kadaluarsa')->count(),
-            'rejected' => Business::where('status', 'Ditolak')->count(),
-            'new' => Business::where('tgl_terbit', '>=', now()->subDays(30))->count(),
+            'total' => [
+                'value' => $totalCurrent,
+                'change' => ($totalChange > 0 ? '+' : '') . $totalChange . '%',
+                'up' => $totalChange >= 0
+            ],
+            'active' => [
+                'value' => $activeCurrent,
+                'change' => ($activeChange > 0 ? '+' : '') . $activeChange . '%',
+                'up' => $activeChange >= 0
+            ],
+            'pending' => [
+                'value' => $pendingCurrent,
+                'change' => ($pendingChange > 0 ? '+' : '') . $pendingChange . '%',
+                'up' => $pendingChange >= 0
+            ],
+            'expired' => [
+                'value' => $expiredCurrent,
+                'change' => ($expiredChange > 0 ? '+' : '') . $expiredChange . '%',
+                'up' => $expiredChange <= 0 // Lower is better
+            ],
+            'rejected' => [
+                'value' => $rejectedCurrent,
+                'change' => ($rejectedChange > 0 ? '+' : '') . $rejectedChange . '%',
+                'up' => $rejectedChange <= 0 // Lower is better
+            ],
+            'new' => [
+                'value' => $newCurrent,
+                'change' => ($newChange > 0 ? '+' : '') . $newChange . '%',
+                'up' => $newChange >= 0
+            ],
         ];
     }
 
@@ -39,12 +109,14 @@ class DashboardService
     {
         $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
         
+        $year = request()->query('year', date('Y'));
+        
         $monthlyQuery = Business::select(
                 DB::raw('EXTRACT(MONTH FROM tgl_terbit) as month'), 
                 'status', 
                 DB::raw('count(*) as total')
             )
-            ->whereYear('tgl_terbit', '2024')
+            ->whereYear('tgl_terbit', $year)
             ->groupBy(DB::raw('EXTRACT(MONTH FROM tgl_terbit)'), 'status')
             ->get();
             
@@ -164,5 +236,15 @@ class DashboardService
                 'expired' => (int) $yearData->where('status', 'Kadaluarsa')->sum('total'),
             ];
         })->values();
+    }
+
+    private function getMapMarkers()
+    {
+        return Business::select('id', 'lat', 'lng', 'status', 'nama_perusahaan')
+            ->whereNotNull('lat')
+            ->whereNotNull('lng')
+            ->where('status', 'Aktif')
+            ->take(200) // Prevent rendering too many markers at once
+            ->get();
     }
 }

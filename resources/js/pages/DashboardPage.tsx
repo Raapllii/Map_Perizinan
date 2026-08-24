@@ -22,17 +22,30 @@ export default function DashboardPage() {
 
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    axios.get('/api/admin/dashboard')
+  const fetchData = (refresh = false) => {
+    setLoading(true);
+    setError(null);
+    const url = refresh ? '/api/admin/dashboard?refresh=true' : '/api/admin/dashboard';
+    axios.get(url)
       .then(res => {
         setData(res.data);
         setLoading(false);
       })
       .catch(err => {
         console.error(err);
+        setError("Gagal memuat data dashboard.");
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchData();
+
+    const handleRefresh = () => fetchData(true);
+    window.addEventListener('refreshDashboard', handleRefresh);
+    return () => window.removeEventListener('refreshDashboard', handleRefresh);
   }, []);
 
   const kpiData = data?.kpi;
@@ -55,14 +68,27 @@ export default function DashboardPage() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-center border border-border rounded-xl bg-card">
+        <AlertTriangle className="w-12 h-12 text-danger mb-4 opacity-80" />
+        <h3 className="text-lg font-bold text-foreground mb-2">Terjadi Kesalahan</h3>
+        <p className="text-sm text-muted-foreground mb-6">{error}</p>
+        <Btn variant="primary" onClick={() => fetchData(true)}>Coba Lagi</Btn>
+      </div>
+    );
+  }
+
   const KPI_CARDS = [
-    { label: "Total Usaha", value: kpiData?.total?.toLocaleString('id') || "0", icon: Building2, change: "+5.2%", up: true, color: "text-primary", bg: "bg-primary/10" },
-    { label: "Izin Aktif", value: kpiData?.active?.toLocaleString('id') || "0", icon: CheckCircle, change: "+3.1%", up: true, color: "text-success", bg: "bg-success/10" },
-    { label: "Pending Verifikasi", value: kpiData?.pending?.toLocaleString('id') || "0", icon: Clock, change: "+12.4%", up: true, color: "text-warning", bg: "bg-warning/10" },
-    { label: "Izin Kadaluarsa", value: kpiData?.expired?.toLocaleString('id') || "0", icon: AlertTriangle, change: "-2.3%", up: false, color: "text-danger", bg: "bg-danger/10" },
-    { label: "Ditolak", value: kpiData?.rejected?.toLocaleString('id') || "0", icon: XCircle, change: "+1.5%", up: false, color: "text-danger", bg: "bg-danger/10" },
-    { label: "Usaha Baru", value: kpiData?.new?.toLocaleString('id') || "0", icon: TrendingUp, change: "+18.7%", up: true, color: "text-info", bg: "bg-info/10" },
+    { label: "Total Usaha", value: kpiData?.total?.value?.toLocaleString('id') || "0", icon: Building2, change: kpiData?.total?.change || "+0%", up: kpiData?.total?.up ?? true, color: "text-primary", bg: "bg-primary/10" },
+    { label: "Izin Aktif", value: kpiData?.active?.value?.toLocaleString('id') || "0", icon: CheckCircle, change: kpiData?.active?.change || "+0%", up: kpiData?.active?.up ?? true, color: "text-success", bg: "bg-success/10" },
+    { label: "Pending Verifikasi", value: kpiData?.pending?.value?.toLocaleString('id') || "0", icon: Clock, change: kpiData?.pending?.change || "+0%", up: kpiData?.pending?.up ?? true, color: "text-warning", bg: "bg-warning/10" },
+    { label: "Izin Kadaluarsa", value: kpiData?.expired?.value?.toLocaleString('id') || "0", icon: AlertTriangle, change: kpiData?.expired?.change || "+0%", up: kpiData?.expired?.up ?? false, color: "text-danger", bg: "bg-danger/10" },
+    { label: "Ditolak", value: kpiData?.rejected?.value?.toLocaleString('id') || "0", icon: XCircle, change: kpiData?.rejected?.change || "+0%", up: kpiData?.rejected?.up ?? false, color: "text-danger", bg: "bg-danger/10" },
+    { label: "Usaha Baru", value: kpiData?.new?.value?.toLocaleString('id') || "0", icon: TrendingUp, change: kpiData?.new?.change || "+0%", up: kpiData?.new?.up ?? true, color: "text-info", bg: "bg-info/10" },
   ];
+
+  const currentYear = new Date().getFullYear();
 
   return (
     <div className="space-y-6">
@@ -77,8 +103,8 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
         {/* Monthly registrations */}
         <Card className="xl:col-span-7" padding="p-5">
-          <SectionHeader title="Pendaftaran Usaha Bulanan" subtitle="Tahun 2025 — registrasi, terverifikasi, dan ditolak">
-            <Btn variant="outline" size="sm" Icon={Download}>Export</Btn>
+          <SectionHeader title="Pendaftaran Usaha Bulanan" subtitle={`Tahun ${currentYear} — registrasi, terverifikasi, dan ditolak`}>
+            <Btn variant="outline" size="sm" Icon={Download} onClick={() => window.open('/api/admin/dashboard/export/excel', '_blank')}>Export</Btn>
           </SectionHeader>
           <div className="w-full min-w-0">
             <ResponsiveContainer width="100%" height={260}>
@@ -167,20 +193,20 @@ export default function DashboardPage() {
         {/* Mini map + quick actions */}
         <Card className="xl:col-span-3" padding="p-5 flex flex-col">
           <SectionHeader title="Pratinjau Peta" />
-          <div className="rounded-xl overflow-hidden h-40 md:h-48 mb-5 border border-border shadow-inner flex-shrink-0 relative z-0">
-            <CityMapLeaflet height="100%" isMiniMap={true} />
+          <div className="rounded-xl overflow-hidden h-40 md:h-48 mb-5 border border-border shadow-inner flex-shrink-0 relative z-0 min-w-0">
+            <CityMapLeaflet height="100%" isMiniMap={true} markers={data?.markers || []} />
           </div>
           <div className="space-y-2.5 flex-1 flex flex-col justify-end">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Aksi Cepat</p>
-            {[
-              { label: "Export PDF", icon: FileText, variant: "outline" },
-              { label: "Export Excel", icon: FileSpreadsheet, variant: "outline" },
-              { label: "Cetak Laporan", icon: Printer, variant: "outline" },
-            ].map((a) => (
-              <Btn key={a.label} variant={a.variant as any} Icon={a.icon} size="sm" className="w-full justify-start shadow-sm">
-                {a.label}
-              </Btn>
-            ))}
+            <Btn variant="outline" Icon={FileText} size="sm" className="w-full justify-start shadow-sm" onClick={() => window.print()}>
+              Export PDF
+            </Btn>
+            <Btn variant="outline" Icon={FileSpreadsheet} size="sm" className="w-full justify-start shadow-sm" onClick={() => window.open('/api/admin/dashboard/export/excel', '_blank')}>
+              Export Excel
+            </Btn>
+            <Btn variant="outline" Icon={Printer} size="sm" className="w-full justify-start shadow-sm" onClick={() => window.print()}>
+              Cetak Laporan
+            </Btn>
           </div>
         </Card>
       </div>

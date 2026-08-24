@@ -7,9 +7,9 @@ export default function VerifikasiIzinPage() {
   const [queue, setQueue] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchQueue = () => {
     setLoading(true);
-    axios.get('/api/businesses')
+    axios.get('/api/admin/businesses')
       .then(res => {
         // Extract array from paginated response or normal response
         const rawData = res.data?.data ? res.data.data : (Array.isArray(res.data) ? res.data : []);
@@ -34,12 +34,29 @@ export default function VerifikasiIzinPage() {
         console.error(err);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchQueue();
   }, []);
   
   const [activeTab, setActiveTab] = useState("pending");
+  const [processing, setProcessing] = useState<number | null>(null);
 
   const handleAction = (id: number, action: string) => {
-    setQueue(q => q.map(item => item.id === id ? { ...item, status: action } : item));
+    if (!window.confirm(`Anda yakin ingin mengubah status menjadi ${action}?`)) return;
+    
+    setProcessing(id);
+    axios.put(`/api/admin/businesses/${id}/verify`, { status: action })
+      .then(res => {
+        setQueue(q => q.map(item => item.id === id ? { ...item, status: action } : item));
+        setProcessing(null);
+      })
+      .catch(err => {
+        alert(err.response?.data?.message || "Gagal memperbarui status verifikasi");
+        console.error(err);
+        setProcessing(null);
+      });
   };
 
   const statusMap: Record<string, string> = { pending: "Pending", approved: "Aktif", rejected: "Ditolak", revision: "Revision" };
@@ -92,7 +109,7 @@ export default function VerifikasiIzinPage() {
               <InputField placeholder="Cari pemohon..." className="pl-9 w-full !py-1.5 !text-sm" />
             </div>
             <Btn variant="outline" size="sm" Icon={Filter} className="hidden sm:inline-flex">Filter</Btn>
-            <Btn variant="secondary" size="sm" Icon={RefreshCw}>Refresh</Btn>
+            <Btn variant="secondary" size="sm" Icon={RefreshCw} onClick={fetchQueue} disabled={loading}>Refresh</Btn>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -150,9 +167,9 @@ export default function VerifikasiIzinPage() {
                       <td className="px-4 py-4">
                         {activeTab === "pending" || activeTab === "revision" ? (
                           <div className="flex items-center justify-end gap-1.5">
-                            <Btn size="xs" variant="ghost" onClick={() => handleAction(item.id, "Aktif")} className="text-success hover:bg-success/10 hover:text-success" Icon={Check}>Setujui</Btn>
-                            <Btn size="xs" variant="ghost" onClick={() => handleAction(item.id, "Revision")} className="text-info hover:bg-info/10 hover:text-info" Icon={Edit}>Revisi</Btn>
-                            <Btn size="xs" variant="ghost" onClick={() => handleAction(item.id, "Ditolak")} className="text-danger hover:bg-danger/10 hover:text-danger" Icon={X}>Tolak</Btn>
+                            <Btn size="xs" variant="ghost" disabled={processing === item.id} onClick={() => handleAction(item.id, "Aktif")} className="text-success hover:bg-success/10 hover:text-success" Icon={Check}>Setujui</Btn>
+                            <Btn size="xs" variant="ghost" disabled={processing === item.id} onClick={() => handleAction(item.id, "Revision")} className="text-info hover:bg-info/10 hover:text-info" Icon={Edit}>Revisi</Btn>
+                            <Btn size="xs" variant="ghost" disabled={processing === item.id} onClick={() => handleAction(item.id, "Ditolak")} className="text-danger hover:bg-danger/10 hover:text-danger" Icon={X}>Tolak</Btn>
                           </div>
                         ) : (
                           <div className="flex justify-end">

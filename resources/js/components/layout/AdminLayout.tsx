@@ -68,8 +68,24 @@ export default function AdminLayout({ darkMode, setDarkMode, setUser }: any) {
               </div>
               {activePage === "dashboard" && (
                 <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <Btn variant="outline" size="sm" Icon={RefreshCw} className="flex-1 sm:flex-none justify-center">Refresh</Btn>
-                  <Btn variant="primary" size="sm" Icon={Download} className="flex-1 sm:flex-none justify-center">Export</Btn>
+                  <Btn 
+                    variant="outline" 
+                    size="sm" 
+                    Icon={RefreshCw} 
+                    className="flex-1 sm:flex-none justify-center"
+                    onClick={() => window.dispatchEvent(new Event('refreshDashboard'))}
+                  >
+                    Refresh
+                  </Btn>
+                  <Btn 
+                    variant="primary" 
+                    size="sm" 
+                    Icon={Download} 
+                    className="flex-1 sm:flex-none justify-center"
+                    onClick={() => window.open('/api/admin/dashboard/export/excel', '_blank')}
+                  >
+                    Export
+                  </Btn>
                 </div>
               )}
             </div>

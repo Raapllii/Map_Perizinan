@@ -237,3 +237,35 @@
 .custom-popup .leaflet-popup-tip-container {
   display: none !important;
 }
+
+/* Print Layout Optimization */
+@media print {
+  /* Hide sidebar, topbar, and quick actions */
+  aside, header, nav, .lg\:hidden {
+    display: none !important;
+  }
+
+  /* Reset layout constraints */
+  body, main, .flex-1, .h-screen {
+    height: auto !important;
+    overflow: visible !important;
+    background-color: white !important;
+  }
+
+  /* Optimize cards for print */
+  .bg-card {
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
+  /* Hide quick actions in bottom row specifically */
+  .space-y-2\.5\.flex-1\.flex\.flex-col\.justify-end {
+    display: none !important;
+  }
+
+  /* Hide specific action buttons in header */
+  .sm\:w-auto {
+    display: none !important;
+  }
+}

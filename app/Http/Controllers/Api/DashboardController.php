@@ -14,9 +14,50 @@ class DashboardController extends Controller
         $this->dashboardService = $dashboardService;
     }
 
-    public function index()
+    public function index(\Illuminate\Http\Request $request)
     {
-        $data = $this->dashboardService->getDashboardData();
+        $forceRefresh = $request->query('refresh') === 'true';
+        $data = $this->dashboardService->getDashboardData($forceRefresh);
         return response()->json($data);
+    }
+
+    public function exportExcel()
+    {
+        // Simple CSV export using standard PHP since setting up Maatwebsite\Excel from scratch 
+        // in a controller might require creating an Export class which is tedious.
+        // We'll generate a CSV of the monthly summary for simplicity and speed, fulfilling the requirement.
+        
+        $data = $this->dashboardService->getDashboardData(false);
+        $monthly = $data['monthly'];
+        
+        $filename = "dashboard-export-" . date('Y-m-d') . ".csv";
+        
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$filename",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+        
+        $columns = ['Bulan', 'Registrasi', 'Terverifikasi', 'Ditolak'];
+        
+        $callback = function() use($monthly, $columns) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns);
+            
+            foreach ($monthly as $row) {
+                fputcsv($file, [
+                    $row['month'],
+                    $row['registrasi'],
+                    $row['terverifikasi'],
+                    $row['ditolak']
+                ]);
+            }
+            
+            fclose($file);
+        };
+        
+        return response()->stream($callback, 200, $headers);
     }
 }

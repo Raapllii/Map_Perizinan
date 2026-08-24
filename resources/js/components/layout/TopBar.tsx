@@ -77,7 +77,7 @@ export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
         </button>
 
         {showNotifs && (
-          <div className="absolute -right-2 sm:right-0 top-12 w-[calc(100vw-1rem)] sm:w-80 bg-popover border border-border rounded-xl shadow-lg overflow-hidden z-50 max-w-sm">
+          <div className="absolute right-0 top-12 w-[calc(100vw-2rem)] max-w-[320px] sm:w-80 bg-popover border border-border rounded-xl shadow-lg overflow-hidden z-50">
             <div className="px-4 py-3 border-b border-border flex items-center justify-between">
               <span className="text-sm font-semibold text-popover-foreground">Notifikasi</span>
               <span className="text-xs text-primary font-medium cursor-pointer hover:underline">Tandai semua dibaca</span>

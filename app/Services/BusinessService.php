@@ -154,4 +154,28 @@ class BusinessService
         Cache::forget('dashboard_data');
         Cache::forget('map_markers_all');
     }
+
+    public function updateStatus(int $id, string $status, ?string $note, $user = null)
+    {
+        $business = $this->repository->findById($id);
+        $oldStatus = $business->status;
+        
+        $business = $this->repository->update($id, ['status' => $status]);
+
+        // Record activity log
+        \App\Models\ActivityLog::create([
+            'user_id' => $user ? $user->id : null,
+            'user_name' => $user ? $user->name : 'System',
+            'action' => 'Verifikasi',
+            'business_id' => $id,
+            'business_name' => $business->nama_perusahaan,
+            'old_status' => $oldStatus,
+            'new_status' => $status,
+            'note' => $note
+        ]);
+
+        $this->clearCaches();
+
+        return $business;
+    }
 }

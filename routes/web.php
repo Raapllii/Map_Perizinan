@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\BusinessController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\VerificationController;
 
 // Public React App Route (WebGIS)
 Route::get('/', function () {
@@ -47,11 +48,14 @@ Route::prefix('api/admin')->group(function () {
     Route::middleware('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/dashboard', [DashboardController::class, 'index']);
+        Route::get('/dashboard/export/excel', [DashboardController::class, 'exportExcel']);
         
         Route::post('/businesses', [BusinessController::class, 'store']);
         Route::get('/businesses/{business}', [BusinessController::class, 'show']);
         Route::put('/businesses/{business}', [BusinessController::class, 'update']);
         Route::delete('/businesses/{business}', [BusinessController::class, 'destroy']);
+        
+        Route::put('/businesses/{business}/verify', [VerificationController::class, 'verify']);
         
         Route::get('/users', [UserController::class, 'index']);
         
