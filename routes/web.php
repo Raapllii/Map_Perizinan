@@ -58,6 +58,11 @@ Route::prefix('api/admin')->group(function () {
         Route::put('/businesses/{business}/verify', [VerificationController::class, 'verify']);
         
         Route::get('/users', [UserController::class, 'index']);
+        Route::post('/users', [UserController::class, 'store']);
+        Route::put('/users/{id}', [UserController::class, 'update']);
+        Route::put('/users/{id}/status', [UserController::class, 'updateStatus']);
+        Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
+        Route::get('/activity-logs', [UserController::class, 'getActivityLogs']);
         
         Route::get('/user', function (\Illuminate\Http\Request $request) {
             return response()->json(['user' => $request->user()]);
