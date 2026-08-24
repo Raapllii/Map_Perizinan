@@ -114,16 +114,30 @@ class UserController extends Controller
         $user = User::findOrFail($id);
         
         $request->validate([
-            'password' => 'required|string|min:8'
+            'old_password' => 'required|string',
+            'new_password' => 'required|string|min:8|confirmed|different:old_password'
+        ], [
+            'new_password.confirmed' => 'Konfirmasi password baru tidak cocok.',
+            'new_password.different' => 'Password baru tidak boleh sama dengan password lama.',
+            'new_password.min' => 'Password baru minimal 8 karakter.'
         ]);
+
+        if (!Hash::check($request->old_password, $user->password)) {
+            return response()->json([
+                'message' => 'The given data was invalid.',
+                'errors' => [
+                    'old_password' => ['Password lama tidak sesuai.']
+                ]
+            ], 422);
+        }
 
         $user->update([
-            'password' => Hash::make($request->password)
+            'password' => Hash::make($request->new_password)
         ]);
 
-        $this->logActivity('Mereset password pengguna: ' . $user->name, $request->user());
+        $this->logActivity('Password pengguna diubah', $request->user());
 
-        return response()->json(['message' => 'Password pengguna berhasil direset']);
+        return response()->json(['message' => 'Password berhasil diubah.']);
     }
 
     public function getActivityLogs(Request $request)

@@ -10,7 +10,7 @@ export default function PenggunaPage() {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState<number | null>(null);
-  
+
   // Modals state
   const [showFormModal, setShowFormModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -21,6 +21,12 @@ export default function PenggunaPage() {
     password: "",
     status: "Aktif"
   });
+
+  // Reset Password Modal state
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetUserId, setResetUserId] = useState<number | null>(null);
+  const [resetData, setResetData] = useState({ old_password: "", new_password: "", new_password_confirmation: "" });
+  const [resetErrors, setResetErrors] = useState<any>({});
 
   const fetchUsers = useCallback(() => {
     setLoading(true);
@@ -59,7 +65,7 @@ export default function PenggunaPage() {
       return;
     }
     setLoading(true);
-    const request = editingId 
+    const request = editingId
       ? axios.put(`/api/admin/users/${editingId}`, formData)
       : axios.post('/api/admin/users', formData);
 
@@ -107,22 +113,45 @@ export default function PenggunaPage() {
       .finally(() => setProcessing(null));
   };
 
-  const handleResetPassword = (id: number) => {
-    const newPassword = window.prompt("Masukkan password baru (min 8 karakter):");
-    if (!newPassword) return;
-    if (newPassword.length < 8) {
-      alert("Password minimal 8 karakter!");
-      return;
-    }
+  const openResetPassword = (id: number) => {
+    setResetUserId(id);
+    setResetData({ old_password: "", new_password: "", new_password_confirmation: "" });
+    setResetErrors({});
+    setShowResetModal(true);
+  };
 
-    setProcessing(id);
-    axios.post(`/api/admin/users/${id}/reset-password`, { password: newPassword })
+  const submitResetPassword = () => {
+    setResetErrors({});
+    if (!resetData.old_password) return setResetErrors({ old_password: ["Password lama wajib diisi."] });
+    if (!resetData.new_password) return setResetErrors({ new_password: ["Password baru wajib diisi."] });
+    if (resetData.new_password.length < 8) return setResetErrors({ new_password: ["Password baru minimal 8 karakter."] });
+    if (!resetData.new_password_confirmation) return setResetErrors({ new_password_confirmation: ["Konfirmasi password wajib diisi."] });
+    if (resetData.new_password !== resetData.new_password_confirmation) return setResetErrors({ new_password_confirmation: ["Konfirmasi password baru tidak cocok."] });
+    if (resetData.new_password === resetData.old_password) return setResetErrors({ new_password: ["Password baru tidak boleh sama dengan password lama."] });
+
+    setLoading(true);
+    axios.post(`/api/admin/users/${resetUserId}/reset-password`, resetData)
       .then(res => {
-        alert("Password berhasil direset!");
+        setShowResetModal(false);
+        setResetUserId(null);
+
+        // Custom success notification replacing alert
+        const toast = document.createElement('div');
+        toast.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-[100] font-medium text-sm transition-all animate-in slide-in-from-bottom-5';
+        toast.innerText = 'Password berhasil diubah.';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+
         fetchLogs();
       })
-      .catch(err => alert(err.response?.data?.message || "Gagal mereset password"))
-      .finally(() => setProcessing(null));
+      .catch(err => {
+        if (err.response?.status === 422) {
+          setResetErrors(err.response.data.errors || {});
+        } else {
+          setResetErrors({ general: [err.response?.data?.message || "Gagal mereset password"] });
+        }
+      })
+      .finally(() => setLoading(false));
   };
 
   const roles = [
@@ -172,9 +201,9 @@ export default function PenggunaPage() {
           <div className="flex gap-2 w-full sm:w-auto">
             <div className="relative flex-1 sm:flex-none">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input 
-                placeholder="Cari pengguna (Enter)" 
-                className="pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#2E7D32] bg-white w-full sm:w-48" 
+              <input
+                placeholder="Cari pengguna (Enter)"
+                className="pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#2E7D32] bg-white w-full sm:w-48"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 onKeyDown={handleSearch}
@@ -221,12 +250,12 @@ export default function PenggunaPage() {
                       <button onClick={() => handleEdit(u)} disabled={processing === u.id} className="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg" title="Edit">
                         <Edit size={14} />
                       </button>
-                      <button onClick={() => handleResetPassword(u.id)} disabled={processing === u.id} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg" title="Reset Password">
+                      <button onClick={() => openResetPassword(u.id)} disabled={processing === u.id} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg" title="Reset Password">
                         <Key size={14} />
                       </button>
-                      <button 
-                        onClick={() => handleToggleStatus(u.id, u.status)} 
-                        disabled={processing === u.id} 
+                      <button
+                        onClick={() => handleToggleStatus(u.id, u.status)}
+                        disabled={processing === u.id}
                         className={`p-1.5 ${u.status === 'Aktif' ? 'text-red-500 hover:bg-red-50' : 'text-green-500 hover:bg-green-50'} rounded-lg`}
                         title={u.status === 'Aktif' ? 'Nonaktifkan' : 'Aktifkan'}
                       >
@@ -273,30 +302,30 @@ export default function PenggunaPage() {
             <h3 className="text-base font-semibold text-gray-900 mb-4">{editingId ? "Edit Pengguna" : "Tambah Pengguna Baru"}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
-                <InputField 
-                  label="Nama Lengkap" placeholder="Nama dengan gelar" required 
-                  value={formData.name} onChange={(e:any) => setFormData({...formData, name: e.target.value})} 
+                <InputField
+                  label="Nama Lengkap" placeholder="Nama dengan gelar" required
+                  value={formData.name} onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
                 />
               </div>
               <div className="sm:col-span-2">
-                <InputField 
-                  label="Email" type="email" placeholder="nama@pemkab.go.id" required 
-                  value={formData.email} onChange={(e:any) => setFormData({...formData, email: e.target.value})} 
+                <InputField
+                  label="Email" type="email" placeholder="nama@pemkab.go.id" required
+                  value={formData.email} onChange={(e: any) => setFormData({ ...formData, email: e.target.value })}
                 />
               </div>
-              <SelectField 
-                label="Peran" required options={["Super Admin", "Administrator", "Verifier", "Surveyor"]} 
-                value={formData.role} onChange={(e:any) => setFormData({...formData, role: e.target.value})} 
+              <SelectField
+                label="Peran" required options={["Super Admin", "Administrator", "Verifier", "Surveyor"]}
+                value={formData.role} onChange={(e: any) => setFormData({ ...formData, role: e.target.value })}
               />
-              <SelectField 
-                label="Status" options={["Aktif", "Nonaktif"]} 
-                value={formData.status} onChange={(e:any) => setFormData({...formData, status: e.target.value})} 
+              <SelectField
+                label="Status" options={["Aktif", "Nonaktif"]}
+                value={formData.status} onChange={(e: any) => setFormData({ ...formData, status: e.target.value })}
               />
               {!editingId && (
                 <div className="sm:col-span-2">
-                  <InputField 
-                    label="Password Awal" type="password" placeholder="Min. 8 karakter" required 
-                    value={formData.password} onChange={(e:any) => setFormData({...formData, password: e.target.value})} 
+                  <InputField
+                    label="Password Awal" type="password" placeholder="Min. 8 karakter" required
+                    value={formData.password} onChange={(e: any) => setFormData({ ...formData, password: e.target.value })}
                   />
                 </div>
               )}
@@ -305,6 +334,79 @@ export default function PenggunaPage() {
               <Btn variant="outline" className="flex-1 justify-center" onClick={() => setShowFormModal(false)} disabled={loading}>Batal</Btn>
               <Btn variant="primary" className="flex-1 justify-center" Icon={Save} onClick={handleSaveUser} disabled={loading}>
                 {loading ? "Menyimpan..." : "Simpan Pengguna"}
+              </Btn>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Ubah Password */}
+      {showResetModal && (
+        <div
+          className="fixed inset-0 bg-black/30 flex items-center justify-center z-[60] p-4"
+          onClick={() => !loading && setShowResetModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="text-xl font-bold text-gray-900 mb-1">Ubah Password</h3>
+            <p className="text-sm text-gray-500 mb-5">Konfirmasi password lama sebelum membuat password baru.</p>
+
+            {resetErrors.general && (
+              <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
+                {resetErrors.general[0]}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <InputField
+                  label="Password Lama"
+                  type="password"
+                  placeholder="Masukkan password lama"
+                  required
+                  value={resetData.old_password}
+                  onChange={(e: any) => setResetData({ ...resetData, old_password: e.target.value })}
+                  disabled={loading}
+                  error={resetErrors.old_password?.[0]}
+                />
+              </div>
+
+              <div>
+                <InputField
+                  label="Password Baru"
+                  type="password"
+                  placeholder="Masukkan password baru"
+                  required
+                  value={resetData.new_password}
+                  onChange={(e: any) => setResetData({ ...resetData, new_password: e.target.value })}
+                  disabled={loading}
+                  error={resetErrors.new_password?.[0]}
+                />
+                {!resetErrors.new_password && <p className="text-xs text-gray-400 mt-1.5">Min. 8 karakter</p>}
+              </div>
+
+              <div>
+                <InputField
+                  label="Konfirmasi Password Baru"
+                  type="password"
+                  placeholder="Ulangi password baru"
+                  required
+                  value={resetData.new_password_confirmation}
+                  onChange={(e: any) => setResetData({ ...resetData, new_password_confirmation: e.target.value })}
+                  disabled={loading}
+                  error={resetErrors.new_password_confirmation?.[0]}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <Btn variant="outline" className="flex-1 justify-center" onClick={() => setShowResetModal(false)} disabled={loading}>
+                Batal
+              </Btn>
+              <Btn variant="primary" className="flex-1 justify-center" Icon={Save} onClick={submitResetPassword} disabled={loading}>
+                {loading ? "Menyimpan..." : "Simpan Password"}
               </Btn>
             </div>
           </div>
