@@ -78,9 +78,7 @@ class BusinessRepository
 
     public function searchByKeyword(string $keyword)
     {
-        $query = Business::select('id', 'nama_perusahaan', 'judul_kbli', 'nib', 'kecamatan', 'kelurahan', 'status', 'risiko', 'lat', 'lng')
-            ->whereNotNull('lat')
-            ->whereNotNull('lng');
+        $query = Business::select('id', 'nama_perusahaan', 'judul_kbli', 'nib', 'kecamatan', 'kelurahan', 'status', 'risiko', 'lat', 'lng');
 
         if (!empty($keyword)) {
             $query->where(function($q) use ($keyword) {

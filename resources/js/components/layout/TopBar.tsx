@@ -1,18 +1,92 @@
-import { useState, useEffect } from "react";
-import { useLocation } from "react-router";
-import { Home, ChevronRight, Search, Sun, Moon, Bell, ChevronDown, Menu } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { useLocation, useNavigate } from "react-router";
+import { Home, ChevronRight, Search, Sun, Moon, Bell, ChevronDown, Menu, RefreshCw, Store } from "lucide-react";
 import { PAGE_TITLES } from "../../constants";
+import axios from "axios";
+import { useDebounce } from "../../hooks/useDebounce";
 
 export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
   const [showNotifs, setShowNotifs] = useState(false);
   const [time, setTime] = useState(new Date());
   const location = useLocation();
+  const navigate = useNavigate();
   const activePage = location.pathname.split('/').pop() || 'dashboard';
+
+  // Global Search State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const searchRef = useRef<HTMLDivElement>(null);
+  
+  const debouncedQuery = useDebounce(searchQuery, 400);
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  useEffect(() => {
+    if (debouncedQuery.length >= 2) {
+      setIsSearching(true);
+      setSearchError("");
+      axios.get(`/api/businesses/search?q=${encodeURIComponent(debouncedQuery)}`)
+        .then(res => {
+          setSearchResults(res.data);
+          setActiveIndex(-1);
+        })
+        .catch(err => {
+          console.error(err);
+          setSearchError("Gagal mencari data. Silakan coba lagi.");
+        })
+        .finally(() => setIsSearching(false));
+    } else {
+      setSearchResults([]);
+      setActiveIndex(-1);
+    }
+  }, [debouncedQuery]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelectResult = (result: any) => {
+    setShowDropdown(false);
+    setSearchQuery(""); // clear query on select
+    
+    if (result.lat && result.lng) {
+      navigate('/admin/peta-usaha', { state: { flyTo: { lat: result.lat, lng: result.lng, id: result.id } } });
+    } else {
+      navigate('/admin/data-usaha', { state: { highlightId: result.id, noCoord: true } });
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showDropdown || searchResults.length === 0) return;
+    
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex(prev => prev < searchResults.length - 1 ? prev + 1 : prev);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex(prev => prev > 0 ? prev - 1 : -1);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (activeIndex >= 0 && activeIndex < searchResults.length) {
+        handleSelectResult(searchResults[activeIndex]);
+      }
+    } else if (e.key === "Escape") {
+      setShowDropdown(false);
+    }
+  };
 
   const pageInfo = PAGE_TITLES[activePage as keyof typeof PAGE_TITLES];
 
@@ -45,10 +119,63 @@ export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
       </div>
 
       {/* Search */}
-      <div className="relative flex-1 min-w-0">
+      <div className="relative flex-1 min-w-0" ref={searchRef}>
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <input placeholder="Cari usaha, NIB..."
-          className="w-full pl-9 pr-4 py-2 text-sm border border-input rounded-md bg-input-background focus:bg-background focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" />
+        <input 
+          placeholder="Cari usaha, NIB..."
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setShowDropdown(true);
+          }}
+          onFocus={() => { if (searchQuery) setShowDropdown(true); }}
+          onKeyDown={handleKeyDown}
+          className="w-full pl-9 pr-4 py-2 text-sm border border-input rounded-md bg-input-background focus:bg-background focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" 
+        />
+        
+        {/* Dropdown Results */}
+        {showDropdown && searchQuery.length >= 2 && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-md shadow-lg overflow-hidden z-[100] max-h-[60vh] sm:max-h-80 overflow-y-auto">
+            {isSearching ? (
+              <div className="p-4 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
+                <RefreshCw size={14} className="animate-spin" /> Mencari data...
+              </div>
+            ) : searchError ? (
+              <div className="p-4 text-center text-sm text-danger">{searchError}</div>
+            ) : searchResults.length === 0 ? (
+              <div className="p-4 text-center">
+                <p className="text-sm font-semibold text-foreground">Data tidak ditemukan</p>
+                <p className="text-xs text-muted-foreground mt-1">Tidak ada usaha yang cocok dengan "{searchQuery}"</p>
+              </div>
+            ) : (
+              <div className="py-1">
+                {searchResults.map((result, i) => (
+                  <div 
+                    key={result.id} 
+                    onClick={() => handleSelectResult(result)}
+                    className={`px-4 py-2.5 cursor-pointer hover:bg-muted transition-colors ${activeIndex === i ? 'bg-primary/10' : ''}`}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center text-primary flex-shrink-0 mt-0.5">
+                        <Store size={14} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-foreground truncate">
+                          {result.nama_perusahaan}
+                        </p>
+                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
+                          <span className="font-mono text-primary/70">{result.nib}</span>
+                          <span>•</span>
+                          <span className="truncate">{result.kecamatan || result.judul_kbli}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex-1 hidden md:block" />

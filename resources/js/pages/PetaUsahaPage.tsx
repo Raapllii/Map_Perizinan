@@ -1,4 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy } from "react";
+import { useLocation } from "react-router";
 import axios from 'axios';
 import { X, Search, RotateCcw, Filter, ZoomIn, ZoomOut, Layers, Maximize2, Building2, Eye, Edit, Navigation, ChevronDown } from "lucide-react";
 import { Card, Btn, StatusBadge } from "../components/ui";
@@ -13,7 +14,30 @@ export default function PetaUsahaPage() {
   const [markers, setMarkers] = useState<any[]>([]);
   const [mapBounds, setMapBounds] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [flyTrigger, setFlyTrigger] = useState<{lat: number, lng: number, zoom: number, ts: number} | null>(null);
+  const location = useLocation();
   const debounceTimer = React.useRef<any>(null);
+
+  useEffect(() => {
+    if (location.state && (location.state as any).flyTo) {
+      const { lat, lng, id } = (location.state as any).flyTo;
+      setFlyTrigger({ lat: parseFloat(lat), lng: parseFloat(lng), zoom: 17, ts: Date.now() });
+      
+      // Select the marker immediately if we have it in current markers,
+      // or we can just fetch it from DB to ensure it exists.
+      if (id) {
+        axios.get(`/api/admin/businesses/${id}`)
+          .then(res => setSelectedBusiness(res.data))
+          .catch(() => {
+            // fallback if api doesn't exist under /api/admin
+            console.log('Fetching business via other endpoint or fallback to marker loop');
+          });
+      }
+      
+      // Clean up history state so it doesn't fire again on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -127,7 +151,14 @@ export default function PetaUsahaPage() {
         {/* Map Container */}
         <div className="absolute inset-0 z-0">
           <Suspense fallback={<div className="flex items-center justify-center h-full w-full bg-muted text-muted-foreground">Memuat Peta...</div>}>
-            <CityMapLeaflet height="100%" selectedMarker={selected} onSelectMarker={setSelectedBusiness} markers={markers} onBoundsChange={handleBoundsChange} />
+            <CityMapLeaflet 
+              height="100%" 
+              selectedMarker={selected} 
+              onSelectMarker={setSelectedBusiness} 
+              markers={markers} 
+              onBoundsChange={handleBoundsChange} 
+              flyTrigger={flyTrigger}
+            />
           </Suspense>
         </div>
 

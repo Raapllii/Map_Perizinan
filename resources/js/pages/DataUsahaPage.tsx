@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router";
 import axios from 'axios';
-import { Eye, Edit, Trash2, Search, Filter, Plus, FileSpreadsheet, Loader2, Inbox } from "lucide-react";
+import { Eye, Edit, Trash2, Search, Filter, Plus, FileSpreadsheet, Loader2, Inbox, AlertCircle } from "lucide-react";
 import { Card, StatusBadge, Btn, InputField, SelectField } from "../components/ui";
 
 export default function DataUsahaPage() {
@@ -9,6 +10,15 @@ export default function DataUsahaPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+  const [alertMsg, setAlertMsg] = useState("");
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state && (location.state as any).noCoord) {
+      setAlertMsg("Data usaha ini belum memiliki titik koordinat lokasi di peta, sehingga dialihkan ke tabel data.");
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const fetchBusinesses = (pageNumber = 1) => {
     setLoading(true);
@@ -43,6 +53,16 @@ export default function DataUsahaPage() {
 
   return (
     <div className="space-y-5">
+      {alertMsg && (
+        <div className="bg-warning/10 border border-warning/20 text-warning px-4 py-3 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+          <AlertCircle className="shrink-0 mt-0.5" size={18} />
+          <div className="text-sm">
+            <p className="font-semibold">Perhatian</p>
+            <p className="opacity-90 mt-0.5">{alertMsg}</p>
+          </div>
+        </div>
+      )}
+
       {/* Page Header & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
