@@ -36,13 +36,21 @@ export default function TambahUsahaPage() {
 
     axios.post('/api/admin/businesses', payload)
       .then(res => {
-        alert("Data usaha berhasil disimpan!");
+        const toast = document.createElement('div');
+        toast.className = 'fixed bottom-4 right-4 bg-success text-success-foreground px-4 py-2 rounded-md shadow-lg z-[100] font-medium text-sm';
+        toast.innerText = 'Data usaha berhasil disimpan!';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
         setUploading(false);
         setStep(1);
       })
       .catch(err => {
         console.error(err);
-        alert("Gagal menyimpan data.");
+        const toast = document.createElement('div');
+        toast.className = 'fixed bottom-4 right-4 bg-danger text-danger-foreground px-4 py-2 rounded-md shadow-lg z-[100] font-medium text-sm';
+        toast.innerText = 'Gagal menyimpan data.';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
         setUploading(false);
       });
   };
@@ -57,12 +65,12 @@ export default function TambahUsahaPage() {
               <div key={s} className="flex items-center flex-1 last:flex-none mr-2 lg:mr-0">
                 <div className="flex items-center gap-2.5">
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all flex-shrink-0
-                    ${step > i + 1 ? "bg-[#2E7D32] text-white" : step === i + 1 ? "bg-[#2E7D32] text-white ring-4 ring-green-100" : "bg-gray-100 text-gray-400"}`}>
+                    ${step > i + 1 ? "bg-primary text-primary-foreground" : step === i + 1 ? "bg-primary text-primary-foreground ring-4 ring-primary/20" : "bg-muted text-muted-foreground"}`}>
                     {step > i + 1 ? <Check size={13} /> : i + 1}
                   </div>
-                  <span className={`text-xs font-medium whitespace-nowrap ${step === i + 1 ? "text-[#2E7D32]" : "text-gray-400"}`}>{s}</span>
+                  <span className={`text-xs font-medium whitespace-nowrap ${step === i + 1 ? "text-primary" : "text-muted-foreground"}`}>{s}</span>
                 </div>
-                {i < 3 && <div className={`w-8 lg:flex-1 h-0.5 mx-3 flex-shrink-0 ${step > i + 1 ? "bg-[#2E7D32]" : "bg-gray-200"}`} />}
+                {i < 3 && <div className={`w-8 lg:flex-1 h-0.5 mx-3 flex-shrink-0 ${step > i + 1 ? "bg-primary" : "bg-border"}`} />}
               </div>
             ))}
           </div>
@@ -115,30 +123,30 @@ export default function TambahUsahaPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Foto Usaha <span className="text-red-500">*</span></label>
                   <div onClick={handleUploadDemo}
-                    className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:border-[#2E7D32] hover:bg-green-50/30 transition-all cursor-pointer">
+                    className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary hover:bg-primary/5 transition-all cursor-pointer">
                     {uploading ? (
                       <div className="flex items-center justify-center gap-2">
-                        <RefreshCw size={18} className="animate-spin text-[#2E7D32]" />
-                        <span className="text-sm text-[#2E7D32]">Mengupload...</span>
+                        <RefreshCw size={18} className="animate-spin text-primary" />
+                        <span className="text-sm text-primary">Mengupload...</span>
                       </div>
                     ) : (
                       <>
-                        <Upload size={28} className="text-gray-300 mx-auto mb-2" />
-                        <p className="text-sm font-medium text-gray-600">Klik untuk upload foto</p>
-                        <p className="text-xs text-gray-400 mt-1">PNG, JPG, WEBP maks. 5MB</p>
+                        <Upload size={28} className="text-muted-foreground mx-auto mb-2" />
+                        <p className="text-sm font-medium text-foreground">Klik untuk upload foto</p>
+                        <p className="text-xs text-muted-foreground mt-1">PNG, JPG, WEBP maks. 5MB</p>
                       </>
                     )}
                   </div>
                 </div>
                 {["Surat Izin Usaha (SIUP)", "Kartu Tanda Penduduk (KTP) Pemilik", "NPWP Perusahaan", "Sertifikat Tanah / Surat Sewa"].map((doc) => (
-                  <div key={doc} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border border-gray-200 rounded-xl hover:border-[#2E7D32] transition-all gap-3">
+                  <div key={doc} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border border-border rounded-xl hover:border-primary transition-all gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <FileText size={15} className="text-blue-500" />
+                      <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <FileText size={15} className="text-primary" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-700 truncate">{doc}</p>
-                        <p className="text-xs text-gray-400">PDF, JPG — maks. 10MB</p>
+                        <p className="text-sm font-medium text-foreground truncate">{doc}</p>
+                        <p className="text-xs text-muted-foreground">PDF, JPG — maks. 10MB</p>
                       </div>
                     </div>
                     <Btn variant="outline" size="sm" Icon={Upload} className="w-full sm:w-auto justify-center">Upload</Btn>
@@ -151,10 +159,10 @@ export default function TambahUsahaPage() {
           {step === 4 && (
             <Card>
               <SectionHeader title="Konfirmasi Data" subtitle="Periksa kembali data sebelum menyimpan" />
-              <form onSubmit={handleSubmit} className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
+              <form onSubmit={handleSubmit} className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <CheckCircle size={16} className="text-green-600" />
-                  <span className="text-sm font-semibold text-green-700">Data siap disimpan</span>
+                  <CheckCircle size={16} className="text-primary" />
+                  <span className="text-sm font-semibold text-primary">Data siap disimpan</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
@@ -166,12 +174,12 @@ export default function TambahUsahaPage() {
                     { label: "Dokumen", value: "4 file siap upload" },
                   ].map((f) => (
                     <div key={f.label} className="text-xs min-w-0">
-                      <span className="text-gray-500">{f.label}: </span>
-                      <span className="font-medium text-gray-800 break-words">{f.value}</span>
+                      <span className="text-muted-foreground">{f.label}: </span>
+                      <span className="font-medium text-foreground break-words">{f.value}</span>
                     </div>
                   ))}
                 </div>
-                <div className="mt-4 pt-4 border-t border-green-100 flex justify-end">
+                <div className="mt-4 pt-4 border-t border-primary/10 flex justify-end">
                   <Btn variant="primary" type="submit" Icon={Save} disabled={uploading} className="w-full sm:w-auto justify-center">
                     {uploading ? "Menyimpan..." : "Simpan Usaha"}
                   </Btn>
@@ -203,7 +211,7 @@ export default function TambahUsahaPage() {
         {/* Right: Info + tips */}
         <div className="lg:col-span-1 min-w-0 space-y-4">
           <Card padding="p-4">
-            <h4 className="text-sm font-semibold text-gray-900 mb-3">Panduan Pengisian</h4>
+            <h4 className="text-sm font-semibold text-foreground mb-3">Panduan Pengisian</h4>
             <div className="space-y-2.5">
               {[
                 { n: 1, t: "NIB terdiri dari 12 digit angka yang diperoleh dari OSS" },
@@ -212,19 +220,19 @@ export default function TambahUsahaPage() {
                 { n: 4, t: "Semua dokumen harus masih berlaku dan dapat dibaca jelas" },
               ].map((p) => (
                 <div key={p.n} className="flex items-start gap-2.5">
-                  <div className="w-5 h-5 bg-[#E8F5E9] rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-[#2E7D32]">{p.n}</div>
-                  <p className="text-xs text-gray-600 leading-relaxed">{p.t}</p>
+                  <div className="w-5 h-5 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-primary">{p.n}</div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{p.t}</p>
                 </div>
               ))}
             </div>
           </Card>
 
           <Card padding="p-4">
-            <h4 className="text-sm font-semibold text-gray-900 mb-3">Dokumen Wajib</h4>
+            <h4 className="text-sm font-semibold text-foreground mb-3">Dokumen Wajib</h4>
             <div className="space-y-2">
               {["NIB dari OSS", "KTP Pemilik", "NPWP", "SIUP/TDP", "Foto Usaha"].map((d) => (
-                <div key={d} className="flex items-center gap-2 text-xs text-gray-600">
-                  <CheckCircle size={13} className="text-[#2E7D32] flex-shrink-0" />
+                <div key={d} className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <CheckCircle size={13} className="text-primary flex-shrink-0" />
                   {d}
                 </div>
               ))}

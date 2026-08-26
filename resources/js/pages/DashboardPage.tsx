@@ -57,7 +57,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-[120px] w-full" />)}
         </div>
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
@@ -93,7 +93,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         {KPI_CARDS.map((k) => (
           <StatCard key={k.label} {...k} colorClass={k.color} bgClass={k.bg} />
         ))}
@@ -158,7 +158,7 @@ export default function DashboardPage() {
           <div className="space-y-4">
             {activityFeed.map((a: any, i: number) => (
               <div key={i} className="flex items-start gap-3.5 group">
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-bold shadow-sm transition-transform group-hover:scale-105 ${activityColors[a.status] || "bg-muted text-muted-foreground"}`}>
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-bold transition-transform group-hover:scale-105 ${activityColors[a.status] || "bg-muted text-muted-foreground"}`}>
                   {a.time.split(":")[0]}
                 </div>
                 <div className="flex-1 min-w-0 pt-0.5">
@@ -193,18 +193,18 @@ export default function DashboardPage() {
         {/* Mini map + quick actions */}
         <Card className="xl:col-span-3" padding="p-5 flex flex-col">
           <SectionHeader title="Pratinjau Peta" />
-          <div className="rounded-xl overflow-hidden h-40 md:h-48 mb-5 border border-border shadow-inner flex-shrink-0 relative z-0 min-w-0">
+          <div className="rounded-md overflow-hidden h-40 md:h-48 mb-5 border border-border flex-shrink-0 relative z-0 min-w-0">
             <CityMapLeaflet height="100%" isMiniMap={true} markers={data?.markers || []} />
           </div>
           <div className="space-y-2.5 flex-1 flex flex-col justify-end">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Aksi Cepat</p>
-            <Btn variant="outline" Icon={FileText} size="sm" className="w-full justify-start shadow-sm" onClick={() => window.print()}>
+            <Btn variant="outline" Icon={FileText} size="sm" className="w-full justify-start" onClick={() => window.print()}>
               Export PDF
             </Btn>
-            <Btn variant="outline" Icon={FileSpreadsheet} size="sm" className="w-full justify-start shadow-sm" onClick={() => window.open('/api/admin/dashboard/export/excel', '_blank')}>
+            <Btn variant="outline" Icon={FileSpreadsheet} size="sm" className="w-full justify-start" onClick={() => window.open('/api/admin/dashboard/export/excel', '_blank')}>
               Export Excel
             </Btn>
-            <Btn variant="outline" Icon={Printer} size="sm" className="w-full justify-start shadow-sm" onClick={() => window.print()}>
+            <Btn variant="outline" Icon={Printer} size="sm" className="w-full justify-start" onClick={() => window.print()}>
               Cetak Laporan
             </Btn>
           </div>

@@ -13,6 +13,7 @@ export default function PenggunaPage() {
 
   // Modals state
   const [showFormModal, setShowFormModal] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{isOpen: boolean, message: string, onConfirm: () => void}>({ isOpen: false, message: "", onConfirm: () => {} });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -34,7 +35,11 @@ export default function PenggunaPage() {
       .then(res => setUsers(res.data))
       .catch(err => {
         console.error(err);
-        alert(err.response?.data?.message || "Gagal memuat pengguna");
+        const toast = document.createElement('div');
+        toast.className = 'fixed bottom-4 right-4 bg-danger text-danger-foreground px-4 py-2 rounded-md shadow-lg z-[100] font-medium text-sm transition-all animate-in slide-in-from-bottom-5';
+        toast.innerText = err.response?.data?.message || "Gagal memuat pengguna";
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
       })
       .finally(() => setLoading(false));
   }, [activeRole, search]);
@@ -61,7 +66,11 @@ export default function PenggunaPage() {
 
   const handleSaveUser = () => {
     if (!formData.name || !formData.email || (!editingId && !formData.password)) {
-      alert("Harap lengkapi semua kolom wajib!");
+      const toast = document.createElement('div');
+      toast.className = 'fixed bottom-4 right-4 bg-warning text-warning-foreground px-4 py-2 rounded-md shadow-lg z-[100] font-medium text-sm transition-all animate-in slide-in-from-bottom-5';
+      toast.innerText = "Harap lengkapi semua kolom wajib!";
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
       return;
     }
     setLoading(true);
@@ -75,7 +84,11 @@ export default function PenggunaPage() {
       fetchUsers();
       fetchLogs();
     }).catch(err => {
-      alert(err.response?.data?.message || "Gagal menyimpan pengguna");
+      const toast = document.createElement('div');
+      toast.className = 'fixed bottom-4 right-4 bg-danger text-danger-foreground px-4 py-2 rounded-md shadow-lg z-[100] font-medium text-sm transition-all animate-in slide-in-from-bottom-5';
+      toast.innerText = err.response?.data?.message || "Gagal menyimpan pengguna";
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
     }).finally(() => {
       setLoading(false);
     });
@@ -101,16 +114,28 @@ export default function PenggunaPage() {
 
   const handleToggleStatus = (id: number, currentStatus: string) => {
     const newStatus = currentStatus === "Aktif" ? "Nonaktif" : "Aktif";
-    if (!window.confirm(`Yakin ingin mengubah status menjadi ${newStatus}?`)) return;
-
-    setProcessing(id);
-    axios.put(`/api/admin/users/${id}/status`, { status: newStatus })
-      .then(res => {
-        fetchUsers();
-        fetchLogs();
-      })
-      .catch(err => alert(err.response?.data?.message || "Gagal mengubah status"))
-      .finally(() => setProcessing(null));
+    
+    setConfirmDialog({
+      isOpen: true,
+      message: `Yakin ingin mengubah status menjadi ${newStatus}?`,
+      onConfirm: () => {
+        setConfirmDialog({ ...confirmDialog, isOpen: false });
+        setProcessing(id);
+        axios.put(`/api/admin/users/${id}/status`, { status: newStatus })
+          .then(res => {
+            fetchUsers();
+            fetchLogs();
+          })
+          .catch(err => {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-4 right-4 bg-danger text-danger-foreground px-4 py-2 rounded-md shadow-lg z-[100] font-medium text-sm transition-all animate-in slide-in-from-bottom-5';
+            toast.innerText = err.response?.data?.message || "Gagal mengubah status";
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+          })
+          .finally(() => setProcessing(null));
+      }
+    });
   };
 
   const openResetPassword = (id: number) => {
@@ -171,13 +196,13 @@ export default function PenggunaPage() {
       {/* Role summary */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <button onClick={() => setActiveRole("semua")}
-          className={`p-4 rounded-2xl border-2 text-left transition-all ${activeRole === "semua" ? "bg-gray-900 border-gray-900 text-white" : "bg-white border-gray-100 hover:border-gray-300"}`}>
-          <div className={`text-2xl font-bold mb-1 ${activeRole === "semua" ? "text-white" : "text-gray-900"}`}>{users.length}</div>
-          <div className={`text-xs font-medium ${activeRole === "semua" ? "text-gray-300" : "text-gray-500"}`}>Semua Pengguna</div>
+          className={`p-4 rounded-xl border-2 text-left transition-all ${activeRole === "semua" ? "bg-foreground border-foreground text-background" : "bg-card border-border hover:border-primary/50"}`}>
+          <div className={`text-2xl font-bold mb-1 ${activeRole === "semua" ? "text-background" : "text-foreground"}`}>{users.length}</div>
+          <div className={`text-xs font-medium ${activeRole === "semua" ? "text-background/70" : "text-muted-foreground"}`}>Semua Pengguna</div>
         </button>
         {roles.map(r => (
           <button key={r.id} onClick={() => setActiveRole(r.label)}
-            className={`p-4 rounded-2xl border-2 text-left transition-all ${activeRole === r.label ? "border-[#2E7D32] bg-[#E8F5E9]" : "bg-white border-gray-100 hover:border-[#2E7D32]/30"}`}>
+            className={`p-4 rounded-xl border-2 text-left transition-all ${activeRole === r.label ? "border-primary bg-primary/10" : "bg-card border-border hover:border-primary/30"}`}>
             <div className="flex items-center gap-2 mb-2">
               <div className={`p-1.5 rounded-lg ${r.color}`}>
                 <r.icon size={14} />
@@ -185,8 +210,8 @@ export default function PenggunaPage() {
             </div>
             {/* The count will only be accurate if 'semua' is selected since backend paginates. 
                 For real apps, we'd fetch aggregate stats from backend. But for this audit, we use filtered. */}
-            <div className="text-2xl font-bold text-gray-900 mb-0.5">-</div>
-            <div className="text-xs text-gray-500">{r.label}</div>
+            <div className="text-2xl font-bold text-foreground mb-0.5">-</div>
+            <div className="text-xs text-muted-foreground">{r.label}</div>
           </button>
         ))}
       </div>
@@ -223,26 +248,26 @@ export default function PenggunaPage() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {users.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-8 text-gray-500">Tidak ada pengguna ditemukan.</td></tr>
+                <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">Tidak ada pengguna ditemukan.</td></tr>
               ) : users.map(u => (
-                <tr key={u.id} className="hover:bg-gray-50 group">
+                <tr key={u.id} className="hover:bg-muted/50 group transition-colors">
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2E7D32] to-[#66BB6A] flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-semibold flex-shrink-0">
                         {u.avatar || u.name.substring(0, 2).toUpperCase()}
                       </div>
-                      <span className="font-medium text-gray-900 whitespace-nowrap">{u.name}</span>
+                      <span className="font-medium text-foreground whitespace-nowrap">{u.name}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3.5 text-xs text-gray-500">{u.email}</td>
+                  <td className="px-4 py-3.5 text-xs text-muted-foreground">{u.email}</td>
                   <td className="px-4 py-3.5"><StatusBadge status={u.role || "User"} /></td>
                   <td className="px-4 py-3.5"><StatusBadge status={u.status || "Aktif"} /></td>
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-16 bg-gray-100 rounded-full overflow-hidden hidden sm:block">
-                        <div className="h-full bg-[#2E7D32] rounded-full" style={{ width: `${Math.min((u.actions / 100) * 100, 100)}%` }} />
+                      <div className="h-1.5 w-16 bg-muted rounded-full overflow-hidden hidden sm:block">
+                        <div className="h-full bg-primary rounded-full" style={{ width: `${Math.min((u.actions / 100) * 100, 100)}%` }} />
                       </div>
-                      <span className="text-xs text-gray-500">{u.actions || 0}</span>
+                      <span className="text-xs text-muted-foreground">{u.actions || 0}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3.5">
@@ -408,6 +433,20 @@ export default function PenggunaPage() {
               <Btn variant="primary" className="flex-1 justify-center" Icon={Save} onClick={submitResetPassword} disabled={loading}>
                 {loading ? "Menyimpan..." : "Simpan Password"}
               </Btn>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {confirmDialog.isOpen && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-[70] p-4" onClick={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}>
+          <div className="bg-card rounded-md p-6 w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-foreground mb-2">Konfirmasi Aksi</h3>
+            <p className="text-sm text-muted-foreground mb-6">{confirmDialog.message}</p>
+            <div className="flex gap-3">
+              <Btn variant="outline" className="flex-1 justify-center" onClick={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}>Batal</Btn>
+              <Btn variant="primary" className="flex-1 justify-center" onClick={confirmDialog.onConfirm}>Ya, Lanjutkan</Btn>
             </div>
           </div>
         </div>

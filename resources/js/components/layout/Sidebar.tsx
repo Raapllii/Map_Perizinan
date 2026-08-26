@@ -14,7 +14,7 @@ export default function Sidebar({ isOpen = false, setIsOpen = () => {} }: any) {
   };
 
   return (
-    <aside className={`fixed lg:static inset-y-0 left-0 z-[1000] w-[min(20rem,88vw)] lg:w-64 transform ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 transition-transform duration-200 ease-in-out flex-shrink-0 h-full bg-sidebar flex flex-col overflow-hidden shadow-xl lg:shadow-none`}>
+    <aside className={`fixed lg:static inset-y-0 left-0 z-[1000] w-[min(20rem,88vw)] lg:w-64 transform ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 transition-transform duration-200 ease-in-out flex-shrink-0 h-full bg-sidebar flex flex-col overflow-hidden border-r border-sidebar-border lg:shadow-none`}>
       {/* Mobile Close Button */}
       <button 
         onClick={() => setIsOpen(false)}
@@ -27,7 +27,7 @@ export default function Sidebar({ isOpen = false, setIsOpen = () => {} }: any) {
       {/* Logo */}
       <div className="px-5 py-5 border-b border-sidebar-border relative">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-sidebar-primary rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
+          <div className="w-10 h-10 bg-sidebar-primary rounded-md flex items-center justify-center flex-shrink-0">
             <Globe size={20} className="text-sidebar-primary-foreground" />
           </div>
           <div className="pr-6 lg:pr-0">
@@ -60,9 +60,9 @@ export default function Sidebar({ isOpen = false, setIsOpen = () => {} }: any) {
       </nav>
 
       {/* User info */}
-      <div className="p-4 border-t border-sidebar-border bg-sidebar-accent/10">
+      <div className="p-4 border-t border-sidebar-border bg-sidebar">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground text-sm font-bold flex-shrink-0 shadow-sm">
+          <div className="w-9 h-9 rounded-full bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground text-sm font-bold flex-shrink-0">
             AK
           </div>
           <div className="flex-1 min-w-0">

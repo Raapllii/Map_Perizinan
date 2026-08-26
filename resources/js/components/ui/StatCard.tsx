@@ -14,7 +14,7 @@ interface StatCardProps {
 
 export function StatCard({ label, value, icon: Icon, change, up, colorClass = "text-primary", bgClass = "bg-primary/10" }: StatCardProps) {
   return (
-    <Card padding="p-4" className="hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+    <Card padding="p-4" className="transition-colors hover:bg-muted/30">
       <div className="flex items-start justify-between mb-3 gap-2">
         <div className={`p-2.5 rounded-xl flex-shrink-0 ${bgClass}`}>
           <Icon size={20} className={colorClass} />

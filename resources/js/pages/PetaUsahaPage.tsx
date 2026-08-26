@@ -79,30 +79,30 @@ export default function PetaUsahaPage() {
       <div className="flex-1 relative min-w-0 h-full overflow-hidden rounded-xl border border-border bg-card">
 
         {/* Floating Controls Overlay */}
-        <div className="absolute top-4 left-4 right-4 z-[400] pointer-events-none flex flex-col items-start gap-2">
-          <div className="flex w-full items-start justify-between gap-2 flex-wrap">
-            <div className="flex flex-wrap items-center gap-2 pointer-events-auto">
+        <div className="absolute top-4 left-4 z-[400] pointer-events-none flex flex-col items-start gap-2">
+          <div className="flex w-full items-start gap-4">
+            <div className="flex items-center gap-2 pointer-events-auto">
               <Btn
                 variant="outline"
                 size="sm"
                 Icon={Filter}
-                className="bg-card/95 backdrop-blur-sm shadow-sm"
+                className="bg-card/95 backdrop-blur-sm"
                 onClick={() => isMobile ? setShowFilterDrawer(true) : setShowFilters(!showFilters)}
               >
                 Filter
               </Btn>
-              <div className="flex items-center gap-0.5 bg-card/95 backdrop-blur-sm shadow-sm rounded-xl p-1 border border-border">
+              <div className="flex items-center gap-0.5 bg-card/95 backdrop-blur-sm rounded-md p-1 border border-border">
                 {["cluster", "heatmap", "boundary"].map(l => (
                   <button key={l} onClick={() => setActiveLayer(l)}
-                    className={`px-2 md:px-3 py-1 text-xs font-medium rounded-lg transition-all capitalize ${activeLayer === l ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                    className={`px-2 md:px-3 py-1 text-xs font-medium rounded-md transition-all capitalize ${activeLayer === l ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
                     {l}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="flex items-center gap-2 pointer-events-auto">
-              <span className="hidden lg:flex text-xs text-muted-foreground bg-card/95 backdrop-blur-sm shadow-sm px-3 py-1.5 rounded-lg border border-border">
+            <div className="hidden lg:flex items-center pointer-events-auto">
+              <span className="text-xs text-muted-foreground bg-card/95 backdrop-blur-sm px-3 py-1.5 rounded-md border border-border">
                 📍 -6.2088°, 106.8456°
               </span>
             </div>
