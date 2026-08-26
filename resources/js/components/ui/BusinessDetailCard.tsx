@@ -85,11 +85,21 @@ const BusinessDetailCard = React.forwardRef<HTMLDivElement, BusinessDetailCardPr
             <p className="text-[11px] text-muted-foreground font-medium">NIB: <span className="text-foreground font-mono">{business.nib || '-'}</span></p>
           </div>
 
-          {/* Row 3: Nama Usaha */}
-          <div>
+          {/* Row 3: Nama Usaha & Proyek */}
+          <div className="flex flex-col gap-0.5">
             <h3 className="text-sm font-bold leading-tight line-clamp-2 text-foreground" title={business.nama_perusahaan}>
               {business.nama_perusahaan || '-'}
             </h3>
+            {business.nama_proyek && (
+              <p className="text-xs font-semibold text-primary line-clamp-1" title={business.nama_proyek}>
+                Proyek: {business.nama_proyek}
+              </p>
+            )}
+            {business.uraian_jenis_proyek && (
+              <p className="text-[10px] font-medium text-muted-foreground line-clamp-1" title={business.uraian_jenis_proyek}>
+                Jenis Proyek: {business.uraian_jenis_proyek}
+              </p>
+            )}
           </div>
 
           <div className="h-px w-full bg-border" />

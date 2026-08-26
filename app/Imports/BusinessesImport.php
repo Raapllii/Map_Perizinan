@@ -20,6 +20,60 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
 
     public function collection(Collection $rows)
     {
+        if ($rows->isEmpty()) {
+            return;
+        }
+
+        // --- 1. HEADER VALIDATION ---
+        // Get the actual keys from the first parsed row (they are automatically slugged by Maatwebsite Excel)
+        $firstRowKeys = array_keys($rows->first()->toArray());
+        
+        $expectedSluggedHeaders = [
+            'no',
+            'id_proyek',
+            'uraian_jenis_proyek',
+            'nib',
+            'nama_perusahaan',
+            'tanggal_terbit_oss',
+            'uraian_status_penanaman_modal',
+            'uraian_jenis_perusahaan',
+            'uraian_risiko_proyek',
+            'nama_proyek',
+            'uraian_skala_usaha',
+            'alamat_usaha',
+            'kab_kota_usaha',
+            'kecamatan_usaha',
+            'kelurahan_usaha',
+            'longitude',
+            'latitude',
+            'day_of_tanggal_pengajuan_proyek',
+            'kbli',
+            'judul_kbli',
+            'klsektor_pembina',
+            'nama_user',
+            'email',
+            'nomor_telp',
+            'luas_tanah',
+            'satuan_tanah',
+            'jumlah_investasi',
+            'tki'
+        ];
+
+        $missing = array_diff($expectedSluggedHeaders, $firstRowKeys);
+        $unexpected = array_diff($firstRowKeys, $expectedSluggedHeaders);
+
+        if (!empty($missing) || !empty($unexpected)) {
+            $errorMessage = "Format CSV tidak sesuai.\n";
+            if (!empty($missing)) {
+                $errorMessage .= "Kolom yang hilang: " . implode(', ', $missing) . ".\n";
+            }
+            if (!empty($unexpected)) {
+                $errorMessage .= "Kolom yang tidak dikenali/salah nama: " . implode(', ', $unexpected) . ".\n";
+            }
+            throw new \Exception($errorMessage);
+        }
+        // --- END HEADER VALIDATION ---
+
         $batch = []; // This will be an associative array keyed by 'nib|id_proyek'
         $now = now();
         
@@ -107,6 +161,8 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
                     'lng' => $lng,
                     
                     // New Columns Mapping
+                    'uraian_jenis_proyek' => $row['uraian_jenis_proyek'] ?? null,
+                    'nama_proyek' => $row['nama_proyek'] ?? null,
                     'jenis_perusahaan' => $row['jenis_perusahaan'] ?? null,
                     'skala_usaha' => $row['uraian_skala_usaha'] ?? ($row['skala_usaha'] ?? null),
                     'propinsi' => $row['propinsi'] ?? null,
@@ -114,7 +170,7 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
                     'profile_name' => $row['profile_name'] ?? null,
                     'day_of_tanggal_terbit_oss' => $row['day_of_tanggal_pengajuan_proyek'] ?? ($row['day_of_tanggal_terbit_oss'] ?? null),
                     'uraian_jenis_perusahaan' => $row['uraian_jenis_perusahaan'] ?? null,
-                    'sektor' => $row['kl_sektor_pembina'] ?? ($row['sektor'] ?? null),
+                    'sektor' => $row['klsektor_pembina'] ?? ($row['kl_sektor_pembina'] ?? ($row['sektor'] ?? null)),
                     'nama_user' => $row['nama_user'] ?? null,
                     'nik' => $row['nik'] ?? null,
                     'email' => $row['email'] ?? null,
@@ -162,7 +218,7 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
                         'sektor', 'nama_user', 'nik', 'email', 'telp', 'luasan_pd',
                         'satuan_luasan_pd', 'mesin_peralatan_impor', 'mesin_peralatan_lokal',
                         'pembelian_pematangan_tanah', 'bangunan_gedung', 'modal_kerja',
-                        'lain_lain', 'jumlah_investasi', 'tki'
+                        'lain_lain', 'jumlah_investasi', 'tki', 'uraian_jenis_proyek', 'nama_proyek'
                     ]
                 );
             }

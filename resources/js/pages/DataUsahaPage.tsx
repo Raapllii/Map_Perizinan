@@ -149,6 +149,7 @@ export default function DataUsahaPage() {
                     <tr key={b.id} className="hover:bg-muted/30 transition-colors group">
                       <td className="px-5 py-4">
                         <div className="text-sm font-bold text-foreground">{b.nama_perusahaan}</div>
+                        {b.nama_proyek && <div className="text-xs font-semibold text-primary mt-0.5 line-clamp-1">{b.nama_proyek}</div>}
                         <div className="text-[11px] text-muted-foreground font-mono mt-1 px-1.5 py-0.5 bg-muted rounded w-fit">{b.nib}</div>
                       </td>
                       <td className="px-5 py-4 text-sm font-medium text-foreground">{b.nama_pemilik || b.nama_perusahaan}</td>

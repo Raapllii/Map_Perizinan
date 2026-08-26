@@ -234,6 +234,7 @@ export default function PublicMapPage() {
                     <div className="px-5 pb-3 flex items-start justify-between border-b border-border mt-1">
                       <div>
                         <Drawer.Title className="text-base font-bold text-foreground">{selected.nama_perusahaan}</Drawer.Title>
+                        {selected.nama_proyek && <div className="text-sm font-semibold text-primary mt-0.5 line-clamp-1">{selected.nama_proyek}</div>}
                         <Drawer.Description className="text-xs text-muted-foreground mt-0.5">{selected.judul_kbli}</Drawer.Description>
                       </div>
                       <button onClick={() => setSelectedBusiness(null)} className="p-2 bg-muted hover:bg-muted/80 transition-colors rounded-full text-muted-foreground ml-4 flex-shrink-0"><X size={16} /></button>
