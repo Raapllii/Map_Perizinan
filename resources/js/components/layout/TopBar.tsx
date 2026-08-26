@@ -84,7 +84,7 @@ export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
   ];
 
   return (
-    <header className="h-16 flex-shrink-0 bg-card border-b border-border flex items-center px-4 lg:px-6 gap-3 lg:gap-4 relative z-20">
+    <header className="h-16 flex-shrink-0 bg-card border-b border-border flex items-center px-4 lg:px-6 gap-3 lg:gap-4 relative z-[1100]">
       {/* Mobile Menu Button */}
       <button 
         className="lg:hidden p-2 -ml-2 text-muted-foreground hover:bg-muted hover:text-foreground rounded-md transition-colors"
@@ -120,7 +120,7 @@ export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
         
         {/* Dropdown Results */}
         {showDropdown && searchQuery.length >= 2 && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-md shadow-lg overflow-hidden z-[100] max-h-[60vh] sm:max-h-80 overflow-y-auto">
+          <div className="fixed inset-x-3 top-[72px] md:absolute md:inset-auto md:top-full md:left-0 md:mt-1 md:w-full md:max-w-[480px] bg-card border border-border rounded-xl md:rounded-md shadow-xl md:shadow-lg overflow-hidden z-[1100] flex flex-col max-h-[300px] md:max-h-[360px]">
             {isSearching ? (
               <div className="p-4 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
                 <RefreshCw size={14} className="animate-spin" /> Mencari data...
@@ -133,8 +133,8 @@ export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
                 <p className="text-xs text-muted-foreground mt-1">Tidak ada usaha yang cocok dengan "{searchQuery}"</p>
               </div>
             ) : (
-              <div className="py-1">
-                {searchResults.map((result, i) => (
+              <div className="py-1 overflow-y-auto flex-1">
+                {searchResults.slice(0, 8).map((result, i) => (
                   <div 
                     key={result.id} 
                     onClick={() => handleSelectResult(result)}
@@ -150,13 +150,18 @@ export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
                         </p>
                         <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
                           <span className="font-mono text-primary/70">{result.nib}</span>
-                          <span>•</span>
+                          <span className="text-muted-foreground/30">•</span>
                           <span className="truncate">{result.kecamatan || result.judul_kbli}</span>
                         </div>
                       </div>
                     </div>
                   </div>
                 ))}
+                {searchResults.length > 8 && (
+                  <div className="px-4 py-2 text-center border-t border-border/50 text-[11px] text-muted-foreground font-medium">
+                    Menampilkan 8 dari {searchResults.length} hasil
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -189,7 +194,7 @@ export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
         </button>
 
         {showNotifs && (
-          <div className="absolute right-0 top-12 w-[calc(100vw-2rem)] max-w-[320px] bg-popover border border-border rounded-md shadow-lg overflow-hidden z-50 origin-top-right">
+          <div className="fixed inset-x-3 top-[72px] md:absolute md:inset-auto md:right-0 md:top-12 md:w-[320px] bg-popover border border-border rounded-xl md:rounded-md shadow-xl overflow-hidden z-50 md:origin-top-right">
             <div className="px-4 py-3 border-b border-border flex items-center justify-between">
               <span className="text-sm font-semibold text-popover-foreground">Notifikasi</span>
               <span className="text-xs text-primary font-medium cursor-pointer hover:underline">Tandai semua dibaca</span>
