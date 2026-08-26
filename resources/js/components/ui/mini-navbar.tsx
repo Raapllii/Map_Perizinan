@@ -8,9 +8,22 @@ export type NavbarProps = {
   searchQuery?: string;
   onFocus?: () => void;
   onFilterChange?: (filters: any[]) => void;
+  searchResults?: any[];
+  isSearching?: boolean;
+  searchError?: string;
+  onSelectResult?: (result: any) => void;
 };
 
-export function Navbar({ onSearch, searchQuery = "", onFocus, onFilterChange }: NavbarProps) {
+export function Navbar({ 
+  onSearch, 
+  searchQuery = "", 
+  onFocus, 
+  onFilterChange,
+  searchResults = [],
+  isSearching = false,
+  searchError = "",
+  onSelectResult
+}: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [localQuery, setLocalQuery] = useState(searchQuery);
@@ -119,6 +132,55 @@ export function Navbar({ onSearch, searchQuery = "", onFocus, onFilterChange }: 
           </button>
         </motion.div>
       </motion.nav>
+
+      {/* Search Dropdown */}
+      <AnimatePresence>
+        {isSearchExpanded && searchQuery.length >= 2 && (
+          <motion.div
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            transition={{ duration: 0.15 }}
+            className="pointer-events-auto absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[calc(100vw-2rem)] max-w-lg bg-card border border-border shadow-xl rounded-2xl overflow-hidden z-50 flex flex-col"
+          >
+            {isSearching ? (
+              <div className="p-4 text-center text-sm text-muted-foreground">Mencari data...</div>
+            ) : searchError ? (
+              <div className="p-4 text-center text-sm text-danger">{searchError}</div>
+            ) : searchResults.length === 0 ? (
+              <div className="p-4 text-center">
+                <p className="text-sm font-semibold text-foreground">Data tidak ditemukan</p>
+                <p className="text-xs text-muted-foreground mt-1">Tidak ada usaha yang cocok dengan "{searchQuery}"</p>
+              </div>
+            ) : (
+              <div className="max-h-[50vh] sm:max-h-[300px] overflow-y-auto py-2 flex flex-col">
+                {searchResults.map((result) => (
+                  <div
+                    key={result.id}
+                    onClick={() => {
+                      onSelectResult?.(result);
+                      setIsSearchExpanded(false);
+                    }}
+                    className="px-4 py-3 cursor-pointer hover:bg-muted active:bg-muted/80 transition-colors flex items-start gap-3 border-b border-border/30 last:border-0"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary flex-shrink-0 mt-0.5">
+                      <MapPinned size={14} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-foreground truncate">{result.nama_perusahaan}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate flex items-center gap-1.5">
+                        <span className="font-mono text-primary/70 bg-primary/5 px-1 rounded">{result.nib || 'N/A'}</span>
+                        <span>&middot;</span>
+                        <span className="truncate">{result.kecamatan || result.judul_kbli}</span>
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Mobile Menu Dropdown */}
       <AnimatePresence>

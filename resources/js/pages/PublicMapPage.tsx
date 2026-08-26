@@ -7,17 +7,25 @@ import { StatusBadge, Btn } from "../components/ui";
 import Navbar from "../components/ui/mini-navbar";
 import { BusinessDetailCard } from "../components/ui/BusinessDetailCard";
 import { AnimatePresence } from "motion/react";
+import { useBusinessSearch } from "../hooks/useBusinessSearch";
 
 const CityMapLeaflet = lazy(() => import('../components/CityMapLeaflet'));
 
 export default function PublicMapPage() {
   const [selectedBusiness, setSelectedBusiness] = useState<any>(null);
   const [markers, setMarkers] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [flyTrigger, setFlyTrigger] = useState<any>(null);
+  
+  const { 
+    searchQuery, setSearchQuery, 
+    searchResults, setSearchResults, 
+    isSearching, 
+    searchError 
+  } = useBusinessSearch();
+  
+  const [toastMsg, setToastMsg] = useState("");
+  
   const [searchHistory, setSearchHistory] = useState<any[]>(() => {
     try {
       const saved = localStorage.getItem('searchHistory');
@@ -87,24 +95,6 @@ export default function PublicMapPage() {
     return () => controller.abort();
   }, [mapBounds, mapZoom, activeFilters]);
 
-  // Autocomplete search with debounce
-  useEffect(() => {
-    if (searchQuery.length > 2) {
-      setIsSearching(true);
-      const delayFn = setTimeout(() => {
-        axios.get(`/api/businesses/search?q=${encodeURIComponent(searchQuery)}`)
-          .then(res => {
-            setSearchResults(res.data);
-            setIsSearching(false);
-          })
-          .catch(() => setIsSearching(false));
-      }, 300);
-      return () => clearTimeout(delayFn);
-    } else {
-      setSearchResults([]);
-      setIsSearching(false);
-    }
-  }, [searchQuery]);
 
   const saveToHistory = (item: any) => {
     setSearchHistory(prev => {
@@ -124,6 +114,9 @@ export default function PublicMapPage() {
       saveToHistory(b);
       if (b.lat && b.lng) {
         setFlyTrigger({ lat: parseFloat(b.lat), lng: parseFloat(b.lng), zoom: 17, ts: Date.now() });
+      } else {
+        setToastMsg("Data usaha ditemukan, namun belum memiliki titik koordinat lokasi di peta.");
+        setTimeout(() => setToastMsg(""), 5000);
       }
     }
   };
@@ -142,7 +135,27 @@ export default function PublicMapPage() {
         onSearch={setSearchQuery}
         onFocus={() => { if (!searchQuery && searchHistory.length > 0) setSearchResults(searchHistory) }}
         onFilterChange={setActiveFilters}
+        searchResults={searchResults}
+        isSearching={isSearching}
+        searchError={searchError}
+        onSelectResult={(result) => handleSelectBusiness(result, true)}
       />
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toastMsg && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            className="fixed bottom-20 md:bottom-10 left-1/2 -translate-x-1/2 z-[100] bg-foreground text-background px-4 py-3 rounded-lg shadow-2xl flex items-center gap-3 text-sm font-medium w-max max-w-[90vw]"
+          >
+            <div className="w-6 h-6 rounded-full bg-warning flex items-center justify-center text-foreground flex-shrink-0">!</div>
+            {toastMsg}
+            <button onClick={() => setToastMsg("")} className="ml-2 opacity-70 hover:opacity-100"><X size={16}/></button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
 
       {/* Main Map Container */}

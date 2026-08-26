@@ -2,8 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Home, ChevronRight, Search, Sun, Moon, Bell, ChevronDown, Menu, RefreshCw, Store } from "lucide-react";
 import { PAGE_TITLES } from "../../constants";
-import axios from "axios";
-import { useDebounce } from "../../hooks/useDebounce";
+import { useBusinessSearch } from "../../hooks/useBusinessSearch";
 
 export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
   const [showNotifs, setShowNotifs] = useState(false);
@@ -12,41 +11,27 @@ export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
   const navigate = useNavigate();
   const activePage = location.pathname.split('/').pop() || 'dashboard';
 
-  // Global Search State
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchError, setSearchError] = useState("");
+  // Global Search State via Hook
+  const { 
+    searchQuery, setSearchQuery, 
+    searchResults, 
+    isSearching, 
+    searchError 
+  } = useBusinessSearch();
+  
   const [showDropdown, setShowDropdown] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const searchRef = useRef<HTMLDivElement>(null);
-  
-  const debouncedQuery = useDebounce(searchQuery, 400);
+
+  // Reset active index when results change
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [searchResults]);
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
-
-  useEffect(() => {
-    if (debouncedQuery.length >= 2) {
-      setIsSearching(true);
-      setSearchError("");
-      axios.get(`/api/businesses/search?q=${encodeURIComponent(debouncedQuery)}`)
-        .then(res => {
-          setSearchResults(res.data);
-          setActiveIndex(-1);
-        })
-        .catch(err => {
-          console.error(err);
-          setSearchError("Gagal mencari data. Silakan coba lagi.");
-        })
-        .finally(() => setIsSearching(false));
-    } else {
-      setSearchResults([]);
-      setActiveIndex(-1);
-    }
-  }, [debouncedQuery]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
