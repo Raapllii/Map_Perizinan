@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router";
 import { Home, ChevronRight, Search, Sun, Moon, Bell, ChevronDown, Menu, RefreshCw, Store } from "lucide-react";
 import { PAGE_TITLES } from "../../constants";
 import { useBusinessSearch } from "../../hooks/useBusinessSearch";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
   const [showNotifs, setShowNotifs] = useState(false);
@@ -10,6 +11,7 @@ export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
   const location = useLocation();
   const navigate = useNavigate();
   const activePage = location.pathname.split('/').pop() || 'dashboard';
+  const { user } = useAuth();
 
   // Global Search State via Hook
   const { 
@@ -222,14 +224,30 @@ export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
 
       {/* Profile */}
       <div className="flex items-center gap-2.5 pl-3 border-l border-border cursor-pointer group">
-        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold">
-          AK
-        </div>
-        <div className="hidden sm:block leading-tight">
-          <p className="text-xs font-semibold text-foreground">Dr. Andi K.</p>
-          <p className="text-[10px] text-muted-foreground">Super Admin</p>
-        </div>
-        <ChevronDown size={14} className="text-muted-foreground group-hover:text-foreground transition-colors hidden sm:block" />
+        {user ? (
+          <>
+            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold overflow-hidden">
+              {user.avatar && user.avatar.length > 2 ? (
+                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                user.name ? user.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'U'
+              )}
+            </div>
+            <div className="hidden sm:block leading-tight min-w-0 max-w-[120px]">
+              <p className="text-xs font-semibold text-foreground truncate">{user.name}</p>
+              <p className="text-[10px] text-muted-foreground truncate">{user.role}</p>
+            </div>
+            <ChevronDown size={14} className="text-muted-foreground group-hover:text-foreground transition-colors hidden sm:block flex-shrink-0" />
+          </>
+        ) : (
+          <div className="flex items-center gap-2.5 animate-pulse">
+            <div className="w-8 h-8 rounded-full bg-muted" />
+            <div className="hidden sm:block space-y-1 w-20">
+              <div className="h-3 bg-muted rounded w-full" />
+              <div className="h-2 bg-muted rounded w-2/3" />
+            </div>
+          </div>
+        )}
       </div>
     </header>
   );

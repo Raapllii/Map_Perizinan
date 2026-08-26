@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router";
 import { Globe, ChevronRight, LogOut, X } from "lucide-react";
 import axios from 'axios';
 import { MENU_ITEMS } from "../../constants";
+import { useAuth } from "../../contexts/AuthContext";
 
 const PENGATURAN_SUBMENU = [
   { id: "profil", label: "Profil & Akun" },
@@ -17,6 +18,7 @@ export default function Sidebar({ isOpen = false, setIsOpen = () => { } }: any) 
   const location = useLocation();
   const activePage = location.pathname.split('/').pop() || 'dashboard';
   const [isSettingsOpen, setIsSettingsOpen] = useState(activePage === 'pengaturan');
+  const { user } = useAuth();
 
   useEffect(() => {
     setIsSettingsOpen(activePage === 'pengaturan');
@@ -130,22 +132,36 @@ export default function Sidebar({ isOpen = false, setIsOpen = () => { } }: any) 
 
       {/* User info */}
       <div className="p-4 border-t border-sidebar-border bg-sidebar">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground text-sm font-bold flex-shrink-0">
-            AK
+        {user ? (
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground text-sm font-bold flex-shrink-0 overflow-hidden">
+              {user.avatar && user.avatar.length > 2 ? (
+                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                user.name ? user.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'U'
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sidebar-foreground text-sm font-semibold truncate">{user.name}</p>
+              <p className="text-sidebar-foreground/60 text-xs truncate">{user.role}</p>
+            </div>
+            <button onClick={() => {
+              axios.post('/api/admin/logout').finally(() => {
+                window.location.href = '/admin/login';
+              });
+            }} className="text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent p-2 rounded-md transition-colors" title="Logout">
+              <LogOut size={16} />
+            </button>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sidebar-foreground text-sm font-semibold truncate">Dr. Andi Kurniawan</p>
-            <p className="text-sidebar-foreground/60 text-xs truncate">Super Admin</p>
+        ) : (
+          <div className="flex items-center gap-3 animate-pulse">
+            <div className="w-9 h-9 rounded-full bg-sidebar-accent flex-shrink-0" />
+            <div className="flex-1 min-w-0 space-y-2">
+              <div className="h-3 bg-sidebar-accent rounded w-3/4" />
+              <div className="h-2 bg-sidebar-accent rounded w-1/2" />
+            </div>
           </div>
-          <button onClick={() => {
-            axios.post('/api/admin/logout').finally(() => {
-              window.location.href = '/admin/login';
-            });
-          }} className="text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent p-2 rounded-md transition-colors" title="Logout">
-            <LogOut size={16} />
-          </button>
-        </div>
+        )}
       </div>
     </aside>
   );

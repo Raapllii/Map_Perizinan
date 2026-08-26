@@ -18,6 +18,8 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\BusinessController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VerificationController;
+use App\Http\Controllers\Api\SettingController;
+use App\Http\Controllers\Api\DatabaseController;
 
 // Public React App Route (WebGIS)
 Route::get('/', function () {
@@ -67,5 +69,22 @@ Route::prefix('api/admin')->group(function () {
         Route::get('/user', function (\Illuminate\Http\Request $request) {
             return response()->json(['user' => $request->user()]);
         });
+        
+        // Profile & Account Routes
+        Route::put('/user/profile', [UserController::class, 'updateProfile']);
+        Route::post('/user/avatar', [UserController::class, 'uploadAvatar']);
+        
+        // Settings Routes
+        Route::get('/settings', [SettingController::class, 'index']);
+        Route::put('/settings', [SettingController::class, 'update']);
+        
+        // Database & Backup Routes
+        Route::get('/database/status', [DatabaseController::class, 'status']);
+        Route::post('/database/backup', [DatabaseController::class, 'backup']);
+        Route::post('/database/restore', [DatabaseController::class, 'restore']);
+        Route::delete('/database/backup', [DatabaseController::class, 'deleteBackup']);
+        Route::get('/database/backup/{filename}', [DatabaseController::class, 'downloadBackup']);
+        Route::get('/database/export', [DatabaseController::class, 'export']);
+        Route::post('/database/import', [DatabaseController::class, 'import']);
     });
 });

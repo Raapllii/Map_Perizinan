@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\ActivityLog;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
@@ -86,6 +87,67 @@ class UserController extends Controller
         $this->logActivity('Memperbarui pengguna: ' . $user->name, $request->user());
 
         return response()->json(['message' => 'Data pengguna berhasil diperbarui', 'data' => $user]);
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+        
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'position' => 'nullable|string|max:255',
+            'phone' => 'nullable|string|max:20'
+        ]);
+
+        $user->update([
+            'name' => $request->name,
+            'email' => $request->email,
+            'position' => $request->position,
+            'phone' => $request->phone
+        ]);
+
+        $this->logActivity('Memperbarui profil akun sendiri', $user);
+
+        return response()->json([
+            'message' => 'Profil berhasil diperbarui',
+            'data' => $user
+        ]);
+    }
+
+    public function uploadAvatar(Request $request)
+    {
+        $user = $request->user();
+        
+        $request->validate([
+            'avatar' => 'required|image|mimes:jpeg,png,jpg,webp|max:2048'
+        ]);
+
+        if ($request->hasFile('avatar')) {
+            $file = $request->file('avatar');
+            $filename = 'avatar_' . $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            
+            // Delete old avatar if it's a file
+            if ($user->avatar && !in_array(strlen($user->avatar), [1, 2])) {
+                // simple length check to not delete initials like "AK"
+                Storage::disk('public')->delete('avatars/' . basename($user->avatar));
+            }
+            
+            $path = $file->storeAs('avatars', $filename, 'public');
+            
+            $user->update([
+                'avatar' => '/storage/' . $path
+            ]);
+            
+            $this->logActivity('Memperbarui foto profil', $user);
+
+            return response()->json([
+                'message' => 'Foto profil berhasil diperbarui',
+                'avatar' => '/storage/' . $path
+            ]);
+        }
+        
+        return response()->json(['message' => 'File tidak ditemukan'], 400);
     }
 
     public function updateStatus(Request $request, $id)
