@@ -3,7 +3,6 @@ import { LayoutDashboard, Map, Plus, Database, CheckSquare, Activity, FileText, 
 export const MENU_ITEMS = [
   { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", badge: null },
   { id: "peta-usaha", icon: Map, label: "Peta Usaha", badge: null },
-  { id: "tambah-usaha", icon: Plus, label: "Tambah Usaha", badge: null },
   { id: "data-usaha", icon: Database, label: "Data Usaha", badge: null },
   { id: "verifikasi-izin", icon: CheckSquare, label: "Verifikasi Izin", badge: 23 },
   { id: "monitoring", icon: Activity, label: "Monitoring", badge: null },

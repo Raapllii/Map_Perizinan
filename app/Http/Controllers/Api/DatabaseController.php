@@ -13,6 +13,9 @@ use Symfony\Component\Process\Exception\ProcessFailedException;
 use App\Models\ActivityLog;
 use App\Models\Business;
 use Illuminate\Support\Facades\Schema;
+use App\Repositories\BusinessRepository;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Imports\BusinessesImport;
 
 class DatabaseController extends Controller
 {
@@ -280,7 +283,7 @@ class DatabaseController extends Controller
     /**
      * Export Business Data
      */
-    public function export(Request $request)
+    public function export(Request $request, BusinessRepository $repository)
     {
         if (Auth::user()->role !== 'Super Admin' && Auth::user()->role !== 'Administrator') {
             return response()->json(['message' => 'Unauthorized'], 403);
@@ -300,12 +303,15 @@ class DatabaseController extends Controller
         $columns = Schema::getColumnListing('businesses');
         $columns = array_diff($columns, ['location']);
         
-        $callback = function() use($columns) {
+        $callback = function() use($columns, $repository, $request) {
             $file = fopen('php://output', 'w');
             fputcsv($file, $columns);
             
+            // Get filtered query
+            $query = $repository->getFilteredQuery($request);
+            
             // Chunking to prevent memory limit issues for large tables
-            Business::select($columns)->chunk(1000, function ($businesses) use ($file, $columns) {
+            $query->select($columns)->chunk(1000, function ($businesses) use ($file, $columns) {
                 foreach ($businesses as $business) {
                     $row = [];
                     foreach ($columns as $col) {
@@ -339,42 +345,22 @@ class DatabaseController extends Controller
         if ($request->hasFile('file')) {
             $file = $request->file('file');
             
-            // Minimal implementation of CSV import. For production, consider using Maatwebsite\Excel
-            $path = $file->getRealPath();
-            $data = array_map('str_getcsv', file($path));
-            
-            if (count($data) > 1) {
-                $header = array_shift($data);
-                $importedCount = 0;
+            try {
+                $import = new BusinessesImport();
+                Excel::import($import, $file);
                 
-                // Assuming NIB is required and is the primary identifier
-                $nibIndex = array_search('nib', array_map('strtolower', $header));
-                $namaIndex = array_search('nama_perusahaan', array_map('strtolower', $header));
-                
-                if ($nibIndex !== false && $namaIndex !== false) {
-                    foreach ($data as $row) {
-                        // Very basic implementation: just checking if we can parse it
-                        // A real implementation would map all columns
-                        if (isset($row[$nibIndex]) && !empty($row[$nibIndex])) {
-                            // Example logic: Just increment a counter for demonstration
-                            // In real world, we would validate and create/update Business model
-                            $importedCount++;
-                        }
-                    }
-                    
-                    $this->logActivity('Import Data', "Melakukan import {$importedCount} baris data CSV", $request);
+                $msg = "Berhasil memproses file. {$import->importedCount} data baru, {$import->updatedCount} diupdate.";
+                $this->logActivity('Import Data', $msg, $request);
 
-                    return response()->json([
-                        'status' => 'success',
-                        'message' => "Berhasil memproses file. {$importedCount} baris data terbaca.",
-                        'imported' => $importedCount
-                    ]);
-                } else {
-                    return response()->json(['status' => 'error', 'message' => 'Format CSV tidak sesuai. Kolom NIB dan Nama Perusahaan tidak ditemukan.'], 422);
-                }
+                return response()->json([
+                    'status' => 'success',
+                    'message' => $msg,
+                    'imported' => $import->importedCount,
+                    'updated' => $import->updatedCount
+                ]);
+            } catch (\Exception $e) {
+                return response()->json(['status' => 'error', 'message' => 'Gagal import: ' . $e->getMessage()], 422);
             }
-            
-            return response()->json(['status' => 'error', 'message' => 'File CSV kosong'], 422);
         }
 
         return response()->json(['status' => 'error', 'message' => 'Gagal mengupload file'], 400);
