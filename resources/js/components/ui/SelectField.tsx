@@ -1,6 +1,6 @@
 import { ChevronDown } from "lucide-react";
 
-export function SelectField({ label, options, required = false, value, onChange, className = "", error, disabled }: any) {
+export function SelectField({ label, options, required = false, value, onChange, name, className = "", error, disabled }: any) {
   return (
     <div className={className}>
       {label && (
@@ -10,6 +10,7 @@ export function SelectField({ label, options, required = false, value, onChange,
       )}
       <div className="relative">
         <select
+          name={name}
           value={value}
           onChange={onChange}
           disabled={disabled}

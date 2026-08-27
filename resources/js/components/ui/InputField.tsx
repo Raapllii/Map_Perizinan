@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
-export function InputField({ label, type = "text", placeholder, required = false, value, onChange, className = "", error, disabled }: any) {
+export function InputField({ label, type = "text", placeholder, required = false, value, onChange, name, className = "", error, disabled }: any) {
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === "password";
   const inputType = isPassword ? (showPassword ? "text" : "password") : type;
@@ -16,6 +16,7 @@ export function InputField({ label, type = "text", placeholder, required = false
       <div className="relative">
         <input
           type={inputType}
+          name={name}
           placeholder={placeholder}
           value={value}
           onChange={onChange}

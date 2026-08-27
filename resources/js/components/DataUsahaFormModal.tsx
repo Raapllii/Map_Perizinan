@@ -32,18 +32,18 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
     if (isOpen) {
       if (business) {
         setFormData({
-          nib: business.nib || "",
-          nama_perusahaan: business.nama_perusahaan || "",
-          nama_proyek: business.nama_proyek || "",
-          nama_user: business.nama_pemilik || business.nama_user || "",
-          kbli: business.kbli || "",
-          judul_kbli: business.judul_kbli || "",
-          alamat_proyek: business.alamat_proyek || "",
-          kecamatan: business.kecamatan || "",
-          kelurahan: business.kelurahan || "",
-          status: business.status || "Aktif",
-          lat: business.lat || "",
-          lng: business.lng || ""
+          nib: business.nib ?? "",
+          nama_perusahaan: business.nama_perusahaan ?? "",
+          nama_proyek: business.nama_proyek ?? "",
+          nama_user: business.nama_pemilik ?? business.nama_user ?? "",
+          kbli: business.kbli ?? "",
+          judul_kbli: business.judul_kbli ?? "",
+          alamat_proyek: business.alamat_proyek ?? "",
+          kecamatan: business.kecamatan ?? "",
+          kelurahan: business.kelurahan ?? "",
+          status: business.status ?? "Aktif",
+          lat: business.lat ?? "",
+          lng: business.lng ?? ""
         });
       } else {
         setFormData({
