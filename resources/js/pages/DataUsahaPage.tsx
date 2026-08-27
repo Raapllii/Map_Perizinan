@@ -163,6 +163,10 @@ export default function DataUsahaPage() {
   const [kelurahanOptions, setKelurahanOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // Ref for scroll target and pagination action tracker
+  const pageTopRef = useRef<HTMLDivElement>(null);
+  const isPaginationAction = useRef(false);
+  
   // Pagination
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
@@ -265,10 +269,17 @@ export default function DataUsahaPage() {
         setTotalItems(res.data.total);
         setPage(res.data.current_page);
         setLoading(false);
+        
+        if (isPaginationAction.current && pageTopRef.current) {
+          const y = pageTopRef.current.getBoundingClientRect().top + window.scrollY - 80;
+          window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+          isPaginationAction.current = false;
+        }
       })
       .catch(err => {
         console.error(err);
         setLoading(false);
+        isPaginationAction.current = false;
       });
   };
 
@@ -545,7 +556,7 @@ export default function DataUsahaPage() {
   const hasActiveFilters = activeFiltersCount > 0;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" ref={pageTopRef}>
       {alertMsg && (
         <div className="bg-warning/10 border border-warning/20 text-warning px-4 py-3 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
           <AlertCircle className="shrink-0 mt-0.5" size={18} />
@@ -766,7 +777,15 @@ export default function DataUsahaPage() {
       </div>
 
       {/* Data Table */}
-      <div className="overflow-hidden rounded-lg border border-border bg-background">
+      <div className={cn(
+        "overflow-hidden rounded-lg border border-border bg-background transition-opacity duration-200 relative",
+        loading && businesses.length > 0 ? "opacity-60 pointer-events-none" : "opacity-100"
+      )}>
+        {loading && businesses.length > 0 && (
+          <div className="absolute top-0 left-0 w-full h-1 bg-primary/20 overflow-hidden z-10">
+            <div className="h-full bg-primary animate-[progress_1.5s_ease-in-out_infinite] w-1/3" />
+          </div>
+        )}
         <Table className="table-fixed">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup: any) => (
@@ -831,8 +850,10 @@ export default function DataUsahaPage() {
             </Label>
             <Select
               value={perPage.toString()}
+              disabled={loading}
               onValueChange={(value) => {
                 setPerPage(Number(value));
+                isPaginationAction.current = true;
                 setPage(1);
               }}
             >
@@ -869,8 +890,11 @@ export default function DataUsahaPage() {
                     size="icon"
                     variant="outline"
                     className="disabled:pointer-events-none disabled:opacity-50 h-8 w-8"
-                    onClick={() => setPage(1)}
-                    disabled={page === 1}
+                    onClick={() => {
+                      isPaginationAction.current = true;
+                      setPage(1);
+                    }}
+                    disabled={page === 1 || loading}
                     aria-label="First page"
                   >
                     <ChevronFirst size={16} strokeWidth={2} aria-hidden="true" />
@@ -881,8 +905,11 @@ export default function DataUsahaPage() {
                     size="icon"
                     variant="outline"
                     className="disabled:pointer-events-none disabled:opacity-50 h-8 w-8"
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page === 1}
+                    onClick={() => {
+                      isPaginationAction.current = true;
+                      setPage(p => Math.max(1, p - 1));
+                    }}
+                    disabled={page === 1 || loading}
                     aria-label="Previous page"
                   >
                     <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" />
@@ -893,8 +920,11 @@ export default function DataUsahaPage() {
                     size="icon"
                     variant="outline"
                     className="disabled:pointer-events-none disabled:opacity-50 h-8 w-8"
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
+                    onClick={() => {
+                      isPaginationAction.current = true;
+                      setPage(p => Math.min(totalPages, p + 1));
+                    }}
+                    disabled={page === totalPages || loading}
                     aria-label="Next page"
                   >
                     <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
@@ -905,8 +935,11 @@ export default function DataUsahaPage() {
                     size="icon"
                     variant="outline"
                     className="disabled:pointer-events-none disabled:opacity-50 h-8 w-8"
-                    onClick={() => setPage(totalPages)}
-                    disabled={page === totalPages}
+                    onClick={() => {
+                      isPaginationAction.current = true;
+                      setPage(totalPages);
+                    }}
+                    disabled={page === totalPages || loading}
                     aria-label="Last page"
                   >
                     <ChevronLast size={16} strokeWidth={2} aria-hidden="true" />
