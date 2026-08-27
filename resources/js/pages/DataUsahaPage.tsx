@@ -1,9 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router";
 import axios from 'axios';
-import { Eye, Edit, Trash2, Search, Plus, FileSpreadsheet, Loader2, Inbox, AlertCircle, Upload, X, Filter, ChevronDown, Check, ArrowDownUp } from "lucide-react";
+import { Eye, Edit, Trash2, Search, Plus, FileSpreadsheet, Loader2, Inbox, AlertCircle, Upload, X, Filter, ChevronDown, Check, ArrowDownUp, MapPinOff, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, StatusBadge, Btn, InputField, SelectField } from "../components/ui";
-
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/Table";
 // Modals
 import DataUsahaDetailModal from "../components/DataUsahaDetailModal";
 import DataUsahaFormModal from "../components/DataUsahaFormModal";
@@ -470,106 +477,145 @@ export default function DataUsahaPage() {
       </div>
 
       {/* Data Table */}
-      <Card padding="p-0" className="overflow-hidden border-border shadow-sm flex flex-col">
-        <div className="overflow-x-auto">
-          <div className="min-w-[1000px]">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-muted/50 border-b border-border">
-                  <th className="px-5 py-3.5 text-xs font-bold text-muted-foreground uppercase tracking-wider w-1/4">Nama Usaha / NIB</th>
-                  <th className="px-5 py-3.5 text-xs font-bold text-muted-foreground uppercase tracking-wider w-1/5">Pemilik / User</th>
-                  <th className="px-5 py-3.5 text-xs font-bold text-muted-foreground uppercase tracking-wider w-1/6">Lokasi</th>
-                  <th className="px-5 py-3.5 text-xs font-bold text-muted-foreground uppercase tracking-wider w-1/5">Kategori (KBLI)</th>
-                  <th className="px-5 py-3.5 text-xs font-bold text-muted-foreground uppercase tracking-wider">Status</th>
-                  <th className="px-5 py-3.5 text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/50">
-                {loading && businesses.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-5 py-24 text-center">
-                      <div className="flex flex-col items-center justify-center gap-3">
-                        <Loader2 className="animate-spin text-primary" size={32} />
-                        <p className="text-sm font-medium text-muted-foreground">Memuat data usaha...</p>
+      {/* Data Table */}
+      <div className="w-full">
+        <div className="w-full overflow-x-auto border border-border/50 rounded-lg bg-card shadow-sm">
+          <Table className="min-w-[1000px] w-full">
+            <TableHeader>
+              <TableRow className="bg-muted/20 hover:bg-muted/20 border-b border-border/50">
+                <TableHead className="px-4 py-3 text-[11px] font-medium text-muted-foreground uppercase tracking-wider w-[25%]">Nama Usaha / NIB</TableHead>
+                <TableHead className="px-4 py-3 text-[11px] font-medium text-muted-foreground uppercase tracking-wider w-[20%]">Pemilik / User</TableHead>
+                <TableHead className="px-4 py-3 text-[11px] font-medium text-muted-foreground uppercase tracking-wider w-[20%]">Lokasi</TableHead>
+                <TableHead className="px-4 py-3 text-[11px] font-medium text-muted-foreground uppercase tracking-wider w-[15%]">Kategori (KBLI)</TableHead>
+                <TableHead className="px-4 py-3 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Status</TableHead>
+                <TableHead className="px-4 py-3 text-[11px] font-medium text-muted-foreground uppercase tracking-wider text-right">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-border/40">
+              {loading && businesses.length === 0 ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={`skeleton-${i}`}>
+                    <TableCell className="px-4 py-4">
+                      <div className="h-4 w-3/4 bg-muted/60 rounded animate-pulse mb-2"></div>
+                      <div className="h-3 w-1/2 bg-muted/40 rounded animate-pulse"></div>
+                    </TableCell>
+                    <TableCell className="px-4 py-4">
+                      <div className="h-4 w-full bg-muted/60 rounded animate-pulse"></div>
+                    </TableCell>
+                    <TableCell className="px-4 py-4">
+                      <div className="h-4 w-4/5 bg-muted/60 rounded animate-pulse mb-2"></div>
+                      <div className="h-3 w-1/2 bg-muted/40 rounded animate-pulse"></div>
+                    </TableCell>
+                    <TableCell className="px-4 py-4">
+                      <div className="h-4 w-full bg-muted/60 rounded animate-pulse"></div>
+                    </TableCell>
+                    <TableCell className="px-4 py-4">
+                      <div className="h-5 w-16 bg-muted/60 rounded-full animate-pulse"></div>
+                    </TableCell>
+                    <TableCell className="px-4 py-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <div className="h-6 w-6 bg-muted/60 rounded animate-pulse"></div>
+                        <div className="h-6 w-6 bg-muted/60 rounded animate-pulse"></div>
+                        <div className="h-6 w-6 bg-muted/60 rounded animate-pulse"></div>
                       </div>
-                    </td>
-                  </tr>
-                ) : businesses.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-5 py-24 text-center">
-                      <div className="flex flex-col items-center justify-center gap-3">
-                        <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center text-muted-foreground mb-2">
-                          <Inbox size={28} />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : businesses.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="px-4 py-24 text-center">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className="w-12 h-12 bg-muted/50 rounded-full flex items-center justify-center text-muted-foreground mb-3">
+                        <Inbox size={24} strokeWidth={1.5} />
+                      </div>
+                      <p className="text-[15px] font-medium text-foreground">Data usaha tidak ditemukan</p>
+                      <p className="text-[13px] text-muted-foreground">Coba ubah kata pencarian atau filter yang digunakan.</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                businesses.map((b) => (
+                  <TableRow key={b.id} className="hover:bg-muted/30 transition-colors group">
+                    <TableCell className="px-4 py-3.5">
+                      <div className="text-[13px] font-semibold text-foreground truncate max-w-[220px]" title={b.nama_perusahaan}>{b.nama_perusahaan}</div>
+                      {b.nama_proyek && <div className="text-[11px] font-medium text-primary mt-0.5 truncate max-w-[220px]" title={b.nama_proyek}>{b.nama_proyek}</div>}
+                      <div className="text-[11px] text-muted-foreground font-mono mt-1 px-1.5 py-0.5 bg-muted/50 rounded inline-block">{b.nib}</div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3.5">
+                      <div className="text-[13px] font-medium text-foreground truncate max-w-[180px]" title={b.nama_pemilik || b.nama_user || b.nama_perusahaan}>
+                        {b.nama_pemilik || b.nama_user || b.nama_perusahaan}
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3.5">
+                      <div className="text-[13px] text-foreground truncate max-w-[180px]" title={`${b.kecamatan}${b.kelurahan ? ` / ${b.kelurahan}` : ''}`}>
+                        {b.kecamatan} {b.kelurahan ? `/ ${b.kelurahan}` : ''}
+                      </div>
+                      {(!b.lat || !b.lng) && (
+                        <div className="text-[11px] text-warning/90 mt-1 flex items-center gap-1 font-medium">
+                          <MapPinOff size={11} strokeWidth={2.5} /> Belum dipetakan
                         </div>
-                        <p className="text-base font-semibold text-foreground">Tidak ada data</p>
-                        <p className="text-sm text-muted-foreground">Belum ada data usaha yang terdaftar atau sesuai kriteria filter.</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  businesses.map((b) => (
-                    <tr key={b.id} className="hover:bg-muted/30 transition-colors group">
-                      <td className="px-5 py-4">
-                        <div className="text-sm font-bold text-foreground">{b.nama_perusahaan}</div>
-                        {b.nama_proyek && <div className="text-xs font-semibold text-primary mt-0.5 line-clamp-1">{b.nama_proyek}</div>}
-                        <div className="text-[11px] text-muted-foreground font-mono mt-1 px-1.5 py-0.5 bg-muted rounded w-fit">{b.nib}</div>
-                      </td>
-                      <td className="px-5 py-4 text-sm font-medium text-foreground line-clamp-2 mt-2">{b.nama_pemilik || b.nama_user || b.nama_perusahaan}</td>
-                      <td className="px-5 py-4 text-sm text-muted-foreground">
-                        <div>{b.kecamatan}</div>
-                        {(!b.lat || !b.lng) && (
-                          <div className="text-[10px] text-warning mt-1 italic">Belum dipetakan</div>
-                        )}
-                      </td>
-                      <td className="px-5 py-4 text-sm text-muted-foreground truncate max-w-[200px]" title={b.judul_kbli}>{b.judul_kbli || '-'}</td>
-                      <td className="px-5 py-4">
+                      )}
+                    </TableCell>
+                    <TableCell className="px-4 py-3.5">
+                      <div className="text-[12px] text-muted-foreground truncate max-w-[150px]" title={b.judul_kbli}>{b.judul_kbli || '-'}</div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3.5">
+                      <div className="scale-90 origin-left">
                         <StatusBadge status={b.status} />
-                      </td>
-                      <td className="px-5 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5 opacity-100 sm:opacity-80 group-hover:opacity-100 transition-opacity">
-                          <Btn variant="ghost" size="xs" Icon={Eye} onClick={() => openDetailModal(b)} className="text-info hover:text-info hover:bg-info/10" aria-label="Lihat Detail" />
-                          <Btn variant="ghost" size="xs" Icon={Edit} onClick={() => openEditModal(b)} className="text-primary hover:text-primary hover:bg-primary/10" aria-label="Edit Data" />
-                          <Btn variant="ghost" size="xs" Icon={Trash2} onClick={() => handleDelete(b.id)} className="text-danger hover:text-danger hover:bg-danger/10" aria-label="Hapus Data" />
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3.5 text-right">
+                      <div className="flex items-center justify-end gap-1.5 opacity-100 xl:opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Btn variant="ghost" size="xs" Icon={Eye} onClick={() => openDetailModal(b)} className="text-info hover:text-info hover:bg-info/10 h-8 w-8 p-0 flex items-center justify-center rounded-md" title="Detail" aria-label="Lihat Detail" />
+                        <Btn variant="ghost" size="xs" Icon={Edit} onClick={() => openEditModal(b)} className="text-primary hover:text-primary hover:bg-primary/10 h-8 w-8 p-0 flex items-center justify-center rounded-md" title="Edit" aria-label="Edit Data" />
+                        <Btn variant="ghost" size="xs" Icon={Trash2} onClick={() => handleDelete(b.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0 flex items-center justify-center rounded-md" title="Hapus" aria-label="Hapus Data" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </div>
         
         {/* Pagination */}
         {!loading && businesses.length > 0 && (
-          <div className="px-5 py-4 border-t border-border bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <span className="text-xs font-medium text-muted-foreground">
-              Menampilkan data <strong className="text-foreground font-semibold">{businesses.length}</strong> dari total <strong className="text-foreground font-semibold">{totalItems}</strong>
-            </span>
-            <div className="flex items-center gap-2">
-              <Btn
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-              >
-                Sebelumnya
-              </Btn>
-              <div className="px-3 py-1 rounded-md bg-background border border-border text-xs font-bold text-foreground">
-                {page} <span className="text-muted-foreground font-normal mx-1">/</span> {totalPages}
+          <div className="px-2 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-[13px] text-muted-foreground flex items-center gap-2">
+              <span>Rows per page</span>
+              <span className="text-border mx-0.5">|</span>
+              <span className="font-medium text-foreground">10</span>
+            </div>
+            
+            <div className="flex items-center gap-4 text-[13px] text-muted-foreground">
+              <div>
+                <span className="font-medium text-foreground">
+                  {(page - 1) * 10 + 1}–{Math.min(page * 10, totalItems)}
+                </span>{" "}
+                dari <span className="font-medium text-foreground">{totalItems}</span>
               </div>
-              <Btn
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-              >
-                Berikutnya
-              </Btn>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="p-1.5 rounded hover:bg-muted disabled:opacity-50 disabled:hover:bg-transparent transition-colors text-foreground"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="p-1.5 rounded hover:bg-muted disabled:opacity-50 disabled:hover:bg-transparent transition-colors text-foreground"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
             </div>
           </div>
         )}
-      </Card>
+      </div>
 
       {/* Modals */}
       <DataUsahaDetailModal 
