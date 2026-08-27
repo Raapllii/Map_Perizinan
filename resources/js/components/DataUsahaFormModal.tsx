@@ -68,22 +68,58 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const showToast = (message: string, type: 'success' | 'error') => {
+    const toast = document.createElement('div');
+    toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-md shadow-lg z-[100] font-medium text-sm transition-all animate-in slide-in-from-bottom-5 ${
+      type === 'success' ? 'bg-success text-success-foreground' : 'bg-danger text-danger-foreground'
+    }`;
+    toast.innerText = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // Prevent double submit
+
+    if (!formData.nib || !formData.nama_perusahaan) {
+      showToast("NIB dan Nama Perusahaan wajib diisi.", "error");
+      return;
+    }
+
     setLoading(true);
     
     const url = isEdit ? `/api/admin/businesses/${business.id}` : '/api/admin/businesses';
     const method = isEdit ? 'put' : 'post';
     
     axios({ method, url, data: formData })
-      .then(() => {
+      .then((res) => {
+        showToast(isEdit ? "✓ Perubahan data usaha berhasil disimpan." : "✓ Data usaha berhasil disimpan ke database.", "success");
         setLoading(false);
         onSuccess();
       })
       .catch((err) => {
         setLoading(false);
         console.error(err);
-        alert('Gagal menyimpan data. ' + (err.response?.data?.message || ''));
+        
+        const status = err.response?.status;
+        let errMsg = "Data usaha tidak berhasil disimpan. Periksa kembali data yang dimasukkan.";
+        
+        if (status === 422) {
+          errMsg = "Data yang dimasukkan belum valid. " + (err.response?.data?.message || "");
+        } else if (status === 401 || status === 403) {
+          errMsg = "Anda tidak memiliki izin untuk menambahkan/mengubah data usaha.";
+        } else if (status === 409) {
+          errMsg = "Data usaha sudah terdaftar.";
+        } else if (status >= 500) {
+          errMsg = "Terjadi kesalahan pada server. Data belum berhasil disimpan.";
+        } else if (!err.response) {
+          errMsg = "Tidak dapat terhubung ke server.";
+        } else {
+          errMsg = err.response?.data?.message || errMsg;
+        }
+
+        showToast("✕ " + errMsg, "error");
       });
   };
 
