@@ -20,7 +20,7 @@ export function StatCard({ label, value, icon: Icon, change, up, colorClass = "t
           <Icon size={20} className={colorClass} />
         </div>
         {change && (
-          <div className={`flex items-center flex-shrink-0 gap-1 text-[10px] sm:text-xs font-semibold px-2 py-1 rounded-full ${up ? "bg-success/10 text-success" : "bg-danger/10 text-danger"}`}>
+          <div className={`flex items-center flex-shrink-0 gap-1 text-[10px] sm:text-xs font-semibold px-2 py-1 rounded-md ${up ? "bg-success/10 text-success" : "bg-danger/10 text-danger"}`}>
             {up ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
             {change}
           </div>

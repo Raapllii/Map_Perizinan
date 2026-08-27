@@ -3,66 +3,66 @@
 :root {
   /* 1. Color Tokens (Base) */
   --background: #F8FAF9;
-  --foreground: #17211B;
+  --foreground: #1F2922;
 
-  --primary: #15803D;
+  --primary: #367D50;
   --primary-foreground: #FFFFFF;
 
-  --secondary: #0F766E;
+  --secondary: #A17045;
   --secondary-foreground: #FFFFFF;
 
-  --accent: #22C55E;
-  --accent-foreground: #17211B;
+  --accent: #E8F0EB;
+  --accent-foreground: #367D50;
 
-  --muted: #EEF4F0;
-  --muted-foreground: #64756A;
+  --muted: #EEF2F0;
+  --muted-foreground: #6B7C72;
 
   --card: #FFFFFF;
-  --card-foreground: #17211B;
+  --card-foreground: #1F2922;
 
   --popover: #FFFFFF;
-  --popover-foreground: #17211B;
+  --popover-foreground: #1F2922;
 
-  --border: #DDE8E0;
-  --input: #DDE8E0;
-  --input-background: #F7FAF8;
+  --border: #E5E7EB;
+  --input: #E3E8E5;
+  --input-background: #F8FAF9;
 
-  --ring: #15803D;
+  --ring: #367D50;
   /* Focus ring color */
 
   /* Semantic/Status Colors */
-  --success: #16A34A;
+  --success: #367D50;
   --success-foreground: #FFFFFF;
-  --warning: #F59E0B;
+  --warning: #D97706;
   --warning-foreground: #FFFFFF;
   --danger: #DC2626;
   --danger-foreground: #FFFFFF;
-  --critical: #9C27B0;
+  --critical: #9333EA;
   --critical-foreground: #FFFFFF;
   --info: #0284C7;
   --info-foreground: #FFFFFF;
 
   /* Chart Colors for Data-oriented Maps */
-  --chart-1: #15803D;
-  --chart-2: #0F766E;
-  --chart-3: #22C55E;
-  --chart-4: #F59E0B;
-  --chart-5: #84CC16;
+  --chart-1: #367D50;
+  --chart-2: #A17045;
+  --chart-3: #4ADE80;
+  --chart-4: #FBBF24;
+  --chart-5: #34D399;
 
   /* Sidebar/Map specific */
-  --sidebar: #166534;
-  --sidebar-foreground: #FFFFFF;
-  --sidebar-primary: #22C55E;
-  --sidebar-primary-foreground: #17211B;
-  --sidebar-accent: #14532D;
-  --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #22C55E;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #1F2922;
+  --sidebar-primary: #367D50;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #EEF2F0;
+  --sidebar-accent-foreground: #1F2922;
+  --sidebar-border: #E5E7EB;
+  --sidebar-ring: #367D50;
 
   /* 2, 3, 4. Typography, Size & Weight */
   --font-sans: 'Inter', sans-serif;
   --font-mono: 'Fira Code', monospace;
-  --font-size-base: 16px;
+  --font-size-base: 15px; /* More compact */
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
@@ -77,49 +77,49 @@
   --spacing-8: 2rem;
 
   /* 6. Border Radius */
-  --radius: 0.5rem;
-  /* 8px default for enterprise look */
+  --radius: 0.625rem;
+  /* 10px default for 21st.dev look */
 
   /* 7. Shadow */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.03);
 }
 
 .dark {
-  --background: #0B1710;
-  --foreground: #F0FDF4;
+  --background: #121413;
+  --foreground: #E8F0EB;
   --primary: #4ADE80;
-  --primary-foreground: #0B1710;
-  --secondary: #2DD4BF;
-  --secondary-foreground: #0B1710;
-  --accent: #86EFAC;
-  --accent-foreground: #0B1710;
-  --muted: #14261B;
-  --muted-foreground: #94A3B8;
-  --card: #0F2116;
-  --card-foreground: #F0FDF4;
-  --popover: #0F2116;
-  --popover-foreground: #F0FDF4;
-  --border: #294333;
-  --input: #294333;
-  --input-background: #14261B;
+  --primary-foreground: #090B0A;
+  --secondary: #D4A373;
+  --secondary-foreground: #090B0A;
+  --accent: #1F2922;
+  --accent-foreground: #4ADE80;
+  --muted: #1A211D;
+  --muted-foreground: #8B9A92;
+  --card: #161C18;
+  --card-foreground: #E8F0EB;
+  --popover: #161C18;
+  --popover-foreground: #E8F0EB;
+  --border: #2A362F;
+  --input: #2A362F;
+  --input-background: #1A211D;
   --ring: #4ADE80;
   --chart-1: #4ADE80;
-  --chart-2: #2DD4BF;
+  --chart-2: #D4A373;
   --chart-3: #86EFAC;
   --chart-4: #FBBF24;
   --chart-5: #34D399;
   --critical: #D946EF;
-  --critical-foreground: #0B1710;
-  --sidebar: #0A2815;
-  --sidebar-foreground: #F0FDF4;
+  --critical-foreground: #090B0A;
+  --sidebar: #121413;
+  --sidebar-foreground: #E8F0EB;
   --sidebar-primary: #4ADE80;
-  --sidebar-primary-foreground: #0B1710;
-  --sidebar-accent: #14532D;
-  --sidebar-accent-foreground: #F0FDF4;
-  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-primary-foreground: #090B0A;
+  --sidebar-accent: #1A211D;
+  --sidebar-accent-foreground: #E8F0EB;
+  --sidebar-border: #2A362F;
   --sidebar-ring: #4ADE80;
 }
 

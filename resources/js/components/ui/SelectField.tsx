@@ -14,7 +14,7 @@ export function SelectField({ label, options, required = false, value, onChange,
           value={value}
           onChange={onChange}
           disabled={disabled}
-          className={`w-full px-3.5 py-2.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring bg-input-background appearance-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${error ? 'border-danger focus:ring-danger/20' : 'border-input hover:border-input/80'}`}
+          className={`w-full px-3.5 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring bg-input-background appearance-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${error ? 'border-danger focus:ring-danger/20' : 'border-input hover:border-input/80'}`}
         >
           {options.map((o: any) => {
             const isObject = typeof o === 'object' && o !== null;

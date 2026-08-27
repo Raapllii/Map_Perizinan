@@ -117,12 +117,12 @@ export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
           }}
           onFocus={() => { if (searchQuery) setShowDropdown(true); }}
           onKeyDown={handleKeyDown}
-          className="w-full pl-9 pr-4 py-2 text-sm border border-input rounded-md bg-input-background focus:bg-background focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" 
+          className="w-full pl-9 pr-4 py-2 text-sm border border-input rounded-lg bg-input-background focus:bg-background focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" 
         />
         
         {/* Dropdown Results */}
         {showDropdown && searchQuery.length >= 2 && (
-          <div className="fixed inset-x-3 top-[72px] md:absolute md:inset-auto md:top-full md:left-0 md:mt-1 md:w-full md:max-w-[480px] bg-card border border-border rounded-xl md:rounded-md shadow-xl md:shadow-lg overflow-hidden z-[1100] flex flex-col max-h-[300px] md:max-h-[360px]">
+          <div className="fixed inset-x-3 top-[72px] md:absolute md:inset-auto md:top-full md:left-0 md:mt-1 md:w-full md:max-w-[480px] bg-card border border-border rounded-xl md:rounded-xl shadow-xl md:shadow-md overflow-hidden z-[1100] flex flex-col max-h-[300px] md:max-h-[360px]">
             {isSearching ? (
               <div className="p-4 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
                 <RefreshCw size={14} className="animate-spin" /> Mencari data...
@@ -196,7 +196,7 @@ export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
         </button>
 
         {showNotifs && (
-          <div className="fixed inset-x-3 top-[72px] md:absolute md:inset-auto md:right-0 md:top-12 md:w-[320px] bg-popover border border-border rounded-xl md:rounded-md shadow-xl overflow-hidden z-50 md:origin-top-right">
+          <div className="fixed inset-x-3 top-[72px] md:absolute md:inset-auto md:right-0 md:top-12 md:w-[320px] bg-popover border border-border rounded-xl md:rounded-xl shadow-md overflow-hidden z-50 md:origin-top-right">
             <div className="px-4 py-3 border-b border-border flex items-center justify-between">
               <span className="text-sm font-semibold text-popover-foreground">Notifikasi</span>
               <span className="text-xs text-primary font-medium cursor-pointer hover:underline">Tandai semua dibaca</span>

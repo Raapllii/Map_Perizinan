@@ -14,7 +14,7 @@ export const StatusBadge = memo(function StatusBadge({ status }: { status: strin
     "Surveyor": "bg-accent/10 text-accent border border-accent/20",
   };
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${map[status] || "bg-muted text-muted-foreground border border-border"}`}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-[0.7rem] uppercase tracking-wider font-semibold ${map[status] || "bg-muted text-muted-foreground border border-border"}`}>
       {status}
     </span>
   );
