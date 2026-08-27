@@ -71,6 +71,23 @@ class BusinessRepository
             }
         }
 
+        // Sorting logic (Whitelist)
+        $allowedSorts = ['nama_perusahaan', 'created_at', 'status'];
+        $sortBy = $request->get('sort_by');
+        $sortDirection = strtolower($request->get('sort_direction')) === 'asc' ? 'asc' : 'desc';
+
+        if (in_array($sortBy, $allowedSorts)) {
+            // Handle null values in sorting especially for nama_perusahaan
+            if ($sortDirection === 'asc') {
+                $query->orderByRaw("{$sortBy} IS NULL ASC, {$sortBy} ASC");
+            } else {
+                $query->orderByRaw("{$sortBy} IS NULL ASC, {$sortBy} DESC");
+            }
+        } else {
+            // Default sorting
+            $query->orderBy('created_at', 'desc');
+        }
+
         return $query;
     }
 

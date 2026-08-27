@@ -28,3 +28,5 @@ Route::get('/businesses/search', [BusinessController::class, 'search']);
 Route::get('/businesses', [BusinessController::class, 'index']);
 Route::get('/districts', [DistrictController::class, 'index']);
 Route::get('/categories', [CategoryController::class, 'index']);
+Route::get('/locations/kecamatan', [App\Http\Controllers\Api\LocationController::class, 'getKecamatan']);
+Route::get('/locations/kelurahan', [App\Http\Controllers\Api\LocationController::class, 'getKelurahan']);
