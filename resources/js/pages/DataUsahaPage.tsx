@@ -520,11 +520,9 @@ export default function DataUsahaPage() {
         const b = row.original;
         return (
           <DropdownMenu>
-            <div className="flex justify-end">
-              <DropdownMenuTrigger render={<Button variant="ghost" className="h-8 w-8 p-0 rounded-md shadow-none hover:bg-muted/50 data-[state=open]:bg-muted/50 cursor-pointer" aria-label="Aksi" />}>
-                <Ellipsis size={16} strokeWidth={2} aria-hidden="true" />
-              </DropdownMenuTrigger>
-            </div>
+            <DropdownMenuTrigger render={<Button variant="ghost" className="ml-auto flex items-center justify-center h-8 w-8 p-0 rounded-md shadow-none hover:bg-muted/50 data-[state=open]:bg-muted/50 cursor-pointer" aria-label="Aksi" />}>
+              <Ellipsis size={16} strokeWidth={2} aria-hidden="true" />
+            </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => openDetailModal(b)}>
                 <Eye className="mr-2 opacity-60" size={16} strokeWidth={2} />
@@ -585,13 +583,49 @@ export default function DataUsahaPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Btn variant="outline" Icon={Upload} onClick={() => setIsImportOpen(true)}>Import CSV</Btn>
           <Btn variant="outline" Icon={FileSpreadsheet} onClick={handleExport}>Export</Btn>
-          <Btn variant="primary" Icon={Plus} onClick={openAddModal}>Tambah Usaha</Btn>
         </div>
       </div>
 
       {/* Modern Filter Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          
+          {/* Contextual Action Button */}
+          {table.getSelectedRowModel().rows.length > 0 ? (
+            <AlertDialog>
+              <AlertDialogTrigger render={<Button variant="destructive" className="whitespace-nowrap" />}>
+                <Trash className="-ms-1 me-2 opacity-80" size={16} strokeWidth={2} aria-hidden="true" />
+                Hapus ({table.getSelectedRowModel().rows.length})
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <div className="flex flex-col gap-2 max-sm:items-center sm:flex-row sm:gap-4">
+                  <div
+                    className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border"
+                    aria-hidden="true"
+                  >
+                    <CircleAlert className="opacity-80" size={16} strokeWidth={2} />
+                  </div>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Tindakan ini tidak dapat dibatalkan. Ini akan menghapus secara permanen{" "}
+                      {table.getSelectedRowModel().rows.length} data usaha yang dipilih.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleBulkDelete}>Hapus</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : (
+            <Button variant="outline" onClick={openAddModal} className="whitespace-nowrap">
+              <Plus className="-ms-1 me-2 opacity-80" size={16} strokeWidth={2} aria-hidden="true" />
+              Tambah Usaha
+            </Button>
+          )}
+
           {/* Search Bar */}
           <div className="relative">
             <Input
@@ -754,46 +788,6 @@ export default function DataUsahaPage() {
           </DropdownMenu>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Delete button */}
-          {table.getSelectedRowModel().rows.length > 0 && (
-            <AlertDialog>
-              <AlertDialogTrigger render={<Button className="ml-auto" variant="outline" />}>
-                <Trash
-                  className="-ms-1 me-2 opacity-60"
-                  size={16}
-                  strokeWidth={2}
-                  aria-hidden="true"
-                />
-                Hapus
-                <span className="-me-1 ms-3 inline-flex h-5 max-h-full items-center rounded border border-border bg-background px-1 font-[inherit] text-[0.625rem] font-medium text-muted-foreground/70">
-                  {table.getSelectedRowModel().rows.length}
-                </span>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <div className="flex flex-col gap-2 max-sm:items-center sm:flex-row sm:gap-4">
-                  <div
-                    className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border"
-                    aria-hidden="true"
-                  >
-                    <CircleAlert className="opacity-80" size={16} strokeWidth={2} />
-                  </div>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Tindakan ini tidak dapat dibatalkan. Ini akan menghapus secara permanen{" "}
-                      {table.getSelectedRowModel().rows.length} data usaha yang dipilih.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                </div>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Batal</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleBulkDelete}>Hapus</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-        </div>
       </div>
 
       {/* Data Table */}
