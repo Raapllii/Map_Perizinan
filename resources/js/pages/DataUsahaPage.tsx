@@ -1,22 +1,162 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, useId } from "react";
 import { useLocation } from "react-router";
 import axios from 'axios';
-import { Eye, Edit, Trash2, Search, Plus, FileSpreadsheet, Loader2, Inbox, AlertCircle, Upload, X, Filter, ChevronDown, Check, ArrowDownUp, MapPinOff, ChevronLeft, ChevronRight } from "lucide-react";
-import { Card, StatusBadge, Btn, InputField, SelectField } from "../components/ui";
+import { 
+  Eye, Edit, Trash2, Plus, FileSpreadsheet, 
+  Inbox, AlertCircle, Upload, X, Filter, 
+  ChevronLeft, ChevronRight, ChevronFirst, ChevronLast,
+  ListFilter, CircleX, Columns3, Trash, CircleAlert, Ellipsis, ChevronDown, ChevronUp, MapPinOff
+} from "lucide-react";
+import { cn } from "../lib/utils";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../components/ui/Table";
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  VisibilityState,
+  RowSelectionState
+} from "@tanstack/react-table";
+
+// Shadcn UI components
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../components/ui/alert-dialog";
+import { Badge } from "../components/ui/badge";
+import { Checkbox } from "../components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuShortcut
+} from "../components/ui/dropdown-menu";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Pagination, PaginationContent, PaginationItem } from "../components/ui/pagination";
+import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
+import { Button } from "../components/ui/button";
+
 // Modals
 import DataUsahaDetailModal from "../components/DataUsahaDetailModal";
 import DataUsahaFormModal from "../components/DataUsahaFormModal";
 import DataUsahaImportModal from "../components/DataUsahaImportModal";
 
+// Custom UI
+import { Card, StatusBadge, Btn, InputField, SelectField } from "../components/ui";
+
+// Inline Table Component
+const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
+  ({ className, ...props }, ref) => (
+    <div className="relative w-full overflow-auto">
+      <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
+    </div>
+  ),
+);
+Table.displayName = "Table";
+
+const TableHeader = React.forwardRef<
+  HTMLTableSectionElement,
+  React.HTMLAttributes<HTMLTableSectionElement>
+>(({ className, ...props }, ref) => <thead ref={ref} className={cn(className)} {...props} />);
+TableHeader.displayName = "TableHeader";
+
+const TableBody = React.forwardRef<
+  HTMLTableSectionElement,
+  React.HTMLAttributes<HTMLTableSectionElement>
+>(({ className, ...props }, ref) => (
+  <tbody ref={ref} className={cn("[&_tr:last-child]:border-0", className)} {...props} />
+));
+TableBody.displayName = "TableBody";
+
+const TableFooter = React.forwardRef<
+  HTMLTableSectionElement,
+  React.HTMLAttributes<HTMLTableSectionElement>
+>(({ className, ...props }, ref) => (
+  <tfoot
+    ref={ref}
+    className={cn(
+      "border-t border-border bg-muted/50 font-medium [&>tr]:last:border-b-0",
+      className,
+    )}
+    {...props}
+  />
+));
+TableFooter.displayName = "TableFooter";
+
+const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTMLTableRowElement>>(
+  ({ className, ...props }, ref) => (
+    <tr
+      ref={ref}
+      className={cn(
+        "border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+        className,
+      )}
+      {...props}
+    />
+  ),
+);
+TableRow.displayName = "TableRow";
+
+const TableHead = React.forwardRef<
+  HTMLTableCellElement,
+  React.ThHTMLAttributes<HTMLTableCellElement>
+>(({ className, ...props }, ref) => (
+  <th
+    ref={ref}
+    className={cn(
+      "h-12 px-3 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:w-px [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-0.5",
+      className,
+    )}
+    {...props}
+  />
+));
+TableHead.displayName = "TableHead";
+
+const TableCell = React.forwardRef<
+  HTMLTableCellElement,
+  React.TdHTMLAttributes<HTMLTableCellElement>
+>(({ className, ...props }, ref) => (
+  <td
+    ref={ref}
+    className={cn(
+      "p-3 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-0.5",
+      className,
+    )}
+    {...props}
+  />
+));
+TableCell.displayName = "TableCell";
+
+const TableCaption = React.forwardRef<
+  HTMLTableCaptionElement,
+  React.HTMLAttributes<HTMLTableCaptionElement>
+>(({ className, ...props }, ref) => (
+  <caption ref={ref} className={cn("mt-4 text-sm text-muted-foreground", className)} {...props} />
+));
+TableCaption.displayName = "TableCaption";
+
+
 export default function DataUsahaPage() {
+  const id = useId();
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [kecamatanOptions, setKecamatanOptions] = useState<string[]>([]);
@@ -25,6 +165,7 @@ export default function DataUsahaPage() {
   
   // Pagination
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   
@@ -33,14 +174,7 @@ export default function DataUsahaPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sortType, setSortType] = useState("terbaru");
 
-  // Popover State
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const filterRef = useRef<HTMLDivElement>(null);
-  
-  const [isSortOpen, setIsSortOpen] = useState(false);
-  const sortRef = useRef<HTMLDivElement>(null);
-
-  // Active Filters
+  // Filter State
   const [activeFilters, setActiveFilters] = useState({
     kecamatan: "",
     kelurahan: "",
@@ -48,14 +182,11 @@ export default function DataUsahaPage() {
     status: "",
   });
 
-  // Temporary Filters (inside popover)
-  const [tempFilters, setTempFilters] = useState({
-    kecamatan: "",
-    kelurahan: "",
-    kategori: "",
-    status: "",
-  });
-  
+  // Table internal state for Demo features
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const inputRef = useRef<HTMLInputElement>(null);
+
   // Modals state
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -65,20 +196,6 @@ export default function DataUsahaPage() {
   const [alertMsg, setAlertMsg] = useState("");
   const location = useLocation();
 
-  // Click outside to close popovers
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
-        setIsFilterOpen(false);
-      }
-      if (sortRef.current && !sortRef.current.contains(event.target as Node)) {
-        setIsSortOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   useEffect(() => {
     if (location.state && (location.state as any).noCoord) {
       setAlertMsg("Data usaha ini belum memiliki titik koordinat lokasi di peta, sehingga dialihkan ke tabel data.");
@@ -86,7 +203,6 @@ export default function DataUsahaPage() {
     }
   }, [location.state]);
 
-  // Fetch Options for Filter
   useEffect(() => {
     axios.get('/api/categories')
       .then(res => setCategories(res.data))
@@ -98,22 +214,20 @@ export default function DataUsahaPage() {
   }, []);
 
   useEffect(() => {
-    if (tempFilters.kecamatan && tempFilters.kecamatan !== "Semua") {
-      axios.get(`/api/locations/kelurahan?kecamatan=${encodeURIComponent(tempFilters.kecamatan)}`)
+    if (activeFilters.kecamatan && activeFilters.kecamatan !== "Semua") {
+      axios.get(`/api/locations/kelurahan?kecamatan=${encodeURIComponent(activeFilters.kecamatan)}`)
         .then(res => setKelurahanOptions(res.data))
         .catch(err => console.error(err));
     } else {
       setKelurahanOptions([]);
     }
-    // Reset kelurahan when kecamatan changes
-    setTempFilters(prev => ({ ...prev, kelurahan: "" }));
-  }, [tempFilters.kecamatan]);
+  }, [activeFilters.kecamatan]);
 
   // Debounce Search
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(searchTerm);
-      setPage(1); // Reset page to 1 when search changes
+      setPage(1);
     }, 400);
     return () => clearTimeout(handler);
   }, [searchTerm]);
@@ -123,6 +237,7 @@ export default function DataUsahaPage() {
     
     const params = new URLSearchParams();
     params.append('page', pageNumber.toString());
+    params.append('per_page', perPage.toString());
     if (debouncedSearch) params.append('search', debouncedSearch);
     if (activeFilters.kategori) params.append('kategori', activeFilters.kategori);
     if (activeFilters.status) params.append('status', activeFilters.status);
@@ -157,56 +272,43 @@ export default function DataUsahaPage() {
       });
   };
 
-  // Refetch when filters or search or page change
   useEffect(() => {
     fetchBusinesses(page);
-  }, [debouncedSearch, activeFilters, sortType, page]);
+  }, [debouncedSearch, activeFilters, sortType, page, perPage]);
 
-  // Handle Popover Filter Changes
-  const handleTempChange = (field: keyof typeof tempFilters, value: string) => {
-    setTempFilters(prev => ({
-      ...prev,
-      [field]: value,
-      ...(field === 'kecamatan' ? { kelurahan: "" } : {})
-    }));
-  };
-
-  const applyFilters = () => {
-    setActiveFilters(tempFilters);
-    setIsFilterOpen(false);
+  // Handle Multi-Status Checkbox
+  const selectedStatuses = activeFilters.status ? activeFilters.status.split(',').filter(Boolean) : [];
+  const handleStatusChange = (checked: boolean, value: string) => {
+    let newStatuses = [...selectedStatuses];
+    if (checked) {
+      newStatuses.push(value);
+    } else {
+      newStatuses = newStatuses.filter(s => s !== value);
+    }
+    setActiveFilters(prev => ({ ...prev, status: newStatuses.join(',') }));
     setPage(1);
   };
 
-  const resetFilters = () => {
-    const emptyFilters = { kecamatan: "", kelurahan: "", kategori: "", status: "" };
-    setTempFilters(emptyFilters);
-    setActiveFilters(emptyFilters);
+  const setSingleFilter = (field: keyof typeof activeFilters, value: string) => {
+    setActiveFilters(prev => ({ ...prev, [field]: value, ...(field === 'kecamatan' ? { kelurahan: "" } : {}) }));
     setPage(1);
   };
 
   const removeFilter = (field: keyof typeof activeFilters) => {
-    const newActive = { ...activeFilters, [field]: "" };
-    setActiveFilters(newActive);
-    setTempFilters(newActive);
+    setActiveFilters(prev => ({ ...prev, [field]: "" }));
     setPage(1);
   };
 
-  const handleSortChange = (value: string) => {
-    setSortType(value);
+  const resetFilters = () => {
+    setActiveFilters({
+      kecamatan: "",
+      kelurahan: "",
+      kategori: "",
+      status: "",
+    });
+    setSearchTerm("");
+    setSortType("terbaru");
     setPage(1);
-    setIsSortOpen(false);
-  };
-
-  // Actions
-  const handleDelete = (id: number) => {
-    if (confirm('Apakah Anda yakin ingin menghapus data usaha ini?')) {
-      axios.delete(`/api/admin/businesses/${id}`)
-        .then(() => {
-          alert('Data berhasil dihapus');
-          fetchBusinesses(page);
-        })
-        .catch(err => alert('Gagal menghapus data. ' + (err.response?.data?.message || '')));
-    }
   };
 
   const handleExport = () => {
@@ -231,8 +333,7 @@ export default function DataUsahaPage() {
       params.append('sort_direction', 'desc');
     }
     
-    const exportUrl = `/api/admin/database/export?${params.toString()}`;
-    window.location.href = exportUrl;
+    window.location.href = `/api/admin/database/export?${params.toString()}`;
   };
 
   const openAddModal = () => {
@@ -241,14 +342,12 @@ export default function DataUsahaPage() {
   };
 
   const openEditModal = (business: any) => {
-    // If we need the full details, fetch them first
     axios.get(`/api/admin/businesses/${business.id}`)
       .then(res => {
         setSelectedBusiness(res.data);
         setIsFormOpen(true);
       })
       .catch(err => {
-        // Fallback to table data if detail fetch fails
         setSelectedBusiness(business);
         setIsFormOpen(true);
       });
@@ -261,11 +360,186 @@ export default function DataUsahaPage() {
         setIsDetailOpen(true);
       })
       .catch(err => {
-        // Fallback
         setSelectedBusiness(business);
         setIsDetailOpen(true);
       });
   };
+
+  const handleDelete = (id: string | number) => {
+    if (confirm("Apakah Anda yakin ingin menghapus data ini?")) {
+      axios.delete(`/api/admin/businesses/${id}`)
+        .then(() => {
+          fetchBusinesses(page);
+          setRowSelection({});
+        })
+        .catch(err => console.error(err));
+    }
+  };
+
+  const handleBulkDelete = () => {
+    const selectedRows = table.getSelectedRowModel().rows;
+    const ids = selectedRows.map(row => row.original.id);
+    if (ids.length === 0) return;
+    
+    Promise.all(ids.map(id => axios.delete(`/api/admin/businesses/${id}`)))
+      .then(() => {
+        setRowSelection({});
+        fetchBusinesses(page);
+      })
+      .catch(err => console.error(err));
+  };
+
+  const columns = useMemo<ColumnDef<any>[]>(() => [
+    {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+          className="translate-y-0.5"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+          className="translate-y-0.5"
+        />
+      ),
+      size: 40,
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
+      accessorKey: "nama_perusahaan",
+      header: "Nama Usaha / NIB",
+      size: 250,
+      cell: ({ row }: any) => {
+        const b = row.original;
+        return (
+          <div className="flex flex-col gap-1">
+            <div className="text-sm font-medium text-foreground truncate max-w-[250px]" title={b.nama_perusahaan}>{b.nama_perusahaan}</div>
+            <div className="text-xs text-muted-foreground truncate max-w-[250px]">{b.nib}</div>
+          </div>
+        );
+      }
+    },
+    {
+      accessorKey: "nama_pemilik",
+      header: "Pemilik / User",
+      size: 200,
+      cell: ({ row }: any) => {
+        const b = row.original;
+        return (
+          <div className="text-sm text-muted-foreground font-normal line-clamp-2 max-w-[200px]" title={b.nama_pemilik || b.nama_user || b.nama_perusahaan}>
+            {b.nama_pemilik || b.nama_user || b.nama_perusahaan || '-'}
+          </div>
+        );
+      }
+    },
+    {
+      accessorKey: "kecamatan",
+      header: "Lokasi",
+      size: 200,
+      cell: ({ row }: any) => {
+        const b = row.original;
+        return (
+          <div className="flex flex-col gap-1">
+            <div className="text-sm text-foreground truncate max-w-[200px]" title={`${b.kecamatan}${b.kelurahan ? ` / ${b.kelurahan}` : ''}`}>
+              {b.kecamatan} {b.kelurahan ? `/ ${b.kelurahan}` : ''}
+            </div>
+            {(!b.lat || !b.lng) && (
+              <div className="text-[11px] text-warning flex items-center gap-1 font-medium">
+                <MapPinOff size={10} strokeWidth={2} /> Belum dipetakan
+              </div>
+            )}
+          </div>
+        );
+      }
+    },
+    {
+      accessorKey: "judul_kbli",
+      header: "Kategori (KBLI)",
+      size: 180,
+      cell: ({ row }: any) => {
+        const b = row.original;
+        return (
+          <div className="text-sm font-normal text-muted-foreground line-clamp-2 max-w-[180px]" title={b.judul_kbli}>{b.judul_kbli || '-'}</div>
+        );
+      }
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      size: 100,
+      cell: ({ row }: any) => {
+        const b = row.original;
+        return (
+          <Badge
+            variant="outline"
+            className={cn(
+              "font-medium",
+              b.status === "Aktif" && "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20",
+              b.status === "Pending" && "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20",
+              (b.status === "Tidak Aktif" || !b.status) && "bg-muted-foreground/10 text-muted-foreground hover:bg-muted-foreground/20"
+            )}
+          >
+            {b.status || 'Tidak Aktif'}
+          </Badge>
+        );
+      }
+    },
+    {
+      id: "actions",
+      header: () => <span className="sr-only">Actions</span>,
+      size: 60,
+      enableHiding: false,
+      cell: ({ row }: any) => {
+        const b = row.original;
+        return (
+          <DropdownMenu>
+            <div className="flex justify-end">
+              <DropdownMenuTrigger render={<Button size="icon" variant="ghost" className="shadow-none" aria-label="Aksi" />}>
+                <Ellipsis size={16} strokeWidth={2} aria-hidden="true" />
+              </DropdownMenuTrigger>
+            </div>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => openDetailModal(b)}>
+                <Eye className="mr-2 opacity-60" size={16} strokeWidth={2} />
+                <span>Lihat Detail</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => openEditModal(b)}>
+                <Edit className="mr-2 opacity-60" size={16} strokeWidth={2} />
+                <span>Edit Data</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(b.id)}>
+                <Trash2 className="mr-2 opacity-60" size={16} strokeWidth={2} />
+                <span>Hapus</span>
+                <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      }
+    }
+  ], []);
+
+  const table = useReactTable({
+    data: businesses,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    manualPagination: true,
+    pageCount: totalPages,
+    onRowSelectionChange: setRowSelection,
+    onColumnVisibilityChange: setColumnVisibility,
+    state: {
+      rowSelection,
+      columnVisibility,
+    }
+  });
 
   const activeFiltersCount = Object.values(activeFilters).filter(val => val !== "").length;
   const hasActiveFilters = activeFiltersCount > 0;
@@ -295,327 +569,354 @@ export default function DataUsahaPage() {
         </div>
       </div>
 
-      {/* Filter Toolbar */}
-      <div className="flex flex-col gap-4 mb-2">
-        <div className="flex flex-col md:flex-row gap-3">
-          {/* Search Bar - Flex Grow */}
-          <div className="flex-1 w-full relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-            <InputField 
-              placeholder="Cari NIB, Nama Usaha, Pemilik..." 
-              className="pl-9 w-full bg-card"
+      {/* Modern Filter Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+        <div className="flex items-center gap-3">
+          {/* Search Bar */}
+          <div className="relative">
+            <Input
+              id={`${id}-input`}
+              ref={inputRef}
+              className={cn(
+                "peer min-w-60 ps-9",
+                Boolean(searchTerm) && "pe-9",
+              )}
               value={searchTerm}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Cari NIB, Nama Usaha..."
+              type="text"
             />
-          </div>
-
-          {/* Action Row - Filter & Sort */}
-          <div className="flex items-center gap-2">
-            {/* Popover Filter Container */}
-            <div className="relative" ref={filterRef}>
-              <Btn 
-                variant="outline" 
-                onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className={`bg-card gap-2 ${isFilterOpen || hasActiveFilters ? 'border-primary text-primary' : ''}`}
-              >
-                <Filter size={16} />
-                <span className="hidden sm:inline">Filter</span>
-                {hasActiveFilters && (
-                  <span className="bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-1">
-                    {activeFiltersCount}
-                  </span>
-                )}
-              </Btn>
-
-              {/* Popover Panel */}
-              {isFilterOpen && (
-                <div className="absolute left-0 md:left-1/2 md:-translate-x-1/2 top-full mt-2 w-[calc(100vw-24px)] max-w-[320px] bg-card border border-border rounded-xl shadow-lg z-50 p-4 animate-in fade-in slide-in-from-top-2">
-                  <div className="flex items-center justify-between mb-4 pb-2 border-b border-border">
-                    <h3 className="font-semibold text-sm">Filter Data Usaha</h3>
-                    <button onClick={() => setIsFilterOpen(false)} className="text-muted-foreground hover:text-foreground">
-                      <X size={16} />
-                    </button>
-                  </div>
-
-                  <div className="space-y-4">
-                    {/* Lokasi */}
-                    <div className="space-y-3">
-                      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Lokasi</div>
-                      <SelectField
-                        value={tempFilters.kecamatan}
-                        onChange={(e: any) => handleTempChange('kecamatan', e.target.value)}
-                        options={[
-                          { value: "", label: "Semua Kecamatan" },
-                          ...kecamatanOptions.map(k => ({ value: k, label: k }))
-                        ]}
-                      />
-                      <SelectField
-                        value={tempFilters.kelurahan}
-                        onChange={(e: any) => handleTempChange('kelurahan', e.target.value)}
-                        disabled={!tempFilters.kecamatan || tempFilters.kecamatan === "Semua Kecamatan"}
-                        options={[
-                          { value: "", label: "Semua Kelurahan" },
-                          ...kelurahanOptions.map(k => ({ value: k, label: k }))
-                        ]}
-                      />
-                    </div>
-
-                    <div className="h-px bg-border/50" />
-
-                    {/* Kategori & Status */}
-                    <div className="space-y-3">
-                      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Kriteria</div>
-                      <SelectField
-                        value={tempFilters.kategori}
-                        onChange={(e: any) => handleTempChange('kategori', e.target.value)}
-                        options={[
-                          { value: "", label: "Semua Kategori" },
-                          ...categories.map(c => ({ value: c.nama, label: c.nama }))
-                        ]}
-                      />
-                      <SelectField
-                        value={tempFilters.status}
-                        onChange={(e: any) => handleTempChange('status', e.target.value)}
-                        options={[
-                          { value: "", label: "Semua Status" },
-                          { value: "Aktif", label: "Aktif" },
-                          { value: "Pending", label: "Pending" },
-                          { value: "Tidak Aktif", label: "Tidak Aktif" },
-                        ]}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 mt-6 pt-4 border-t border-border">
-                    <Btn variant="ghost" onClick={resetFilters} className="flex-1">Reset</Btn>
-                    <Btn variant="primary" onClick={applyFilters} className="flex-1">Terapkan</Btn>
-                  </div>
-                </div>
-              )}
+            <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 text-muted-foreground/80 peer-disabled:opacity-50">
+              <ListFilter size={16} strokeWidth={2} aria-hidden="true" />
             </div>
-
-            {/* Sorting */}
-            <div className="relative w-[180px]" ref={sortRef}>
+            {Boolean(searchTerm) && (
               <button
-                type="button"
-                onClick={() => setIsSortOpen(!isSortOpen)}
-                className={`flex items-center justify-between w-full h-10 px-3 bg-card border rounded-md text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                  isSortOpen ? 'border-primary ring-2 ring-primary/20' : 'border-input hover:border-border-hover'
-                }`}
+                className="absolute inset-y-0 end-0 flex h-full w-9 items-center justify-center rounded-e-lg text-muted-foreground/80 outline-offset-2 transition-colors hover:text-foreground focus:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring/70 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Clear filter"
+                onClick={() => {
+                  setSearchTerm("");
+                  if (inputRef.current) {
+                    inputRef.current.focus();
+                  }
+                }}
               >
-                <div className="flex items-center gap-2 overflow-hidden">
-                  <ArrowDownUp size={14} className="text-muted-foreground flex-shrink-0" />
-                  <span className="truncate">
-                    {sortType === 'terbaru' ? 'Terbaru' : 
-                     sortType === 'terlama' ? 'Terlama' : 
-                     sortType === 'nama_az' ? 'Nama A–Z' : 'Nama Z–A'}
-                  </span>
-                </div>
-                <ChevronDown size={14} className={`text-muted-foreground transition-transform duration-200 flex-shrink-0 ${isSortOpen ? 'rotate-180' : ''}`} />
+                <CircleX size={16} strokeWidth={2} aria-hidden="true" />
               </button>
-
-              {isSortOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-[200px] bg-card border border-border rounded-lg shadow-lg overflow-hidden z-50 animate-in fade-in zoom-in-95">
-                  <div className="py-1">
-                    {[
-                      { value: "terbaru", label: "Terbaru" },
-                      { value: "terlama", label: "Terlama" },
-                      { value: "nama_az", label: "Nama A–Z" },
-                      { value: "nama_za", label: "Nama Z–A" },
-                    ].map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => handleSortChange(option.value)}
-                        className={`w-full flex items-center justify-between px-3 py-2.5 text-sm transition-colors ${
-                          sortType === option.value 
-                            ? 'bg-primary/5 text-primary font-medium' 
-                            : 'text-foreground hover:bg-muted/50'
-                        }`}
+            )}
+          </div>
+          
+          {/* Popover Filters */}
+          <Popover>
+            <PopoverTrigger render={<Button variant="outline" />}>
+              <Filter
+                className="-ms-1 me-2 opacity-60"
+                size={16}
+                strokeWidth={2}
+                aria-hidden="true"
+              />
+              Filter
+              {hasActiveFilters && (
+                <span className="-me-1 ms-3 inline-flex h-5 max-h-full items-center rounded border border-border bg-background px-1 font-[inherit] text-[0.625rem] font-medium text-muted-foreground/70">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-4" align="start">
+              <div className="space-y-4">
+                <div className="text-sm font-medium text-muted-foreground">Status</div>
+                <div className="space-y-3">
+                  {["Aktif", "Pending", "Tidak Aktif"].map((value, i) => (
+                    <div key={value} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`${id}-${i}`}
+                        checked={selectedStatuses.includes(value)}
+                        onCheckedChange={(checked: boolean) => handleStatusChange(checked, value)}
+                      />
+                      <Label
+                        htmlFor={`${id}-${i}`}
+                        className="flex grow justify-between gap-2 font-normal"
                       >
-                        {option.label}
-                        {sortType === option.value && <Check size={16} className="text-primary" />}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Active Filter Chips Row */}
-        {hasActiveFilters && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground mr-1">Filter aktif:</span>
-            {activeFilters.kecamatan && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/60 border border-border text-xs font-medium">
-                <span className="text-muted-foreground">Kecamatan:</span> {activeFilters.kecamatan}
-                <button onClick={() => removeFilter('kecamatan')} className="hover:text-destructive ml-0.5"><X size={12} /></button>
-              </span>
-            )}
-            {activeFilters.kelurahan && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/60 border border-border text-xs font-medium">
-                <span className="text-muted-foreground">Kelurahan:</span> {activeFilters.kelurahan}
-                <button onClick={() => removeFilter('kelurahan')} className="hover:text-destructive ml-0.5"><X size={12} /></button>
-              </span>
-            )}
-            {activeFilters.kategori && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/60 border border-border text-xs font-medium">
-                <span className="text-muted-foreground">Kategori:</span> {activeFilters.kategori}
-                <button onClick={() => removeFilter('kategori')} className="hover:text-destructive ml-0.5"><X size={12} /></button>
-              </span>
-            )}
-            {activeFilters.status && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/60 border border-border text-xs font-medium">
-                <span className="text-muted-foreground">Status:</span> {activeFilters.status}
-                <button onClick={() => removeFilter('status')} className="hover:text-destructive ml-0.5"><X size={12} /></button>
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Data Table */}
-      {/* Data Table */}
-      <div className="w-full">
-        <div className="w-full overflow-x-auto border border-border/50 rounded-lg bg-card shadow-sm">
-          <Table className="min-w-[1000px] w-full">
-            <TableHeader>
-              <TableRow className="bg-muted/20 hover:bg-muted/20 border-b border-border/50">
-                <TableHead className="px-4 py-3 text-[11px] font-medium text-muted-foreground uppercase tracking-wider w-[25%]">Nama Usaha / NIB</TableHead>
-                <TableHead className="px-4 py-3 text-[11px] font-medium text-muted-foreground uppercase tracking-wider w-[20%]">Pemilik / User</TableHead>
-                <TableHead className="px-4 py-3 text-[11px] font-medium text-muted-foreground uppercase tracking-wider w-[20%]">Lokasi</TableHead>
-                <TableHead className="px-4 py-3 text-[11px] font-medium text-muted-foreground uppercase tracking-wider w-[15%]">Kategori (KBLI)</TableHead>
-                <TableHead className="px-4 py-3 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Status</TableHead>
-                <TableHead className="px-4 py-3 text-[11px] font-medium text-muted-foreground uppercase tracking-wider text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody className="divide-y divide-border/40">
-              {loading && businesses.length === 0 ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={`skeleton-${i}`}>
-                    <TableCell className="px-4 py-4">
-                      <div className="h-4 w-3/4 bg-muted/60 rounded animate-pulse mb-2"></div>
-                      <div className="h-3 w-1/2 bg-muted/40 rounded animate-pulse"></div>
-                    </TableCell>
-                    <TableCell className="px-4 py-4">
-                      <div className="h-4 w-full bg-muted/60 rounded animate-pulse"></div>
-                    </TableCell>
-                    <TableCell className="px-4 py-4">
-                      <div className="h-4 w-4/5 bg-muted/60 rounded animate-pulse mb-2"></div>
-                      <div className="h-3 w-1/2 bg-muted/40 rounded animate-pulse"></div>
-                    </TableCell>
-                    <TableCell className="px-4 py-4">
-                      <div className="h-4 w-full bg-muted/60 rounded animate-pulse"></div>
-                    </TableCell>
-                    <TableCell className="px-4 py-4">
-                      <div className="h-5 w-16 bg-muted/60 rounded-full animate-pulse"></div>
-                    </TableCell>
-                    <TableCell className="px-4 py-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        <div className="h-6 w-6 bg-muted/60 rounded animate-pulse"></div>
-                        <div className="h-6 w-6 bg-muted/60 rounded animate-pulse"></div>
-                        <div className="h-6 w-6 bg-muted/60 rounded animate-pulse"></div>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : businesses.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="px-4 py-24 text-center">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <div className="w-12 h-12 bg-muted/50 rounded-full flex items-center justify-center text-muted-foreground mb-3">
-                        <Inbox size={24} strokeWidth={1.5} />
-                      </div>
-                      <p className="text-[15px] font-medium text-foreground">Data usaha tidak ditemukan</p>
-                      <p className="text-[13px] text-muted-foreground">Coba ubah kata pencarian atau filter yang digunakan.</p>
+                        {value}
+                      </Label>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                businesses.map((b) => (
-                  <TableRow key={b.id} className="hover:bg-muted/30 transition-colors group">
-                    <TableCell className="px-4 py-3.5">
-                      <div className="text-[13px] font-semibold text-foreground truncate max-w-[220px]" title={b.nama_perusahaan}>{b.nama_perusahaan}</div>
-                      {b.nama_proyek && <div className="text-[11px] font-medium text-primary mt-0.5 truncate max-w-[220px]" title={b.nama_proyek}>{b.nama_proyek}</div>}
-                      <div className="text-[11px] text-muted-foreground font-mono mt-1 px-1.5 py-0.5 bg-muted/50 rounded inline-block">{b.nib}</div>
-                    </TableCell>
-                    <TableCell className="px-4 py-3.5">
-                      <div className="text-[13px] font-medium text-foreground truncate max-w-[180px]" title={b.nama_pemilik || b.nama_user || b.nama_perusahaan}>
-                        {b.nama_pemilik || b.nama_user || b.nama_perusahaan}
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-4 py-3.5">
-                      <div className="text-[13px] text-foreground truncate max-w-[180px]" title={`${b.kecamatan}${b.kelurahan ? ` / ${b.kelurahan}` : ''}`}>
-                        {b.kecamatan} {b.kelurahan ? `/ ${b.kelurahan}` : ''}
-                      </div>
-                      {(!b.lat || !b.lng) && (
-                        <div className="text-[11px] text-warning/90 mt-1 flex items-center gap-1 font-medium">
-                          <MapPinOff size={11} strokeWidth={2.5} /> Belum dipetakan
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="px-4 py-3.5">
-                      <div className="text-[12px] text-muted-foreground truncate max-w-[150px]" title={b.judul_kbli}>{b.judul_kbli || '-'}</div>
-                    </TableCell>
-                    <TableCell className="px-4 py-3.5">
-                      <div className="scale-90 origin-left">
-                        <StatusBadge status={b.status} />
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-4 py-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1.5 opacity-100 xl:opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Btn variant="ghost" size="xs" Icon={Eye} onClick={() => openDetailModal(b)} className="text-info hover:text-info hover:bg-info/10 h-8 w-8 p-0 flex items-center justify-center rounded-md" title="Detail" aria-label="Lihat Detail" />
-                        <Btn variant="ghost" size="xs" Icon={Edit} onClick={() => openEditModal(b)} className="text-primary hover:text-primary hover:bg-primary/10 h-8 w-8 p-0 flex items-center justify-center rounded-md" title="Edit" aria-label="Edit Data" />
-                        <Btn variant="ghost" size="xs" Icon={Trash2} onClick={() => handleDelete(b.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0 flex items-center justify-center rounded-md" title="Hapus" aria-label="Hapus Data" />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                  ))}
+                </div>
+                
+                <div className="h-px bg-border/50" />
+                
+                <div className="space-y-3">
+                  <div className="text-sm font-medium text-muted-foreground">Lokasi</div>
+                  <SelectField
+                    value={activeFilters.kecamatan}
+                    onChange={(e: any) => setSingleFilter('kecamatan', e.target.value)}
+                    options={[
+                      { value: "", label: "Semua Kecamatan" },
+                      ...kecamatanOptions.map(k => ({ value: k, label: k }))
+                    ]}
+                  />
+                  <SelectField
+                    value={activeFilters.kelurahan}
+                    onChange={(e: any) => setSingleFilter('kelurahan', e.target.value)}
+                    disabled={!activeFilters.kecamatan || activeFilters.kecamatan === "Semua"}
+                    options={[
+                      { value: "", label: "Semua Kelurahan" },
+                      ...kelurahanOptions.map(k => ({ value: k, label: k }))
+                    ]}
+                  />
+                </div>
+                
+                <div className="h-px bg-border/50" />
+                
+                <div className="space-y-3">
+                  <div className="text-sm font-medium text-muted-foreground">Kategori</div>
+                  <SelectField
+                    value={activeFilters.kategori}
+                    onChange={(e: any) => setSingleFilter('kategori', e.target.value)}
+                    options={[
+                      { value: "", label: "Semua Kategori" },
+                      ...categories.map(c => ({ value: c.nama, label: c.nama }))
+                    ]}
+                  />
+                </div>
+                
+                <Button variant="outline" className="w-full mt-2" onClick={resetFilters}>
+                  Reset Filters
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* Toggle columns visibility */}
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button variant="outline" />}>
+              <Columns3
+                className="-ms-1 me-2 opacity-60"
+                size={16}
+                strokeWidth={2}
+                aria-hidden="true"
+              />
+              View
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+              {table
+                .getAllColumns()
+                .filter((column) => column.getCanHide())
+                .map((column) => {
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={column.id}
+                      className="capitalize"
+                      checked={column.getIsVisible()}
+                      onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                      onSelect={(event) => event.preventDefault()}
+                    >
+                      {column.id === 'nama_perusahaan' ? 'Nama Usaha' : 
+                       column.id === 'nama_pemilik' ? 'Pemilik' :
+                       column.id === 'kecamatan' ? 'Lokasi' :
+                       column.id === 'judul_kbli' ? 'Kategori' :
+                       column.id === 'status' ? 'Status' : column.id}
+                    </DropdownMenuCheckboxItem>
+                  );
+                })}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-        
-        {/* Pagination */}
-        {!loading && businesses.length > 0 && (
-          <div className="px-2 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-[13px] text-muted-foreground flex items-center gap-2">
-              <span>Rows per page</span>
-              <span className="text-border mx-0.5">|</span>
-              <span className="font-medium text-foreground">10</span>
-            </div>
-            
-            <div className="flex items-center gap-4 text-[13px] text-muted-foreground">
-              <div>
-                <span className="font-medium text-foreground">
-                  {(page - 1) * 10 + 1}–{Math.min(page * 10, totalItems)}
-                </span>{" "}
-                dari <span className="font-medium text-foreground">{totalItems}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="p-1.5 rounded hover:bg-muted disabled:opacity-50 disabled:hover:bg-transparent transition-colors text-foreground"
-                >
-                  <ChevronLeft size={16} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  className="p-1.5 rounded hover:bg-muted disabled:opacity-50 disabled:hover:bg-transparent transition-colors text-foreground"
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+
+        <div className="flex items-center gap-3">
+          {/* Delete button */}
+          {table.getSelectedRowModel().rows.length > 0 && (
+            <AlertDialog>
+              <AlertDialogTrigger render={<Button className="ml-auto" variant="outline" />}>
+                <Trash
+                  className="-ms-1 me-2 opacity-60"
+                  size={16}
+                  strokeWidth={2}
+                  aria-hidden="true"
+                />
+                Hapus
+                <span className="-me-1 ms-3 inline-flex h-5 max-h-full items-center rounded border border-border bg-background px-1 font-[inherit] text-[0.625rem] font-medium text-muted-foreground/70">
+                  {table.getSelectedRowModel().rows.length}
+                </span>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <div className="flex flex-col gap-2 max-sm:items-center sm:flex-row sm:gap-4">
+                  <div
+                    className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border"
+                    aria-hidden="true"
+                  >
+                    <CircleAlert className="opacity-80" size={16} strokeWidth={2} />
+                  </div>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Tindakan ini tidak dapat dibatalkan. Ini akan menghapus secara permanen{" "}
+                      {table.getSelectedRowModel().rows.length} data usaha yang dipilih.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleBulkDelete}>Hapus</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
       </div>
+
+      {/* Data Table */}
+      <div className="overflow-hidden rounded-lg border border-border bg-background">
+        <Table className="table-fixed">
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup: any) => (
+              <TableRow key={headerGroup.id} className="hover:bg-transparent">
+                {headerGroup.headers.map((header: any) => (
+                  <TableHead 
+                    key={header.id} 
+                    style={{ width: `${header.getSize()}px` }}
+                    className="h-11"
+                  >
+                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {loading && businesses.length === 0 ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={`skeleton-${i}`}>
+                  {columns.map((col, j) => (
+                    <TableCell key={`skeleton-${i}-${j}`} className="px-4 py-4 align-middle">
+                      <div className="h-4 w-3/4 bg-muted/60 rounded animate-pulse"></div>
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : businesses.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center align-middle">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <div className="w-10 h-10 bg-muted/50 rounded-full flex items-center justify-center text-muted-foreground mb-1">
+                      <Inbox size={20} strokeWidth={1.5} />
+                    </div>
+                    <p className="text-sm font-medium text-foreground">Belum ada data usaha</p>
+                    <p className="text-xs text-muted-foreground">Coba ubah kata pencarian atau filter yang digunakan.</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              table.getRowModel().rows.map((row: any) => (
+                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                  {row.getVisibleCells().map((cell: any) => (
+                    <TableCell key={cell.id} className="last:py-0">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      
+      {/* Pagination */}
+      {!loading && businesses.length > 0 && (
+        <div className="flex items-center justify-between gap-8 pt-2">
+          {/* Results per page */}
+          <div className="flex items-center gap-3">
+            <Label htmlFor={id} className="max-sm:sr-only text-muted-foreground font-normal">
+              Baris per halaman
+            </Label>
+            <Select
+              value={perPage.toString()}
+              onValueChange={(value) => {
+                setPerPage(Number(value));
+                setPage(1);
+              }}
+            >
+              <SelectTrigger id={id} className="w-fit whitespace-nowrap h-8">
+                <SelectValue placeholder="Select number of results" />
+              </SelectTrigger>
+              <SelectContent className="[&_*[role=option]>span]:end-2 [&_*[role=option]>span]:start-auto [&_*[role=option]]:pe-8 [&_*[role=option]]:ps-2">
+                {[5, 10, 25, 50].map((size) => (
+                  <SelectItem key={size} value={size.toString()}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Page number information */}
+          <div className="flex grow justify-end whitespace-nowrap text-sm text-muted-foreground">
+            <p className="whitespace-nowrap text-sm text-muted-foreground" aria-live="polite">
+              <span className="text-foreground">
+                {(page - 1) * perPage + 1}-
+                {Math.min(page * perPage, totalItems)}
+              </span>{" "}
+              dari <span className="text-foreground">{totalItems}</span>
+            </p>
+          </div>
+
+          {/* Pagination buttons */}
+          <div>
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="disabled:pointer-events-none disabled:opacity-50 h-8 w-8"
+                    onClick={() => setPage(1)}
+                    disabled={page === 1}
+                    aria-label="First page"
+                  >
+                    <ChevronFirst size={16} strokeWidth={2} aria-hidden="true" />
+                  </Button>
+                </PaginationItem>
+                <PaginationItem>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="disabled:pointer-events-none disabled:opacity-50 h-8 w-8"
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" />
+                  </Button>
+                </PaginationItem>
+                <PaginationItem>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="disabled:pointer-events-none disabled:opacity-50 h-8 w-8"
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    aria-label="Next page"
+                  >
+                    <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
+                  </Button>
+                </PaginationItem>
+                <PaginationItem>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="disabled:pointer-events-none disabled:opacity-50 h-8 w-8"
+                    onClick={() => setPage(totalPages)}
+                    disabled={page === totalPages}
+                    aria-label="Last page"
+                  >
+                    <ChevronLast size={16} strokeWidth={2} aria-hidden="true" />
+                  </Button>
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       <DataUsahaDetailModal 
@@ -623,7 +924,6 @@ export default function DataUsahaPage() {
         onClose={() => setIsDetailOpen(false)} 
         business={selectedBusiness} 
       />
-
       <DataUsahaFormModal 
         isOpen={isFormOpen} 
         onClose={() => setIsFormOpen(false)} 
@@ -633,7 +933,6 @@ export default function DataUsahaPage() {
           fetchBusinesses(page);
         }}
       />
-
       <DataUsahaImportModal 
         isOpen={isImportOpen} 
         onClose={() => setIsImportOpen(false)} 
