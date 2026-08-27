@@ -172,6 +172,7 @@ export default function DataUsahaPage() {
   const [perPage, setPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   // Search & Sorting
   const [searchTerm, setSearchTerm] = useState("");
@@ -185,6 +186,10 @@ export default function DataUsahaPage() {
     kategori: "",
     status: "",
   });
+  
+  // Local Filter State for Popover
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [localFilters, setLocalFilters] = useState(activeFilters);
 
   // Table internal state for Demo features
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
@@ -218,14 +223,15 @@ export default function DataUsahaPage() {
   }, []);
 
   useEffect(() => {
-    if (activeFilters.kecamatan && activeFilters.kecamatan !== "Semua") {
-      axios.get(`/api/locations/kelurahan?kecamatan=${encodeURIComponent(activeFilters.kecamatan)}`)
+    const targetKecamatan = isFilterOpen ? localFilters.kecamatan : activeFilters.kecamatan;
+    if (targetKecamatan && targetKecamatan !== "Semua") {
+      axios.get(`/api/locations/kelurahan?kecamatan=${encodeURIComponent(targetKecamatan)}`)
         .then(res => setKelurahanOptions(res.data))
         .catch(err => console.error(err));
     } else {
       setKelurahanOptions([]);
     }
-  }, [activeFilters.kecamatan]);
+  }, [isFilterOpen ? localFilters.kecamatan : activeFilters.kecamatan, isFilterOpen]);
 
   // Debounce Search
   useEffect(() => {
@@ -267,12 +273,10 @@ export default function DataUsahaPage() {
         setBusinesses(res.data.data);
         setTotalPages(res.data.last_page);
         setTotalItems(res.data.total);
-        setPage(res.data.current_page);
         setLoading(false);
         
         if (isPaginationAction.current && pageTopRef.current) {
-          const y = pageTopRef.current.getBoundingClientRect().top + window.scrollY - 80;
-          window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+          pageTopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
           isPaginationAction.current = false;
         }
       })
@@ -285,41 +289,46 @@ export default function DataUsahaPage() {
 
   useEffect(() => {
     fetchBusinesses(page);
-  }, [debouncedSearch, activeFilters, sortType, page, perPage]);
+  }, [debouncedSearch, activeFilters, sortType, page, perPage, refreshTrigger]);
 
   // Handle Multi-Status Checkbox
-  const selectedStatuses = activeFilters.status ? activeFilters.status.split(',').filter(Boolean) : [];
-  const handleStatusChange = (checked: boolean, value: string) => {
+  const selectedStatuses = localFilters.status ? localFilters.status.split(',').filter(Boolean) : [];
+  
+  const handleLocalStatusChange = (checked: boolean, value: string) => {
     let newStatuses = [...selectedStatuses];
     if (checked) {
       newStatuses.push(value);
     } else {
       newStatuses = newStatuses.filter(s => s !== value);
     }
-    setActiveFilters(prev => ({ ...prev, status: newStatuses.join(',') }));
-    setPage(1);
+    setLocalFilters(prev => ({ ...prev, status: newStatuses.join(',') }));
   };
 
-  const setSingleFilter = (field: keyof typeof activeFilters, value: string) => {
-    setActiveFilters(prev => ({ ...prev, [field]: value, ...(field === 'kecamatan' ? { kelurahan: "" } : {}) }));
-    setPage(1);
+  const setLocalSingleFilter = (field: keyof typeof localFilters, value: string) => {
+    setLocalFilters(prev => ({ ...prev, [field]: value, ...(field === 'kecamatan' ? { kelurahan: "" } : {}) }));
   };
 
-  const removeFilter = (field: keyof typeof activeFilters) => {
-    setActiveFilters(prev => ({ ...prev, [field]: "" }));
+  const applyFilters = () => {
+    setActiveFilters(localFilters);
     setPage(1);
+    setRefreshTrigger(p => p + 1);
+    setIsFilterOpen(false);
   };
 
-  const resetFilters = () => {
-    setActiveFilters({
+  const resetLocalFilters = () => {
+    const emptyFilters = {
       kecamatan: "",
       kelurahan: "",
       kategori: "",
       status: "",
-    });
+    };
+    setLocalFilters(emptyFilters);
+    setActiveFilters(emptyFilters);
     setSearchTerm("");
     setSortType("terbaru");
     setPage(1);
+    setRefreshTrigger(p => p + 1);
+    setIsFilterOpen(false);
   };
 
   const handleExport = () => {
@@ -380,7 +389,7 @@ export default function DataUsahaPage() {
     if (confirm("Apakah Anda yakin ingin menghapus data ini?")) {
       axios.delete(`/api/admin/businesses/${id}`)
         .then(() => {
-          fetchBusinesses(page);
+          setRefreshTrigger(prev => prev + 1);
           setRowSelection({});
         })
         .catch(err => console.error(err));
@@ -395,7 +404,7 @@ export default function DataUsahaPage() {
     Promise.all(ids.map(id => axios.delete(`/api/admin/businesses/${id}`)))
       .then(() => {
         setRowSelection({});
-        fetchBusinesses(page);
+        setRefreshTrigger(prev => prev + 1);
       })
       .catch(err => console.error(err));
   };
@@ -512,7 +521,7 @@ export default function DataUsahaPage() {
         return (
           <DropdownMenu>
             <div className="flex justify-end">
-              <DropdownMenuTrigger render={<Button size="icon" variant="ghost" className="shadow-none" aria-label="Aksi" />}>
+              <DropdownMenuTrigger render={<Button variant="ghost" className="h-8 w-8 p-0 rounded-md shadow-none hover:bg-muted/50 data-[state=open]:bg-muted/50 cursor-pointer" aria-label="Aksi" />}>
                 <Ellipsis size={16} strokeWidth={2} aria-hidden="true" />
               </DropdownMenuTrigger>
             </div>
@@ -617,7 +626,13 @@ export default function DataUsahaPage() {
           </div>
           
           {/* Popover Filters */}
-          <Popover>
+          <Popover 
+            open={isFilterOpen} 
+            onOpenChange={(open) => {
+              setIsFilterOpen(open);
+              if (open) setLocalFilters(activeFilters);
+            }}
+          >
             <PopoverTrigger render={<Button variant="outline" />}>
               <Filter
                 className="-ms-1 me-2 opacity-60"
@@ -632,7 +647,7 @@ export default function DataUsahaPage() {
                 </span>
               )}
             </PopoverTrigger>
-            <PopoverContent className="w-80 p-4" align="start">
+            <PopoverContent className="w-[calc(100vw-2rem)] sm:w-80 p-4" align="start">
               <div className="space-y-4">
                 <div className="text-sm font-medium text-muted-foreground">Status</div>
                 <div className="space-y-3">
@@ -641,11 +656,11 @@ export default function DataUsahaPage() {
                       <Checkbox
                         id={`${id}-${i}`}
                         checked={selectedStatuses.includes(value)}
-                        onCheckedChange={(checked: boolean) => handleStatusChange(checked, value)}
+                        onCheckedChange={(checked: boolean) => handleLocalStatusChange(checked, value)}
                       />
                       <Label
                         htmlFor={`${id}-${i}`}
-                        className="flex grow justify-between gap-2 font-normal"
+                        className="flex grow justify-between gap-2 font-normal cursor-pointer"
                       >
                         {value}
                       </Label>
@@ -658,17 +673,17 @@ export default function DataUsahaPage() {
                 <div className="space-y-3">
                   <div className="text-sm font-medium text-muted-foreground">Lokasi</div>
                   <SelectField
-                    value={activeFilters.kecamatan}
-                    onChange={(e: any) => setSingleFilter('kecamatan', e.target.value)}
+                    value={localFilters.kecamatan}
+                    onChange={(e: any) => setLocalSingleFilter('kecamatan', e.target.value)}
                     options={[
                       { value: "", label: "Semua Kecamatan" },
                       ...kecamatanOptions.map(k => ({ value: k, label: k }))
                     ]}
                   />
                   <SelectField
-                    value={activeFilters.kelurahan}
-                    onChange={(e: any) => setSingleFilter('kelurahan', e.target.value)}
-                    disabled={!activeFilters.kecamatan || activeFilters.kecamatan === "Semua"}
+                    value={localFilters.kelurahan}
+                    onChange={(e: any) => setLocalSingleFilter('kelurahan', e.target.value)}
+                    disabled={!localFilters.kecamatan || localFilters.kecamatan === "Semua"}
                     options={[
                       { value: "", label: "Semua Kelurahan" },
                       ...kelurahanOptions.map(k => ({ value: k, label: k }))
@@ -681,8 +696,8 @@ export default function DataUsahaPage() {
                 <div className="space-y-3">
                   <div className="text-sm font-medium text-muted-foreground">Kategori</div>
                   <SelectField
-                    value={activeFilters.kategori}
-                    onChange={(e: any) => setSingleFilter('kategori', e.target.value)}
+                    value={localFilters.kategori}
+                    onChange={(e: any) => setLocalSingleFilter('kategori', e.target.value)}
                     options={[
                       { value: "", label: "Semua Kategori" },
                       ...categories.map(c => ({ value: c.nama, label: c.nama }))
@@ -690,9 +705,14 @@ export default function DataUsahaPage() {
                   />
                 </div>
                 
-                <Button variant="outline" className="w-full mt-2" onClick={resetFilters}>
-                  Reset Filters
-                </Button>
+                <div className="flex gap-2 mt-4 pt-2">
+                  <Button variant="outline" className="flex-1" onClick={resetLocalFilters}>
+                    Reset
+                  </Button>
+                  <Button variant="default" className="flex-1" onClick={applyFilters}>
+                    Terapkan
+                  </Button>
+                </div>
               </div>
             </PopoverContent>
           </Popover>
@@ -963,13 +983,19 @@ export default function DataUsahaPage() {
         business={selectedBusiness}
         onSuccess={() => {
           setIsFormOpen(false);
-          fetchBusinesses(page);
+          setRefreshTrigger(p => p + 1);
         }}
       />
       <DataUsahaImportModal 
         isOpen={isImportOpen} 
         onClose={() => setIsImportOpen(false)} 
-        onSuccess={() => fetchBusinesses(1)} 
+        onSuccess={() => {
+          if (page === 1) {
+            setRefreshTrigger(p => p + 1);
+          } else {
+            setPage(1);
+          }
+        }} 
       />
     </div>
   );
