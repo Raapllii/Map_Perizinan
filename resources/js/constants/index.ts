@@ -4,7 +4,6 @@ export const MENU_ITEMS = [
   { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", badge: null },
   { id: "peta-usaha", icon: Map, label: "Peta Usaha", badge: null },
   { id: "data-usaha", icon: Database, label: "Data Usaha", badge: null },
-  { id: "verifikasi-izin", icon: CheckSquare, label: "Verifikasi Izin", badge: 23 },
   { id: "monitoring", icon: Activity, label: "Monitoring", badge: null },
   { id: "laporan", icon: FileText, label: "Laporan", badge: null },
   { id: "master-data", icon: Briefcase, label: "Master Data", badge: null },

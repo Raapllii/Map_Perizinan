@@ -1,14 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import axios from 'axios';
 import {
   Building2, Clock, CheckCircle, AlertTriangle, XCircle, TrendingUp, TrendingDown,
   Download, FileSpreadsheet, Printer, FileText
 } from "lucide-react";
-import {
-  BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
-} from "recharts";
 import { Card, SectionHeader, Btn, Skeleton, StatCard } from "../components/ui";
-import CityMapLeaflet from "../components/CityMapLeaflet";
+
+const DashboardBarChart = lazy(() => import("../components/DashboardBarChart"));
+const DashboardPieChart = lazy(() => import("../components/DashboardPieChart"));
+const CityMapLeaflet = lazy(() => import("../components/CityMapLeaflet"));
 
 export default function DashboardPage() {
   const activityColors: Record<string, string> = {
@@ -82,7 +82,6 @@ export default function DashboardPage() {
   const KPI_CARDS = [
     { label: "Total Usaha", value: kpiData?.total?.value?.toLocaleString('id') || "0", icon: Building2, change: kpiData?.total?.change || "+0%", up: kpiData?.total?.up ?? true, color: "text-primary", bg: "bg-primary/10" },
     { label: "Izin Aktif", value: kpiData?.active?.value?.toLocaleString('id') || "0", icon: CheckCircle, change: kpiData?.active?.change || "+0%", up: kpiData?.active?.up ?? true, color: "text-success", bg: "bg-success/10" },
-    { label: "Pending Verifikasi", value: kpiData?.pending?.value?.toLocaleString('id') || "0", icon: Clock, change: kpiData?.pending?.change || "+0%", up: kpiData?.pending?.up ?? true, color: "text-warning", bg: "bg-warning/10" },
     { label: "Izin Kadaluarsa", value: kpiData?.expired?.value?.toLocaleString('id') || "0", icon: AlertTriangle, change: kpiData?.expired?.change || "+0%", up: kpiData?.expired?.up ?? false, color: "text-danger", bg: "bg-danger/10" },
     { label: "Ditolak", value: kpiData?.rejected?.value?.toLocaleString('id') || "0", icon: XCircle, change: kpiData?.rejected?.change || "+0%", up: kpiData?.rejected?.up ?? false, color: "text-danger", bg: "bg-danger/10" },
     { label: "Usaha Baru", value: kpiData?.new?.value?.toLocaleString('id') || "0", icon: TrendingUp, change: kpiData?.new?.change || "+0%", up: kpiData?.new?.up ?? true, color: "text-info", bg: "bg-info/10" },
@@ -93,7 +92,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
         {KPI_CARDS.map((k) => (
           <StatCard key={k.label} {...k} colorClass={k.color} bgClass={k.bg} />
         ))}
@@ -107,37 +106,18 @@ export default function DashboardPage() {
             <Btn variant="outline" size="sm" Icon={Download} onClick={() => window.open('/api/admin/dashboard/export/excel', '_blank')}>Export</Btn>
           </SectionHeader>
           <div className="w-full min-w-0">
-            <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={monthlyData} barGap={4} barCategoryGap="20%" margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border, #e5e7eb)" vertical={false} />
-                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: "var(--muted-foreground, #6b7280)" }} axisLine={false} tickLine={false} dy={10} />
-                  <YAxis tick={{ fontSize: 12, fill: "var(--muted-foreground, #6b7280)" }} axisLine={false} tickLine={false} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: "12px", border: "1px solid var(--border)", fontSize: "12px", backgroundColor: "var(--card)" }} 
-                    cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
-                  />
-                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "12px", paddingTop: "15px" }} />
-                  <Bar dataKey="registrasi" name="Registrasi" fill="var(--primary, #0E5A8A)" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="terverifikasi" name="Terverifikasi" fill="var(--success, #10B981)" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="ditolak" name="Ditolak" fill="var(--danger, #EF4444)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-            </ResponsiveContainer>
+            <Suspense fallback={<Skeleton className="h-[260px] w-full" />}>
+              <DashboardBarChart monthlyData={monthlyData} />
+            </Suspense>
           </div>
         </Card>
 
         {/* Distribution donut */}
         <Card className="xl:col-span-5" padding="p-5">
           <SectionHeader title="Distribusi Kategori Usaha" subtitle="Berdasarkan jenis usaha terdaftar" />
-          <ResponsiveContainer width="100%" height={220}>
-            <PieChart>
-              <Pie data={distributionData} cx="50%" cy="50%" innerRadius={60} outerRadius={90}
-                dataKey="value" paddingAngle={3} stroke="var(--card)">
-                {distributionData.map((d: any, i: number) => <Cell key={i} fill={d.color || `var(--chart-${(i % 5) + 1})`} />)}
-              </Pie>
-              <Tooltip formatter={(v: any) => [v.toLocaleString("id"), "Usaha"]}
-                contentStyle={{ borderRadius: "12px", border: "1px solid var(--border)", fontSize: "12px", backgroundColor: "var(--card)" }} />
-            </PieChart>
-          </ResponsiveContainer>
+          <Suspense fallback={<Skeleton className="h-[220px] w-full" />}>
+            <DashboardPieChart distributionData={distributionData} />
+          </Suspense>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2.5 mt-4">
             {distributionData.map((d: any, i: number) => (
               <div key={d.name} className="flex items-center gap-2.5 text-xs">
@@ -151,11 +131,11 @@ export default function DashboardPage() {
       </div>
 
       {/* Bottom row */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
         {/* Activity timeline */}
-        <Card className="xl:col-span-4" padding="p-5">
+        <Card className="xl:col-span-4 flex flex-col" padding="p-5">
           <SectionHeader title="Aktivitas Terkini" subtitle="Log aktivitas sistem hari ini" />
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[380px] overflow-y-auto pr-2">
             {activityFeed.map((a: any, i: number) => (
               <div key={i} className="flex items-start gap-3.5 group">
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-bold transition-transform group-hover:scale-105 ${activityColors[a.status] || "bg-muted text-muted-foreground"}`}>
@@ -172,9 +152,9 @@ export default function DashboardPage() {
         </Card>
 
         {/* District breakdown */}
-        <Card className="xl:col-span-5" padding="p-5">
+        <Card className="xl:col-span-5 flex flex-col" padding="p-5">
           <SectionHeader title="Statistik per Kecamatan" subtitle="Distribusi usaha di setiap kecamatan" />
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[380px] overflow-y-auto pr-2">
             {districtData.map((d: any, i: number) => (
               <div key={d.name}>
                 <div className="flex items-center justify-between mb-2 gap-2">
@@ -191,12 +171,14 @@ export default function DashboardPage() {
         </Card>
 
         {/* Mini map + quick actions */}
-        <Card className="xl:col-span-3" padding="p-5 flex flex-col">
+        <Card className="xl:col-span-3 h-[460px] flex flex-col" padding="p-5">
           <SectionHeader title="Pratinjau Peta" />
-          <div className="rounded-md overflow-hidden h-40 md:h-48 mb-5 border border-border flex-shrink-0 relative z-0 min-w-0">
-            <CityMapLeaflet height="100%" isMiniMap={true} markers={data?.markers || []} />
+          <div className="rounded-md overflow-hidden flex-1 mb-5 border border-border relative z-0 min-w-0">
+            <Suspense fallback={<Skeleton className="h-full w-full absolute inset-0" />}>
+              <CityMapLeaflet height="100%" isMiniMap={true} markers={data?.markers || []} />
+            </Suspense>
           </div>
-          <div className="space-y-2.5 flex-1 flex flex-col justify-end">
+          <div className="space-y-2.5 flex-shrink-0 flex flex-col justify-end">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Aksi Cepat</p>
             <Btn variant="outline" Icon={FileText} size="sm" className="w-full justify-start" onClick={() => window.print()}>
               Export PDF

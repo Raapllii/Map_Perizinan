@@ -1,10 +1,10 @@
 {
-  "_vendor-leaflet-C-MA-Mth.js": {
-    "file": "assets/vendor-leaflet-C-MA-Mth.js",
+  "_vendor-leaflet-BJomeN8i.js": {
+    "file": "assets/vendor-leaflet-BJomeN8i.js",
     "name": "vendor-leaflet",
     "imports": [
-      "_vendor-ui-DX1X4hdY.js",
-      "_vendor-recharts-yO3YNyXt.js"
+      "_vendor-ui-DsPHR7ks.js",
+      "_vendor-recharts-CWRzXVyi.js"
     ],
     "css": [
       "assets/vendor-leaflet-Dj2h6rcZ.css"
@@ -18,15 +18,15 @@
     "file": "assets/vendor-react-l0sNRNKZ.js",
     "name": "vendor-react"
   },
-  "_vendor-recharts-yO3YNyXt.js": {
-    "file": "assets/vendor-recharts-yO3YNyXt.js",
+  "_vendor-recharts-CWRzXVyi.js": {
+    "file": "assets/vendor-recharts-CWRzXVyi.js",
     "name": "vendor-recharts",
     "imports": [
-      "_vendor-ui-DX1X4hdY.js"
+      "_vendor-ui-DsPHR7ks.js"
     ]
   },
-  "_vendor-ui-DX1X4hdY.js": {
-    "file": "assets/vendor-ui-DX1X4hdY.js",
+  "_vendor-ui-DsPHR7ks.js": {
+    "file": "assets/vendor-ui-DsPHR7ks.js",
     "name": "vendor-ui"
   },
   "node_modules/leaflet/dist/images/layers-2x.png": {
@@ -53,23 +53,67 @@
     "file": "assets/marker-shadow-f7SaPCxT.png",
     "src": "node_modules/react-leaflet-cluster/lib/assets/marker-shadow.png"
   },
-  "resources/js/main.tsx": {
-    "file": "assets/main-CoViY_Wa.js",
-    "name": "main",
-    "src": "resources/js/main.tsx",
-    "isEntry": true,
+  "resources/js/components/CityMapLeaflet.tsx": {
+    "file": "assets/CityMapLeaflet-AnrTYZjc.js",
+    "name": "CityMapLeaflet",
+    "src": "resources/js/components/CityMapLeaflet.tsx",
+    "isDynamicEntry": true,
     "imports": [
-      "_vendor-ui-DX1X4hdY.js",
-      "_vendor-recharts-yO3YNyXt.js",
-      "_vendor-leaflet-C-MA-Mth.js"
+      "resources/js/main.tsx",
+      "_vendor-ui-DsPHR7ks.js",
+      "_vendor-leaflet-BJomeN8i.js",
+      "_vendor-recharts-CWRzXVyi.js"
     ],
     "css": [
-      "assets/main-iPTGYvxJ.css"
+      "assets/CityMapLeaflet-CLLlcC51.css"
     ],
     "assets": [
       "assets/layers-BWBAp2CZ.png",
       "assets/layers-2x-Bpkbi35X.png",
       "assets/marker-icon-hN30_KVU.png"
+    ]
+  },
+  "resources/js/components/DashboardBarChart.tsx": {
+    "file": "assets/DashboardBarChart-BGgQeLWJ.js",
+    "name": "DashboardBarChart",
+    "src": "resources/js/components/DashboardBarChart.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/main.tsx",
+      "_vendor-recharts-CWRzXVyi.js",
+      "_vendor-ui-DsPHR7ks.js"
+    ]
+  },
+  "resources/js/components/DashboardPieChart.tsx": {
+    "file": "assets/DashboardPieChart-dqXsp9ky.js",
+    "name": "DashboardPieChart",
+    "src": "resources/js/components/DashboardPieChart.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/main.tsx",
+      "_vendor-recharts-CWRzXVyi.js",
+      "_vendor-ui-DsPHR7ks.js"
+    ]
+  },
+  "resources/js/main.tsx": {
+    "file": "assets/main-DkvFXqI1.js",
+    "name": "main",
+    "src": "resources/js/main.tsx",
+    "isEntry": true,
+    "imports": [
+      "_vendor-ui-DsPHR7ks.js",
+      "_vendor-recharts-CWRzXVyi.js"
+    ],
+    "dynamicImports": [
+      "resources/js/components/CityMapLeaflet.tsx",
+      "resources/js/components/DashboardBarChart.tsx",
+      "resources/js/components/DashboardPieChart.tsx",
+      "resources/js/components/CityMapLeaflet.tsx",
+      "resources/js/components/CityMapLeaflet.tsx",
+      "resources/js/components/CityMapLeaflet.tsx"
+    ],
+    "css": [
+      "assets/main-1HV93jxG.css"
     ]
   }
 }
