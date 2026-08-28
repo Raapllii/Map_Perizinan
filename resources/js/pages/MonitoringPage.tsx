@@ -1,24 +1,21 @@
-import React, { useState, useEffect, lazy, Suspense } from "react";
-import { Layers, RefreshCw, MapPin } from "lucide-react";
+import React, { useState, lazy, Suspense } from "react";
+import { Layers, RefreshCw, MapPinOff } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Card, Btn, SectionHeader } from "../components/ui";
+import { Table, TableBody, TableRow, TableCell } from "../components/ui/Table";
+import { Checkbox } from "../components/ui/checkbox";
 
 const CityMapLeaflet = lazy(() => import('../components/CityMapLeaflet'));
 
 export default function MonitoringPage() {
-  const [pulse, setPulse] = useState(true);
-  useEffect(() => {
-    const t = setInterval(() => setPulse(p => !p), 1200);
-    return () => clearInterval(t);
-  }, []);
+  const [selectedNoCoords, setSelectedNoCoords] = useState<string[]>([]);
 
-  const expiringLicenses = [
-    { name: "UD. Karya Mandiri", days: 3, district: "Kec. Timur" },
-    { name: "Toko Sumber Rejeki", days: 7, district: "Kec. Pusat" },
-    { name: "CV. Barokah Jaya", days: 12, district: "Kec. Utara" },
-    { name: "Warung Pak Haji", days: 18, district: "Kec. Barat" },
-    { name: "Kios Bangunan Indah", days: 21, district: "Kec. Selatan" },
-  ];
+  const toggleSelection = (nib: string) => {
+    setSelectedNoCoords(prev => 
+      prev.includes(nib) ? prev.filter(id => id !== nib) : [...prev, nib]
+    );
+  };
+
 
   const noCoords = [
     { name: "Bengkel Rapi Motor", nib: "220599001122", district: "Kec. Tenggara" },
@@ -39,36 +36,53 @@ export default function MonitoringPage() {
 
   return (
     <div className="space-y-6">
-      {/* Live status bar */}
-      <Card padding="px-5 py-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="relative flex items-center justify-center">
-              <div className={`w-3 h-3 bg-success rounded-full ${pulse ? "scale-110" : "scale-90"} transition-transform duration-700`} />
-              <div className="absolute w-6 h-6 bg-success rounded-full opacity-30 animate-ping" />
-            </div>
-            <div>
-              <div className="text-sm font-bold text-foreground">Sistem Aktif</div>
-              <div className="text-[11px] font-medium text-muted-foreground mt-0.5">Pembaruan terakhir: 21 Jul 2025, 14:32 WIB</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-6 text-sm overflow-x-auto pb-1 md:pb-0 hide-scrollbar">
-            {[
-              { label: "Usaha Aktif Hari Ini", value: "+3", color: "text-success" },
-              { label: "Izin Hampir Kadaluarsa", value: "15", color: "text-warning" },
-              { label: "Tanpa Koordinat", value: "23", color: "text-info" },
-              { label: "Notifikasi Terkirim", value: "89", color: "text-primary" },
-            ].map(s => (
-              <div key={s.label} className="text-center min-w-[100px]">
-                <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
-                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mt-1">{s.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Card>
-
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
+        {/* Left panel: No coordinates */}
+        <div className="xl:col-span-5 flex flex-col gap-5">
+          <Card padding="p-5" className="flex-1">
+            <SectionHeader title="Usaha Tanpa Koordinat" subtitle="Perlu penandaan lokasi">
+              <span className="text-[10px] font-bold bg-info/15 text-info px-2 py-1 rounded-full uppercase tracking-wider">23 Usaha</span>
+            </SectionHeader>
+            <div className="mt-4 border border-border rounded-lg overflow-hidden">
+              <Table>
+                <TableBody>
+                  {noCoords.map((n) => {
+                    const isSelected = selectedNoCoords.includes(n.nib);
+                    return (
+                      <TableRow 
+                        key={n.nib} 
+                        data-state={isSelected && "selected"} 
+                        onClick={() => toggleSelection(n.nib)}
+                        className="cursor-pointer"
+                      >
+                        <TableCell className="w-[40px] pl-4 py-3 align-middle">
+                          <Checkbox checked={isSelected} onCheckedChange={() => toggleSelection(n.nib)} />
+                        </TableCell>
+                        <TableCell className="py-3 pr-4 align-middle">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex flex-col gap-1">
+                              <div className="text-sm font-medium text-foreground">{n.name}</div>
+                              <div className="text-xs text-muted-foreground truncate">
+                                {n.nib} &middot; {n.district}
+                              </div>
+                            </div>
+                            <div className="text-[11px] text-warning flex items-center gap-1 font-medium bg-warning/10 px-2 py-0.5 rounded-full whitespace-nowrap">
+                              <MapPinOff size={10} strokeWidth={2} /> Belum
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="pt-3">
+              <button className="text-xs font-bold text-primary hover:underline hover:text-primary/80 transition-colors">Lihat semua 23 usaha &rarr;</button>
+            </div>
+          </Card>
+        </div>
+
         {/* Map monitoring */}
         <Card className="xl:col-span-7 flex flex-col" padding="p-0">
           <div className="p-4 border-b border-border flex items-center justify-between">
@@ -92,55 +106,6 @@ export default function MonitoringPage() {
           </div>
         </Card>
 
-        {/* Right panels */}
-        <div className="xl:col-span-5 flex flex-col gap-5">
-          {/* Expiring licenses */}
-          <Card padding="p-5" className="flex-1">
-            <SectionHeader title="Izin Segera Kadaluarsa" subtitle="Dalam 30 hari ke depan">
-              <span className="text-[10px] font-bold bg-warning/15 text-warning px-2 py-1 rounded-full uppercase tracking-wider">15 Izin</span>
-            </SectionHeader>
-            <div className="space-y-3 mt-4">
-              {expiringLicenses.map((e) => (
-                <div key={e.name} className="flex items-center justify-between p-3 rounded-lg border border-transparent hover:border-border hover:bg-muted/30 transition-all group">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-2.5 h-2.5 rounded-full shadow-sm ${e.days <= 7 ? "bg-danger" : e.days <= 14 ? "bg-warning" : "bg-success"}`} />
-                    <div>
-                      <p className="text-sm font-bold text-foreground">{e.name}</p>
-                      <p className="text-xs font-medium text-muted-foreground mt-0.5">{e.district}</p>
-                    </div>
-                  </div>
-                  <span className={`text-xs font-bold px-2.5 py-1 rounded-md ${e.days <= 7 ? "bg-danger/10 text-danger" : "bg-warning/10 text-warning"}`}>
-                    {e.days} hari
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* No coordinates */}
-          <Card padding="p-5" className="flex-1">
-            <SectionHeader title="Usaha Tanpa Koordinat" subtitle="Perlu penandaan lokasi">
-              <span className="text-[10px] font-bold bg-info/15 text-info px-2 py-1 rounded-full uppercase tracking-wider">23 Usaha</span>
-            </SectionHeader>
-            <div className="space-y-3 mt-4">
-              {noCoords.map((n) => (
-                <div key={n.name} className="flex items-center justify-between p-2.5 rounded-lg border border-transparent hover:border-border hover:bg-muted/30 transition-all">
-                  <div>
-                    <p className="text-sm font-bold text-foreground">{n.name}</p>
-                    <p className="text-[11px] font-medium text-muted-foreground mt-1">
-                      <span className="font-mono bg-muted px-1 py-0.5 rounded mr-1.5">{n.nib}</span>
-                      {n.district}
-                    </p>
-                  </div>
-                  <Btn variant="secondary" size="xs" Icon={MapPin}>Tandai</Btn>
-                </div>
-              ))}
-              <div className="pt-2">
-                <button className="text-xs font-bold text-primary hover:underline hover:text-primary/80 transition-colors">Lihat semua 23 usaha &rarr;</button>
-              </div>
-            </div>
-          </Card>
-        </div>
       </div>
 
       {/* Trend chart */}

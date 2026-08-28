@@ -13,8 +13,6 @@ import DataUsahaPage from "../../pages/DataUsahaPage";
 import VerifikasiIzinPage from "../../pages/VerifikasiIzinPage";
 import MonitoringPage from "../../pages/MonitoringPage";
 import LaporanPage from "../../pages/LaporanPage";
-import MasterDataPage from "../../pages/MasterDataPage";
-import PenggunaPage from "../../pages/PenggunaPage";
 import PengaturanPage from "../../pages/PengaturanPage";
 
 export default function AdminLayout({ darkMode, setDarkMode, setUser }: any) {
@@ -32,8 +30,6 @@ export default function AdminLayout({ darkMode, setDarkMode, setUser }: any) {
       case "verifikasi-izin": return <VerifikasiIzinPage />;
       case "monitoring": return <MonitoringPage />;
       case "laporan": return <LaporanPage />;
-      case "master-data": return <MasterDataPage />;
-      case "pengguna": return <PenggunaPage />;
       case "pengaturan": return <PengaturanPage darkMode={darkMode} setDarkMode={setDarkMode} />;
       default: return <Navigate to="/admin/dashboard" replace />;
     }

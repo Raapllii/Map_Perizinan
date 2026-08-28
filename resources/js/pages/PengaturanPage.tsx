@@ -4,6 +4,7 @@ import axios from 'axios';
 import { User, Lock, Sun, Bell, Map, Database, Upload, Save, RotateCcw, Moon, Globe, CheckCircle, FileText, Download, FileSpreadsheet, FileUp, AlertTriangle, Loader2 } from "lucide-react";
 import { Card, Btn, InputField, SelectField, SectionHeader } from "../components/ui";
 import { useAuth } from "../contexts/AuthContext";
+import PenggunaPage from "./PenggunaPage";
 
 export default function PengaturanPage({ darkMode, setDarkMode }: any) {
   const location = useLocation();
@@ -302,6 +303,10 @@ export default function PengaturanPage({ darkMode, setDarkMode }: any) {
             </>
           )}
         </Card>
+      )}
+
+      {activeSection === "pengguna" && (
+        <PenggunaPage />
       )}
 
       {activeSection === "tampilan" && (

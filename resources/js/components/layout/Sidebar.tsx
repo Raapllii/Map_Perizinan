@@ -7,6 +7,7 @@ import { useAuth } from "../../contexts/AuthContext";
 
 const PENGATURAN_SUBMENU = [
   { id: "profil", label: "Profil & Akun" },
+  { id: "pengguna", label: "Manajemen Pengguna" },
   { id: "keamanan", label: "Keamanan" },
   { id: "tampilan", label: "Tampilan & Tema" },
   { id: "peta", label: "Konfigurasi Peta" },

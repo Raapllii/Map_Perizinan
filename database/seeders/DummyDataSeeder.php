@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
-use App\Models\District;
 use App\Models\Category;
 use App\Models\Business;
 use App\Models\ActivityLog;
@@ -28,18 +27,6 @@ class DummyDataSeeder extends Seeder
             User::create(array_merge($user, ['password' => Hash::make('password')]));
         }
 
-        // 2. Districts
-        $districts = [
-            ['code' => 'KEC001', 'name' => 'Kecamatan Pusat', 'villages' => 12, 'area' => '12.4 km²', 'population' => '125.430', 'status' => 'Aktif'],
-            ['code' => 'KEC002', 'name' => 'Kecamatan Utara', 'villages' => 9, 'area' => '18.7 km²', 'population' => '98.210', 'status' => 'Aktif'],
-            ['code' => 'KEC003', 'name' => 'Kecamatan Barat', 'villages' => 10, 'area' => '15.2 km²', 'population' => '112.780', 'status' => 'Aktif'],
-            ['code' => 'KEC004', 'name' => 'Kecamatan Timur', 'villages' => 14, 'area' => '20.1 km²', 'population' => '143.560', 'status' => 'Aktif'],
-            ['code' => 'KEC005', 'name' => 'Kecamatan Selatan', 'villages' => 11, 'area' => '22.8 km²', 'population' => '108.920', 'status' => 'Aktif'],
-        ];
-
-        foreach ($districts as $district) {
-            District::create($district);
-        }
 
         // 3. Categories
         $categories = [
