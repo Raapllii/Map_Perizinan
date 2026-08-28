@@ -44,6 +44,21 @@ class BusinessRepository
             $query->whereYear('tgl_terbit', $request->get('tahun'));
         }
 
+        if ($request->has('status_pemetaan') && $request->get('status_pemetaan') !== 'Semua') {
+            $statusPemetaan = $request->get('status_pemetaan');
+            if ($statusPemetaan === 'Sudah Dipetakan') {
+                $query->whereNotNull('lat')->where('lat', '!=', '')
+                      ->whereNotNull('lng')->where('lng', '!=', '');
+            } else if ($statusPemetaan === 'Belum Dipetakan') {
+                $query->where(function($q) {
+                    $q->whereNull('lat')
+                      ->orWhere('lat', '')
+                      ->orWhereNull('lng')
+                      ->orWhere('lng', '');
+                });
+            }
+        }
+
         if ($request->has('search') && !empty($request->search)) {
             $search = $request->search;
             $query->where(function($q) use ($search) {

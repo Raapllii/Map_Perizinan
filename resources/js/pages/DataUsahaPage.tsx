@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo, useId } from "react";
 import { useLocation } from "react-router";
 import axios from 'axios';
-import { 
-  Eye, Edit, Trash2, Plus, FileSpreadsheet, 
-  Inbox, AlertCircle, Upload, X, Filter, 
+import {
+  Eye, Edit, Trash2, Plus, FileSpreadsheet,
+  Inbox, AlertCircle, Upload, X, Filter,
   ChevronLeft, ChevronRight, ChevronFirst, ChevronLast,
-  ListFilter, CircleX, Columns3, Trash, CircleAlert, Ellipsis, ChevronDown, ChevronUp, MapPinOff
+  ListFilter, CircleX, Columns3, Trash, CircleAlert, Ellipsis, ChevronDown, ChevronUp, MapPinOff, Loader2
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import {
@@ -158,22 +158,21 @@ TableCaption.displayName = "TableCaption";
 export default function DataUsahaPage() {
   const id = useId();
   const [businesses, setBusinesses] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
   const [kecamatanOptions, setKecamatanOptions] = useState<string[]>([]);
   const [kelurahanOptions, setKelurahanOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Ref for scroll target and pagination action tracker
   const pageTopRef = useRef<HTMLDivElement>(null);
   const isPaginationAction = useRef(false);
-  
+
   // Pagination
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  
+
   // Search & Sorting
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -183,10 +182,10 @@ export default function DataUsahaPage() {
   const [activeFilters, setActiveFilters] = useState({
     kecamatan: "",
     kelurahan: "",
-    kategori: "",
+    status_pemetaan: "Semua",
     status: "",
   });
-  
+
   // Local Filter State for Popover
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [localFilters, setLocalFilters] = useState(activeFilters);
@@ -214,10 +213,6 @@ export default function DataUsahaPage() {
   }, [location.state]);
 
   useEffect(() => {
-    axios.get('/api/categories')
-      .then(res => setCategories(res.data))
-      .catch(err => console.error('Failed to load categories', err));
-      
     axios.get('/api/locations/kecamatan')
       .then(res => setKecamatanOptions(res.data))
       .catch(err => console.error('Failed to load kecamatan', err));
@@ -245,16 +240,16 @@ export default function DataUsahaPage() {
 
   const fetchBusinesses = (pageNumber = 1) => {
     setLoading(true);
-    
+
     const params = new URLSearchParams();
     params.append('page', pageNumber.toString());
     params.append('per_page', perPage.toString());
     if (debouncedSearch) params.append('search', debouncedSearch);
-    if (activeFilters.kategori) params.append('kategori', activeFilters.kategori);
+    if (activeFilters.status_pemetaan) params.append('status_pemetaan', activeFilters.status_pemetaan);
     if (activeFilters.status) params.append('status', activeFilters.status);
     if (activeFilters.kecamatan && activeFilters.kecamatan !== "Semua") params.append('kecamatan', activeFilters.kecamatan);
     if (activeFilters.kelurahan && activeFilters.kelurahan !== "Semua") params.append('kelurahan', activeFilters.kelurahan);
-    
+
     if (sortType === 'terlama') {
       params.append('sort_by', 'created_at');
       params.append('sort_direction', 'asc');
@@ -268,14 +263,14 @@ export default function DataUsahaPage() {
       params.append('sort_by', 'created_at');
       params.append('sort_direction', 'desc');
     }
-    
+
     axios.get(`/api/businesses?${params.toString()}`)
       .then(res => {
         setBusinesses(res.data.data);
         setTotalPages(res.data.last_page);
         setTotalItems(res.data.total);
         setLoading(false);
-        
+
         if (isPaginationAction.current && pageTopRef.current) {
           pageTopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
           isPaginationAction.current = false;
@@ -294,7 +289,7 @@ export default function DataUsahaPage() {
 
   // Handle Multi-Status Checkbox
   const selectedStatuses = localFilters.status ? localFilters.status.split(',').filter(Boolean) : [];
-  
+
   const handleLocalStatusChange = (checked: boolean, value: string) => {
     let newStatuses = [...selectedStatuses];
     if (checked) {
@@ -312,6 +307,7 @@ export default function DataUsahaPage() {
   const applyFilters = () => {
     setActiveFilters(localFilters);
     setPage(1);
+    isPaginationAction.current = true;
     setIsFilterOpen(false);
   };
 
@@ -319,7 +315,7 @@ export default function DataUsahaPage() {
     const emptyFilters = {
       kecamatan: "",
       kelurahan: "",
-      kategori: "",
+      status_pemetaan: "Semua",
       status: "",
     };
     setLocalFilters(emptyFilters);
@@ -327,17 +323,18 @@ export default function DataUsahaPage() {
     setSearchTerm("");
     setSortType("terbaru");
     setPage(1);
+    isPaginationAction.current = true;
     setIsFilterOpen(false);
   };
 
   const handleExport = () => {
     const params = new URLSearchParams();
     if (debouncedSearch) params.append('search', debouncedSearch);
-    if (activeFilters.kategori) params.append('kategori', activeFilters.kategori);
+    if (activeFilters.status_pemetaan) params.append('status_pemetaan', activeFilters.status_pemetaan);
     if (activeFilters.status) params.append('status', activeFilters.status);
     if (activeFilters.kecamatan && activeFilters.kecamatan !== "Semua") params.append('kecamatan', activeFilters.kecamatan);
     if (activeFilters.kelurahan && activeFilters.kelurahan !== "Semua") params.append('kelurahan', activeFilters.kelurahan);
-    
+
     if (sortType === 'terlama') {
       params.append('sort_by', 'created_at');
       params.append('sort_direction', 'asc');
@@ -351,7 +348,7 @@ export default function DataUsahaPage() {
       params.append('sort_by', 'created_at');
       params.append('sort_direction', 'desc');
     }
-    
+
     window.location.href = `/api/admin/database/export?${params.toString()}`;
   };
 
@@ -399,7 +396,7 @@ export default function DataUsahaPage() {
     const selectedRows = table.getSelectedRowModel().rows;
     const ids = selectedRows.map(row => row.original.id);
     if (ids.length === 0) return;
-    
+
     Promise.all(ids.map(id => axios.delete(`/api/admin/businesses/${id}`)))
       .then(() => {
         setRowSelection({});
@@ -567,7 +564,19 @@ export default function DataUsahaPage() {
     }
   });
 
-  const activeFiltersCount = Object.values(activeFilters).filter(val => val !== "").length;
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (localFilters.kecamatan && localFilters.kecamatan !== "Semua" && localFilters.kecamatan !== "Semua Kecamatan") count++;
+    if (localFilters.kelurahan && localFilters.kelurahan !== "Semua" && localFilters.kelurahan !== "Semua Kelurahan") count++;
+    if (localFilters.status_pemetaan && localFilters.status_pemetaan !== "Semua") count++;
+    
+    if (localFilters.status) {
+      const statusArr = localFilters.status.split(',').filter(Boolean);
+      if (statusArr.length > 0) count += statusArr.length;
+    }
+    return count;
+  }, [localFilters]);
+
   const hasActiveFilters = activeFiltersCount > 0;
 
   return (
@@ -582,26 +591,14 @@ export default function DataUsahaPage() {
         </div>
       )}
 
-      {/* Page Header & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-foreground">Data Usaha</h2>
-          <p className="text-sm text-muted-foreground mt-1">Kelola data perizinan usaha yang terdaftar di sistem.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Btn variant="outline" Icon={Upload} onClick={() => setIsImportOpen(true)}>Import CSV</Btn>
-          <Btn variant="outline" Icon={FileSpreadsheet} onClick={handleExport}>Export</Btn>
-        </div>
-      </div>
-
       {/* Modern Filter Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
         <div className="flex flex-wrap items-center gap-3">
-          
+
           {/* Contextual Action Button */}
-          <Button 
+          <Button
             variant="outline"
-            onClick={() => table.getSelectedRowModel().rows.length > 0 ? setIsBulkDeleteOpen(true) : openAddModal()} 
+            onClick={() => table.getSelectedRowModel().rows.length > 0 ? setIsBulkDeleteOpen(true) : openAddModal()}
             className="whitespace-nowrap"
           >
             {table.getSelectedRowModel().rows.length > 0 ? (
@@ -651,7 +648,10 @@ export default function DataUsahaPage() {
                 Boolean(searchTerm) && "pe-9",
               )}
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                isPaginationAction.current = true;
+              }}
               placeholder="Cari NIB, Nama Usaha..."
               type="text"
             />
@@ -664,6 +664,7 @@ export default function DataUsahaPage() {
                 aria-label="Clear filter"
                 onClick={() => {
                   setSearchTerm("");
+                  isPaginationAction.current = true;
                   if (inputRef.current) {
                     inputRef.current.focus();
                   }
@@ -673,13 +674,18 @@ export default function DataUsahaPage() {
               </button>
             )}
           </div>
-          
+
           {/* Popover Filters */}
-          <Popover 
-            open={isFilterOpen} 
+          <Popover
+            open={isFilterOpen}
             onOpenChange={(open) => {
               setIsFilterOpen(open);
-              if (open) setLocalFilters(activeFilters);
+              if (open) {
+                setLocalFilters(activeFilters);
+              } else {
+                // Prevent mismatch if user closes popup without applying
+                setLocalFilters(activeFilters);
+              }
             }}
           >
             <PopoverTrigger render={<Button variant="outline" />}>
@@ -716,9 +722,9 @@ export default function DataUsahaPage() {
                     </div>
                   ))}
                 </div>
-                
+
                 <div className="h-px bg-border/50" />
-                
+
                 <div className="space-y-3">
                   <div className="text-sm font-medium text-muted-foreground">Lokasi</div>
                   <SelectField
@@ -739,21 +745,22 @@ export default function DataUsahaPage() {
                     ]}
                   />
                 </div>
-                
+
                 <div className="h-px bg-border/50" />
-                
+
                 <div className="space-y-3">
-                  <div className="text-sm font-medium text-muted-foreground">Kategori</div>
+                  <div className="text-sm font-medium text-muted-foreground">Status Pemetaan</div>
                   <SelectField
-                    value={localFilters.kategori}
-                    onChange={(e: any) => setLocalSingleFilter('kategori', e.target.value)}
+                    value={localFilters.status_pemetaan}
+                    onChange={(e: any) => setLocalSingleFilter('status_pemetaan', e.target.value)}
                     options={[
-                      { value: "", label: "Semua Kategori" },
-                      ...categories.map(c => ({ value: c.nama, label: c.nama }))
+                      { value: "Semua", label: "Semua" },
+                      { value: "Sudah Dipetakan", label: "Sudah Dipetakan" },
+                      { value: "Belum Dipetakan", label: "Belum Dipetakan" }
                     ]}
                   />
                 </div>
-                
+
                 <div className="flex gap-2 mt-4 pt-2">
                   <Button variant="outline" className="flex-1" onClick={resetLocalFilters}>
                     Reset
@@ -791,11 +798,11 @@ export default function DataUsahaPage() {
                       onCheckedChange={(value) => column.toggleVisibility(!!value)}
                       onSelect={(event) => event.preventDefault()}
                     >
-                      {column.id === 'nama_perusahaan' ? 'Nama Usaha' : 
-                       column.id === 'nama_pemilik' ? 'Pemilik' :
-                       column.id === 'kecamatan' ? 'Lokasi' :
-                       column.id === 'judul_kbli' ? 'Kategori' :
-                       column.id === 'status' ? 'Status' : column.id}
+                      {column.id === 'nama_perusahaan' ? 'Nama Usaha' :
+                        column.id === 'nama_pemilik' ? 'Pemilik' :
+                          column.id === 'kecamatan' ? 'Lokasi' :
+                            column.id === 'judul_kbli' ? 'Kategori' :
+                              column.id === 'status' ? 'Status' : column.id}
                     </DropdownMenuCheckboxItem>
                   );
                 })}
@@ -803,24 +810,27 @@ export default function DataUsahaPage() {
           </DropdownMenu>
         </div>
 
+        <div className="flex flex-wrap items-center gap-2">
+          <Btn variant="outline" Icon={Upload} onClick={() => setIsImportOpen(true)}>Import CSV</Btn>
+          <Btn variant="outline" Icon={FileSpreadsheet} onClick={handleExport}>Export</Btn>
+        </div>
+
       </div>
 
       {/* Data Table */}
-      <div className={cn(
-        "overflow-hidden rounded-lg border border-border bg-background transition-opacity duration-200 relative opacity-100"
-      )}>
-        {loading && businesses.length > 0 && (
-          <div className="absolute top-0 left-0 w-full h-1 bg-primary/20 overflow-hidden z-10">
-            <div className="h-full bg-primary animate-[progress_1.5s_ease-in-out_infinite] w-1/3" />
-          </div>
+      <div
+        className={cn(
+          "overflow-hidden rounded-lg border border-border bg-background transition-opacity duration-200 relative",
+          loading && businesses.length > 0 ? "opacity-75 pointer-events-none" : "opacity-100"
         )}
+      >
         <Table className="table-fixed">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup: any) => (
               <TableRow key={headerGroup.id} className="hover:bg-transparent">
                 {headerGroup.headers.map((header: any) => (
-                  <TableHead 
-                    key={header.id} 
+                  <TableHead
+                    key={header.id}
                     style={{ width: `${header.getSize()}px` }}
                     className="h-11"
                   >
@@ -867,7 +877,7 @@ export default function DataUsahaPage() {
           </TableBody>
         </Table>
       </div>
-      
+
       {/* Pagination */}
       {!loading && businesses.length > 0 && (
         <div className="flex items-center justify-between gap-8 pt-2">
@@ -897,7 +907,7 @@ export default function DataUsahaPage() {
               </SelectContent>
             </Select>
           </div>
-          
+
           {/* Page number information */}
           <div className="flex grow justify-end whitespace-nowrap text-sm text-muted-foreground">
             <p className="whitespace-nowrap text-sm text-muted-foreground" aria-live="polite">
@@ -980,30 +990,30 @@ export default function DataUsahaPage() {
       )}
 
       {/* Modals */}
-      <DataUsahaDetailModal 
-        isOpen={isDetailOpen} 
-        onClose={() => setIsDetailOpen(false)} 
-        business={selectedBusiness} 
+      <DataUsahaDetailModal
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        business={selectedBusiness}
       />
-      <DataUsahaFormModal 
-        isOpen={isFormOpen} 
-        onClose={() => setIsFormOpen(false)} 
+      <DataUsahaFormModal
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
         business={selectedBusiness}
         onSuccess={() => {
           setIsFormOpen(false);
           setRefreshTrigger(p => p + 1);
         }}
       />
-      <DataUsahaImportModal 
-        isOpen={isImportOpen} 
-        onClose={() => setIsImportOpen(false)} 
+      <DataUsahaImportModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
         onSuccess={() => {
           if (page === 1) {
             setRefreshTrigger(p => p + 1);
           } else {
             setPage(1);
           }
-        }} 
+        }}
       />
     </div>
   );
