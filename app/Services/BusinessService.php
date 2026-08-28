@@ -18,7 +18,7 @@ class BusinessService
     public function getBusinessesForDataTable(Request $request)
     {
         $query = $this->repository->getFilteredQuery($request);
-        return $query->select('id', 'nama_perusahaan', 'nib', 'kecamatan', 'judul_kbli', 'status')->paginate(20);
+        return $query->select('id', 'nama_perusahaan', 'nib', 'kecamatan', 'kelurahan', 'judul_kbli', 'status', 'lat', 'lng', 'color')->paginate(20);
     }
 
     public function getBusinessesForMap(Request $request)

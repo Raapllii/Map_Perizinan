@@ -465,12 +465,20 @@ export default function DataUsahaPage() {
       size: 200,
       cell: ({ row }: any) => {
         const b = row.original;
+        const hasCoordinates =
+          b.lat !== null &&
+          b.lat !== undefined &&
+          b.lat !== '' &&
+          b.lng !== null &&
+          b.lng !== undefined &&
+          b.lng !== '';
+
         return (
           <div className="flex flex-col gap-1">
             <div className="text-sm text-foreground truncate max-w-[200px]" title={`${b.kecamatan}${b.kelurahan ? ` / ${b.kelurahan}` : ''}`}>
               {b.kecamatan} {b.kelurahan ? `/ ${b.kelurahan}` : ''}
             </div>
-            {(!b.lat || !b.lng) && (
+            {!hasCoordinates && (
               <div className="text-[11px] text-warning flex items-center gap-1 font-medium">
                 <MapPinOff size={10} strokeWidth={2} /> Belum dipetakan
               </div>
