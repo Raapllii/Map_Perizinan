@@ -200,6 +200,7 @@ export default function DataUsahaPage() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<any | null>(null);
 
   const [alertMsg, setAlertMsg] = useState("");
@@ -223,7 +224,7 @@ export default function DataUsahaPage() {
   }, []);
 
   useEffect(() => {
-    const targetKecamatan = isFilterOpen ? localFilters.kecamatan : activeFilters.kecamatan;
+    const targetKecamatan = localFilters.kecamatan;
     if (targetKecamatan && targetKecamatan !== "Semua") {
       axios.get(`/api/locations/kelurahan?kecamatan=${encodeURIComponent(targetKecamatan)}`)
         .then(res => setKelurahanOptions(res.data))
@@ -231,7 +232,7 @@ export default function DataUsahaPage() {
     } else {
       setKelurahanOptions([]);
     }
-  }, [isFilterOpen ? localFilters.kecamatan : activeFilters.kecamatan, isFilterOpen]);
+  }, [localFilters.kecamatan]);
 
   // Debounce Search
   useEffect(() => {
@@ -311,7 +312,6 @@ export default function DataUsahaPage() {
   const applyFilters = () => {
     setActiveFilters(localFilters);
     setPage(1);
-    setRefreshTrigger(p => p + 1);
     setIsFilterOpen(false);
   };
 
@@ -327,7 +327,6 @@ export default function DataUsahaPage() {
     setSearchTerm("");
     setSortType("terbaru");
     setPage(1);
-    setRefreshTrigger(p => p + 1);
     setIsFilterOpen(false);
   };
 
@@ -405,6 +404,7 @@ export default function DataUsahaPage() {
       .then(() => {
         setRowSelection({});
         setRefreshTrigger(prev => prev + 1);
+        setIsBulkDeleteOpen(false);
       })
       .catch(err => console.error(err));
   };
@@ -591,40 +591,47 @@ export default function DataUsahaPage() {
         <div className="flex flex-wrap items-center gap-3">
           
           {/* Contextual Action Button */}
-          {table.getSelectedRowModel().rows.length > 0 ? (
-            <AlertDialog>
-              <AlertDialogTrigger render={<Button variant="destructive" className="whitespace-nowrap" />}>
-                <Trash className="-ms-1 me-2 opacity-80" size={16} strokeWidth={2} aria-hidden="true" />
-                Hapus ({table.getSelectedRowModel().rows.length})
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <div className="flex flex-col gap-2 max-sm:items-center sm:flex-row sm:gap-4">
-                  <div
-                    className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border"
-                    aria-hidden="true"
-                  >
-                    <CircleAlert className="opacity-80" size={16} strokeWidth={2} />
-                  </div>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Tindakan ini tidak dapat dibatalkan. Ini akan menghapus secara permanen{" "}
-                      {table.getSelectedRowModel().rows.length} data usaha yang dipilih.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
+          <Button 
+            variant="outline"
+            onClick={() => table.getSelectedRowModel().rows.length > 0 ? setIsBulkDeleteOpen(true) : openAddModal()} 
+            className="whitespace-nowrap"
+          >
+            {table.getSelectedRowModel().rows.length > 0 ? (
+              <>
+                <Trash2 className="-ms-1 me-2 opacity-80 text-destructive" size={16} strokeWidth={2} aria-hidden="true" />
+                <span className="text-destructive">Hapus ({table.getSelectedRowModel().rows.length})</span>
+              </>
+            ) : (
+              <>
+                <Plus className="-ms-1 me-2 opacity-80" size={16} strokeWidth={2} aria-hidden="true" />
+                Tambah Usaha
+              </>
+            )}
+          </Button>
+
+          <AlertDialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+            <AlertDialogContent>
+              <div className="flex flex-col gap-2 max-sm:items-center sm:flex-row sm:gap-4">
+                <div
+                  className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border"
+                  aria-hidden="true"
+                >
+                  <CircleAlert className="opacity-80 text-destructive" size={16} strokeWidth={2} />
                 </div>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Batal</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleBulkDelete}>Hapus</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          ) : (
-            <Button variant="outline" onClick={openAddModal} className="whitespace-nowrap">
-              <Plus className="-ms-1 me-2 opacity-80" size={16} strokeWidth={2} aria-hidden="true" />
-              Tambah Usaha
-            </Button>
-          )}
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Tindakan ini tidak dapat dibatalkan. Ini akan menghapus secara permanen{" "}
+                    {table.getSelectedRowModel().rows.length} data usaha yang dipilih.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+              </div>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Batal</AlertDialogCancel>
+                <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Hapus</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           {/* Search Bar */}
           <div className="relative">
@@ -792,8 +799,7 @@ export default function DataUsahaPage() {
 
       {/* Data Table */}
       <div className={cn(
-        "overflow-hidden rounded-lg border border-border bg-background transition-opacity duration-200 relative",
-        loading && businesses.length > 0 ? "opacity-60 pointer-events-none" : "opacity-100"
+        "overflow-hidden rounded-lg border border-border bg-background transition-opacity duration-200 relative opacity-100"
       )}>
         {loading && businesses.length > 0 && (
           <div className="absolute top-0 left-0 w-full h-1 bg-primary/20 overflow-hidden z-10">
