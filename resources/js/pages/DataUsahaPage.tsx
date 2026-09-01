@@ -307,7 +307,6 @@ export default function DataUsahaPage() {
   const applyFilters = () => {
     setActiveFilters(localFilters);
     setPage(1);
-    isPaginationAction.current = true;
     setIsFilterOpen(false);
   };
 
@@ -323,7 +322,6 @@ export default function DataUsahaPage() {
     setSearchTerm("");
     setSortType("terbaru");
     setPage(1);
-    isPaginationAction.current = true;
     setIsFilterOpen(false);
   };
 
@@ -462,13 +460,14 @@ export default function DataUsahaPage() {
       size: 200,
       cell: ({ row }: any) => {
         const b = row.original;
-        const hasCoordinates =
-          b.lat !== null &&
-          b.lat !== undefined &&
-          b.lat !== '' &&
-          b.lng !== null &&
-          b.lng !== undefined &&
-          b.lng !== '';
+        
+        const isValidCoordinate = (val: any, min: number, max: number) => {
+          if (val === null || val === undefined || val === '') return false;
+          if (typeof val === 'string' && val.trim() === '') return false;
+          const num = Number(val);
+          return !isNaN(num) && num >= min && num <= max;
+        };
+        const hasCoordinates = isValidCoordinate(b.lat, -90, 90) && isValidCoordinate(b.lng, -180, 180);
 
         return (
           <div className="flex flex-col gap-1">
@@ -566,16 +565,16 @@ export default function DataUsahaPage() {
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
-    if (localFilters.kecamatan && localFilters.kecamatan !== "Semua" && localFilters.kecamatan !== "Semua Kecamatan") count++;
-    if (localFilters.kelurahan && localFilters.kelurahan !== "Semua" && localFilters.kelurahan !== "Semua Kelurahan") count++;
-    if (localFilters.status_pemetaan && localFilters.status_pemetaan !== "Semua") count++;
+    if (activeFilters.kecamatan && activeFilters.kecamatan !== "Semua" && activeFilters.kecamatan !== "Semua Kecamatan") count++;
+    if (activeFilters.kelurahan && activeFilters.kelurahan !== "Semua" && activeFilters.kelurahan !== "Semua Kelurahan") count++;
+    if (activeFilters.status_pemetaan && activeFilters.status_pemetaan !== "Semua") count++;
     
-    if (localFilters.status) {
-      const statusArr = localFilters.status.split(',').filter(Boolean);
+    if (activeFilters.status) {
+      const statusArr = activeFilters.status.split(',').filter(Boolean);
       if (statusArr.length > 0) count += statusArr.length;
     }
     return count;
-  }, [localFilters]);
+  }, [activeFilters]);
 
   const hasActiveFilters = activeFiltersCount > 0;
 
@@ -645,18 +644,28 @@ export default function DataUsahaPage() {
               ref={inputRef}
               className={cn(
                 "peer min-w-60 ps-9",
+                "[&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none [&::-webkit-search-results-button]:appearance-none [&::-webkit-search-results-decoration]:appearance-none",
                 Boolean(searchTerm) && "pe-9",
               )}
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
-                isPaginationAction.current = true;
               }}
               placeholder="Cari NIB, Nama Usaha..."
-              type="text"
+              type="search"
             />
             <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 text-muted-foreground/80 peer-disabled:opacity-50">
-              <ListFilter size={16} strokeWidth={2} aria-hidden="true" />
+              {loading ? (
+                <Loader2
+                  className="animate-spin"
+                  size={16}
+                  strokeWidth={2}
+                  role="status"
+                  aria-label="Loading..."
+                />
+              ) : (
+                <ListFilter size={16} strokeWidth={2} aria-hidden="true" />
+              )}
             </div>
             {Boolean(searchTerm) && (
               <button
@@ -664,11 +673,11 @@ export default function DataUsahaPage() {
                 aria-label="Clear filter"
                 onClick={() => {
                   setSearchTerm("");
-                  isPaginationAction.current = true;
                   if (inputRef.current) {
                     inputRef.current.focus();
                   }
                 }}
+                type="button"
               >
                 <CircleX size={16} strokeWidth={2} aria-hidden="true" />
               </button>
@@ -819,10 +828,7 @@ export default function DataUsahaPage() {
 
       {/* Data Table */}
       <div
-        className={cn(
-          "overflow-hidden rounded-lg border border-border bg-background transition-opacity duration-200 relative",
-          loading && businesses.length > 0 ? "opacity-75 pointer-events-none" : "opacity-100"
-        )}
+        className="overflow-hidden rounded-lg border border-border bg-background transition-opacity duration-200 relative"
       >
         <Table className="table-fixed">
           <TableHeader>
@@ -840,7 +846,7 @@ export default function DataUsahaPage() {
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody>
+          <TableBody className={loading && businesses.length > 0 ? "opacity-75 pointer-events-none transition-opacity" : ""}>
             {loading && businesses.length === 0 ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={`skeleton-${i}`}>

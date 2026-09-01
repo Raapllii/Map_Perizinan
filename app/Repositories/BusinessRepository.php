@@ -46,15 +46,20 @@ class BusinessRepository
 
         if ($request->has('status_pemetaan') && $request->get('status_pemetaan') !== 'Semua') {
             $statusPemetaan = $request->get('status_pemetaan');
+            
+            $validLat = "(lat::text ~ '^-?[0-9]+(\.[0-9]+)?$' AND (CASE WHEN lat::text ~ '^-?[0-9]+(\.[0-9]+)?$' THEN lat::numeric ELSE 999 END) BETWEEN -90 AND 90)";
+            $validLng = "(lng::text ~ '^-?[0-9]+(\.[0-9]+)?$' AND (CASE WHEN lng::text ~ '^-?[0-9]+(\.[0-9]+)?$' THEN lng::numeric ELSE 999 END) BETWEEN -180 AND 180)";
+
             if ($statusPemetaan === 'Sudah Dipetakan') {
-                $query->whereNotNull('lat')->where('lat', '!=', '')
-                      ->whereNotNull('lng')->where('lng', '!=', '');
+                $query->whereNotNull('lat')->whereNotNull('lng')
+                      ->whereRaw($validLat)
+                      ->whereRaw($validLng);
             } else if ($statusPemetaan === 'Belum Dipetakan') {
-                $query->where(function($q) {
+                $query->where(function($q) use ($validLat, $validLng) {
                     $q->whereNull('lat')
-                      ->orWhere('lat', '')
                       ->orWhereNull('lng')
-                      ->orWhere('lng', '');
+                      ->orWhereRaw("NOT {$validLat}")
+                      ->orWhereRaw("NOT {$validLng}");
                 });
             }
         }
