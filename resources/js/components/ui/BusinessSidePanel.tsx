@@ -66,18 +66,18 @@ export function BusinessSidePanel({ business, isMobile, onClose, onDirectionsCli
     );
   }
 
-  // Desktop side panel (flex sibling)
+  // Desktop side panel (overlay from left)
   return (
     <AnimatePresence>
       {business && (
         <motion.div
-          initial={{ width: 0, opacity: 0 }}
-          animate={{ width: 380, opacity: 1 }}
-          exit={{ width: 0, opacity: 0 }}
+          initial={{ x: -400, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: -400, opacity: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="flex-shrink-0 border-r border-border h-full bg-card overflow-hidden relative z-10"
+          className="absolute top-4 bottom-4 left-4 z-[1000] w-[380px] pointer-events-none"
         >
-          <div className="w-[380px] h-full flex flex-col">
+          <Card className="w-full h-full flex flex-col overflow-hidden pointer-events-auto shadow-2xl border-border bg-card" padding="p-0">
             <div className="p-4 bg-primary flex items-start justify-between shrink-0">
               <div>
                 <p className="text-xs font-medium text-primary-foreground/80 mb-1">Detail Usaha</p>
@@ -122,7 +122,7 @@ export function BusinessSidePanel({ business, isMobile, onClose, onDirectionsCli
               <Btn variant="primary" size="sm" Icon={Eye} className="flex-1 justify-center rounded-xl py-2.5" onClick={onDetailClick}>Detail</Btn>
               <Btn variant="outline" size="sm" Icon={Navigation} className="flex-1 justify-center rounded-xl py-2.5" onClick={onDirectionsClick}>Rute</Btn>
             </div>
-          </div>
+          </Card>
         </motion.div>
       )}
     </AnimatePresence>
