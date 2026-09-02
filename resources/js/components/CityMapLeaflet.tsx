@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, useMap, useMapEvents, ZoomControl, ScaleControl, Popup, CircleMarker, Marker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -41,9 +41,16 @@ const getRiskColor = (risiko: string) => {
 
 const customSvgIcon = (isSelected: boolean = false, isHovered: boolean = false) => {
   const fillColor = isSelected ? '#22c55e' : (isHovered ? '#15803d' : '#096e2eff');
-  const scale = isSelected ? 'scale(1.15)' : (isHovered ? 'scale(1.05)' : 'scale(1)');
-  const dropShadow = isHovered ? 'drop-shadow(0 4px 8px rgba(34, 197, 94, 0.4))' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
-  const style = `outline: none; transform: ${scale}; transition: transform 0.2s ease, filter 0.2s ease; filter: ${dropShadow};`;
+  
+  // Use filter for visual changes instead of transform: scale to keep hitbox stable
+  let filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
+  if (isSelected) {
+    filter = 'drop-shadow(0 0 10px rgba(34, 197, 94, 0.8)) brightness(1.1)';
+  } else if (isHovered) {
+    filter = 'drop-shadow(0 4px 8px rgba(21, 128, 61, 0.6)) brightness(1.1)';
+  }
+
+  const style = `outline: none; transition: filter 0.2s ease, fill 0.2s ease; filter: ${filter};`;
 
   const svg = `
     <svg enable-background="new 0 0 500 500" viewBox="0 0 500 500" width="32" height="32" style="${style}">
@@ -112,6 +119,7 @@ function InvalidateSizeObserver() {
 }
 
 export default function CityMapLeaflet({ height = "100%", markers = [], onSelectMarker, selectedMarker, onHoverMarker, hoveredMarker, onBoundsChange, className = "", mapType = 'peta', flyTrigger = null, isMobile = false, renderPopup, isMiniMap = false }: CityMapLeafletProps) {
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const defaultCenter: [number, number] = [-0.502106, 117.153709];
 
   const renderedMarkers = useMemo(() => {
@@ -136,10 +144,13 @@ export default function CityMapLeaflet({ height = "100%", markers = [], onSelect
               }
             },
             mouseover: () => {
+              if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
               if (onHoverMarker) onHoverMarker(marker);
             },
             mouseout: () => {
-              if (onHoverMarker) onHoverMarker(null);
+              hoverTimeoutRef.current = setTimeout(() => {
+                if (onHoverMarker) onHoverMarker(null);
+              }, 150);
             },
             keypress: (e) => {
               if (e.originalEvent.key === 'Enter' && onSelectMarker) {
