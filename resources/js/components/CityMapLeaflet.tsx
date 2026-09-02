@@ -145,7 +145,9 @@ export default function CityMapLeaflet({ height = "100%", markers = [], onSelect
             },
             mouseover: () => {
               if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-              if (onHoverMarker) onHoverMarker(marker);
+              if (!hoveredMarker || hoveredMarker.id !== marker.id) {
+                if (onHoverMarker) onHoverMarker(marker);
+              }
             },
             mouseout: () => {
               hoverTimeoutRef.current = setTimeout(() => {
@@ -193,7 +195,19 @@ export default function CityMapLeaflet({ height = "100%", markers = [], onSelect
               autoPan={false}
               minWidth={260}
             >
-              {renderPopup(activePopupMarker)}
+              <div
+                onMouseEnter={() => {
+                  if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+                }}
+                onMouseLeave={() => {
+                  hoverTimeoutRef.current = setTimeout(() => {
+                    if (onHoverMarker) onHoverMarker(null);
+                  }, 150);
+                }}
+                style={{ width: '100%', height: '100%' }}
+              >
+                {renderPopup(activePopupMarker)}
+              </div>
             </Popup>
           ) : null;
         })()}
