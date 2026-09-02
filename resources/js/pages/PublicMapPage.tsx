@@ -160,8 +160,20 @@ export default function PublicMapPage() {
       </AnimatePresence>
 
 
+      {/* Side Panel (Desktop flex sibling) or Bottom Sheet (Mobile fixed drawer) */}
+      <BusinessSidePanel 
+        business={selectedBusiness}
+        isMobile={isMobile}
+        onClose={() => setSelectedBusiness(null)}
+        onDirectionsClick={() => {
+          if (selectedBusiness) {
+            window.open(`https://www.google.com/maps/dir/?api=1&destination=${selectedBusiness.lat},${selectedBusiness.lng}`, '_blank');
+          }
+        }}
+      />
+
       {/* Main Map Container */}
-      <div className="flex-1 relative h-full">
+      <div className="flex-1 relative h-full min-w-0">
         <div className="absolute inset-0 z-0">
           <Suspense fallback={<div className="flex items-center justify-center h-full w-full bg-muted text-muted-foreground font-medium">Memuat Peta WebGIS...</div>}>
             <CityMapLeaflet
@@ -221,18 +233,6 @@ export default function PublicMapPage() {
         </div>
 
         {/* Mobile Search Overlay (only when searching on mobile) */}
-        {/* Detail Bottom Sheet / Desktop Side Panel */}
-        <BusinessSidePanel 
-          business={selectedBusiness}
-          isMobile={isMobile}
-          onClose={() => setSelectedBusiness(null)}
-          onDirectionsClick={() => {
-            if (selectedBusiness) {
-              window.open(`https://www.google.com/maps/dir/?api=1&destination=${selectedBusiness.lat},${selectedBusiness.lng}`, '_blank');
-            }
-          }}
-        />
-
       </div>
     </div>
   );

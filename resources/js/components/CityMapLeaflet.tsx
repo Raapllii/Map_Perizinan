@@ -173,7 +173,7 @@ export default function CityMapLeaflet({ height = "100%", markers = [], onSelect
         {renderedMarkers}
 
         {(() => {
-          const activePopupMarker = hoveredMarker || selectedMarker;
+          const activePopupMarker = hoveredMarker;
           return activePopupMarker && !isMobile && renderPopup && activePopupMarker.lat && activePopupMarker.lng ? (
             <Popup
               position={[parseFloat(activePopupMarker.lat), parseFloat(activePopupMarker.lng)]}
