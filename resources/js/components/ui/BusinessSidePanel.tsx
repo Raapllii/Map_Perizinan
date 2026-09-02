@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Navigation, Eye, Building2 } from 'lucide-react';
+import { X, Navigation, Eye, Building2, Edit } from 'lucide-react';
 import { Drawer } from 'vaul';
 import { motion, AnimatePresence } from 'motion/react';
 import { StatusBadge } from './StatusBadge';
@@ -12,9 +12,10 @@ interface BusinessSidePanelProps {
   onClose: () => void;
   onDirectionsClick?: () => void;
   onDetailClick?: () => void;
+  onEditClick?: () => void;
 }
 
-export function BusinessSidePanel({ business, isMobile, onClose, onDirectionsClick, onDetailClick }: BusinessSidePanelProps) {
+export function BusinessSidePanel({ business, isMobile, onClose, onDirectionsClick, onDetailClick, onEditClick }: BusinessSidePanelProps) {
   if (isMobile) {
     return (
       <Drawer.Root open={!!business} onOpenChange={(open) => !open && onClose()} modal={false}>
@@ -54,9 +55,12 @@ export function BusinessSidePanel({ business, isMobile, onClose, onDirectionsCli
                     </div>
                   </div>
                 </div>
-                <div className="p-5 border-t border-border flex gap-3 bg-card mt-auto">
-                  <Btn variant="primary" size="sm" Icon={Eye} className="flex-1 justify-center rounded-xl py-2.5" onClick={onDetailClick}>Detail</Btn>
-                  <Btn variant="outline" size="sm" Icon={Navigation} className="flex-1 justify-center rounded-xl py-2.5" onClick={onDirectionsClick}>Rute</Btn>
+                <div className="p-5 border-t border-border flex gap-2 bg-card mt-auto flex-wrap">
+                  <Btn variant="primary" size="sm" Icon={Eye} className="flex-1 justify-center rounded-xl py-2.5 min-w-[80px]" onClick={onDetailClick}>Detail</Btn>
+                  {onEditClick && (
+                    <Btn variant="secondary" size="sm" Icon={Edit} className="flex-1 justify-center rounded-xl py-2.5 min-w-[80px]" onClick={onEditClick}>Edit</Btn>
+                  )}
+                  <Btn variant="outline" size="sm" Icon={Navigation} className="flex-1 justify-center rounded-xl py-2.5 min-w-[80px]" onClick={onDirectionsClick}>Rute</Btn>
                 </div>
               </>
             )}
@@ -118,9 +122,12 @@ export function BusinessSidePanel({ business, isMobile, onClose, onDirectionsCli
                 </div>
               ))}
             </div>
-            <div className="p-5 border-t border-border flex gap-3 bg-card mt-auto shrink-0">
-              <Btn variant="primary" size="sm" Icon={Eye} className="flex-1 justify-center rounded-xl py-2.5" onClick={onDetailClick}>Detail</Btn>
-              <Btn variant="outline" size="sm" Icon={Navigation} className="flex-1 justify-center rounded-xl py-2.5" onClick={onDirectionsClick}>Rute</Btn>
+            <div className="p-5 border-t border-border flex gap-2 bg-card mt-auto shrink-0 flex-wrap">
+              <Btn variant="primary" size="sm" Icon={Eye} className="flex-1 justify-center rounded-xl py-2.5 min-w-[80px]" onClick={onDetailClick}>Detail</Btn>
+              {onEditClick && (
+                <Btn variant="secondary" size="sm" Icon={Edit} className="flex-1 justify-center rounded-xl py-2.5 min-w-[80px]" onClick={onEditClick}>Edit</Btn>
+              )}
+              <Btn variant="outline" size="sm" Icon={Navigation} className="flex-1 justify-center rounded-xl py-2.5 min-w-[80px]" onClick={onDirectionsClick}>Rute</Btn>
             </div>
           </Card>
         </motion.div>
