@@ -16,6 +16,8 @@ interface CityMapLeafletProps {
   markers?: any[];
   onSelectMarker?: (marker: any) => void;
   selectedMarker?: any;
+  onHoverMarker?: (marker: any | null) => void;
+  hoveredMarker?: any;
   onBoundsChange?: (bounds: string, zoom: number) => void;
   className?: string;
   mapType?: 'peta' | 'satelit';
@@ -37,18 +39,20 @@ const getRiskColor = (risiko: string) => {
   }
 };
 
-const customSvgIcon = (isSelected: boolean = false) => {
-  const fillColor = isSelected ? '#22c55e' : '#096e2eff';
-  const scale = isSelected ? 'transform: scale(1.15); transition: transform 0.2s ease;' : 'transition: transform 0.2s ease;';
+const customSvgIcon = (isSelected: boolean = false, isHovered: boolean = false) => {
+  const fillColor = isSelected ? '#22c55e' : (isHovered ? '#15803d' : '#096e2eff');
+  const scale = isSelected ? 'scale(1.15)' : (isHovered ? 'scale(1.05)' : 'scale(1)');
+  const dropShadow = isHovered ? 'drop-shadow(0 4px 8px rgba(34, 197, 94, 0.4))' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
+  const style = `outline: none; transform: ${scale}; transition: transform 0.2s ease, filter 0.2s ease; filter: ${dropShadow};`;
 
   const svg = `
-    <svg enable-background="new 0 0 500 500" viewBox="0 0 500 500" width="32" height="32" style="outline: none; ${scale}">
+    <svg enable-background="new 0 0 500 500" viewBox="0 0 500 500" width="32" height="32" style="${style}">
       <path clip-rule="evenodd" d="M227.788,172.774c0-12.538,10.177-22.713,22.713-22.713  c12.536,0,22.715,10.175,22.715,22.713c0,12.536-10.179,22.713-22.715,22.713C237.964,195.487,227.788,185.31,227.788,172.774z   M250.501,113.718c-32.619,0-59.056,26.441-59.056,59.056c0,32.615,26.437,59.056,59.056,59.056  c32.614,0,59.056-26.44,59.056-59.056C309.557,140.159,283.115,113.718,250.501,113.718z M109.676,170.228  c0,92.672,109.297,163.992,118.112,270.569v4.543c0,12.536,10.177,22.711,22.713,22.711c12.536,0,22.715-10.175,22.715-22.711  v-4.543c9.35-106.577,118.108-177.897,118.108-270.569c0-76.407-63.045-138.278-140.823-138.278  C172.729,31.949,109.676,93.821,109.676,170.228z M250.501,77.375c52.693,0,95.396,42.705,95.396,95.398  c0,52.694-42.702,95.398-95.398,95.398c-52.694,0-95.398-42.704-95.398-95.398C155.103,120.08,197.807,77.375,250.501,77.375z" fill="${fillColor}" fill-rule="evenodd"/>
     </svg>
   `;
   return new L.DivIcon({
     className: 'custom-svg-icon bg-transparent border-none outline-none focus:outline-none flex items-center justify-center',
-    html: `<div style="cursor: pointer; display: flex; align-items: center; justify-content: center; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));" tabindex="0" aria-label="Marker Lokasi Usaha">${svg}</div>`,
+    html: `<div style="cursor: pointer; display: flex; align-items: center; justify-content: center;" tabindex="0" aria-label="Marker Lokasi Usaha">${svg}</div>`,
     iconSize: [32, 32],
     iconAnchor: [16, 32],
     popupAnchor: [0, -32]
@@ -107,7 +111,7 @@ function InvalidateSizeObserver() {
   return null;
 }
 
-export default function CityMapLeaflet({ height = "100%", markers = [], onSelectMarker, selectedMarker, onBoundsChange, className = "", mapType = 'peta', flyTrigger = null, isMobile = false, renderPopup, isMiniMap = false }: CityMapLeafletProps) {
+export default function CityMapLeaflet({ height = "100%", markers = [], onSelectMarker, selectedMarker, onHoverMarker, hoveredMarker, onBoundsChange, className = "", mapType = 'peta', flyTrigger = null, isMobile = false, renderPopup, isMiniMap = false }: CityMapLeafletProps) {
   const defaultCenter: [number, number] = [-0.502106, 117.153709];
 
   const renderedMarkers = useMemo(() => {
@@ -116,19 +120,26 @@ export default function CityMapLeaflet({ height = "100%", markers = [], onSelect
       if (!marker.lat || !marker.lng) return null;
 
       const isSelected = selectedMarker && marker.id === selectedMarker.id;
+      const isHovered = hoveredMarker && marker.id === hoveredMarker.id;
 
       return (
         <Marker
           key={`${marker.id || index}-${index}`}
           position={[parseFloat(marker.lat), parseFloat(marker.lng)]}
-          icon={customSvgIcon(isSelected)}
-          zIndexOffset={isSelected ? 1000 : 0}
+          icon={customSvgIcon(isSelected, isHovered)}
+          zIndexOffset={isSelected ? 1000 : (isHovered ? 500 : 0)}
           eventHandlers={{
             click: (e) => {
               L.DomEvent.stopPropagation(e as any);
               if (onSelectMarker) {
                 onSelectMarker(marker);
               }
+            },
+            mouseover: () => {
+              if (onHoverMarker) onHoverMarker(marker);
+            },
+            mouseout: () => {
+              if (onHoverMarker) onHoverMarker(null);
             },
             keypress: (e) => {
               if (e.originalEvent.key === 'Enter' && onSelectMarker) {
@@ -140,7 +151,7 @@ export default function CityMapLeaflet({ height = "100%", markers = [], onSelect
         </Marker>
       );
     });
-  }, [markers, selectedMarker, onSelectMarker, isMobile, renderPopup]);
+  }, [markers, selectedMarker, hoveredMarker, onSelectMarker, onHoverMarker, isMobile, renderPopup]);
 
   const tileUrl = mapType === 'satelit'
     ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
@@ -161,17 +172,20 @@ export default function CityMapLeaflet({ height = "100%", markers = [], onSelect
 
         {renderedMarkers}
 
-        {selectedMarker && !isMobile && renderPopup && selectedMarker.lat && selectedMarker.lng && (
-          <Popup
-            position={[parseFloat(selectedMarker.lat), parseFloat(selectedMarker.lng)]}
-            className="custom-popup"
-            closeButton={false}
-            autoPan={true}
-            minWidth={260}
-          >
-            {renderPopup(selectedMarker)}
-          </Popup>
-        )}
+        {(() => {
+          const activePopupMarker = hoveredMarker || selectedMarker;
+          return activePopupMarker && !isMobile && renderPopup && activePopupMarker.lat && activePopupMarker.lng ? (
+            <Popup
+              position={[parseFloat(activePopupMarker.lat), parseFloat(activePopupMarker.lng)]}
+              className="custom-popup"
+              closeButton={false}
+              autoPan={false}
+              minWidth={260}
+            >
+              {renderPopup(activePopupMarker)}
+            </Popup>
+          ) : null;
+        })()}
 
         <MapFlyer trigger={flyTrigger} />
       </MapContainer>

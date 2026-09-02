@@ -6,3 +6,4 @@ export * from './InputField';
 export * from './SelectField';
 export * from './Skeleton';
 export * from './StatCard';
+export * from './BusinessSidePanel';

@@ -6,6 +6,7 @@ import { motion } from "motion/react";
 import { StatusBadge, Btn } from "../components/ui";
 import Navbar from "../components/ui/mini-navbar";
 import { BusinessDetailCard } from "../components/ui/BusinessDetailCard";
+import { BusinessSidePanel } from "../components/ui/BusinessSidePanel";
 import { AnimatePresence } from "motion/react";
 import { useBusinessSearch } from "../hooks/useBusinessSearch";
 
@@ -13,6 +14,7 @@ const CityMapLeaflet = lazy(() => import('../components/CityMapLeaflet'));
 
 export default function PublicMapPage() {
   const [selectedBusiness, setSelectedBusiness] = useState<any>(null);
+  const [hoveredBusiness, setHoveredBusiness] = useState<any>(null);
   const [markers, setMarkers] = useState<any[]>([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [flyTrigger, setFlyTrigger] = useState<any>(null);
@@ -166,6 +168,8 @@ export default function PublicMapPage() {
               height="100%"
               selectedMarker={selected}
               onSelectMarker={handleSelectBusiness}
+              hoveredMarker={hoveredBusiness}
+              onHoverMarker={setHoveredBusiness}
               markers={markers}
               onBoundsChange={handleBoundsChange}
               mapType={mapType}
@@ -217,57 +221,17 @@ export default function PublicMapPage() {
         </div>
 
         {/* Mobile Search Overlay (only when searching on mobile) */}
-        {/* Detail Bottom Sheet (Mobile) using Vaul */}
-        {isMobile && (
-          <Drawer.Root open={!!selectedBusiness} onOpenChange={(open) => !open && setSelectedBusiness(null)} modal={false}>
-            <Drawer.Portal>
-              <Drawer.Content
-                className="bg-card flex flex-col rounded-t-3xl fixed bottom-0 left-0 right-0 z-50 border-t border-border shadow-[0_-8px_30px_rgba(0,0,0,0.12)] max-h-[85vh] outline-none"
-                style={{ pointerEvents: 'auto' }}
-              >
-                {selectedBusiness && (
-                  <>
-                    <div className="w-full flex justify-center pt-4 pb-2">
-                      <div className="w-12 h-1.5 bg-muted rounded-full"></div>
-                    </div>
-
-                    <div className="px-5 pb-3 flex items-start justify-between border-b border-border mt-1">
-                      <div>
-                        <Drawer.Title className="text-base font-bold text-foreground">{selected.nama_perusahaan}</Drawer.Title>
-                        {selected.nama_proyek && <div className="text-sm font-semibold text-primary mt-0.5 line-clamp-1">{selected.nama_proyek}</div>}
-                        <Drawer.Description className="text-xs text-muted-foreground mt-0.5">{selected.judul_kbli}</Drawer.Description>
-                      </div>
-                      <button onClick={() => setSelectedBusiness(null)} className="p-2 bg-muted hover:bg-muted/80 transition-colors rounded-full text-muted-foreground ml-4 flex-shrink-0"><X size={16} /></button>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-5 space-y-5">
-                      <div className="flex gap-2">
-                        <StatusBadge status={selected.status} />
-                        <span className="px-2.5 py-1 bg-primary/10 text-primary text-[11px] font-bold rounded-full">{selected.risiko}</span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase">Kecamatan</p>
-                          <p className="text-sm font-medium text-foreground">{selected.kecamatan || '-'}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase">NIB</p>
-                          <p className="text-sm font-mono text-foreground">{selected.nib || '-'}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-5 border-t border-border flex gap-3 bg-card mt-auto">
-                      <Btn variant="primary" size="sm" Icon={Eye} className="flex-1 justify-center rounded-xl py-2.5">Detail</Btn>
-                      <Btn variant="outline" size="sm" Icon={Navigation} className="flex-1 justify-center rounded-xl py-2.5" onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lng}`, '_blank')}>Rute</Btn>
-                    </div>
-                  </>
-                )}
-              </Drawer.Content>
-            </Drawer.Portal>
-          </Drawer.Root>
-        )}
+        {/* Detail Bottom Sheet / Desktop Side Panel */}
+        <BusinessSidePanel 
+          business={selectedBusiness}
+          isMobile={isMobile}
+          onClose={() => setSelectedBusiness(null)}
+          onDirectionsClick={() => {
+            if (selectedBusiness) {
+              window.open(`https://www.google.com/maps/dir/?api=1&destination=${selectedBusiness.lat},${selectedBusiness.lng}`, '_blank');
+            }
+          }}
+        />
 
       </div>
     </div>
