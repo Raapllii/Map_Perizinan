@@ -12,9 +12,9 @@ class BusinessRepository
         $query = Business::query();
 
         $filters = [
-            'kecamatan' => 'kecamatan',
-            'kelurahan' => 'kelurahan',
-            'risiko' => 'risiko',
+            'kecamatan' => 'kecamatan_usaha',
+            'kelurahan' => 'kelurahan_usaha',
+            'risiko' => 'uraian_risiko_proyek',
             'status' => 'status',
             'kategori' => 'judul_kbli'
         ];
@@ -41,23 +41,23 @@ class BusinessRepository
         }
 
         if ($request->has('tahun') && $request->get('tahun') !== 'Semua') {
-            $query->whereYear('tgl_terbit', $request->get('tahun'));
+            $query->whereYear('tanggal_terbit_oss', $request->get('tahun'));
         }
 
         if ($request->has('status_pemetaan') && $request->get('status_pemetaan') !== 'Semua') {
             $statusPemetaan = $request->get('status_pemetaan');
             
-            $validLat = "(lat::text ~ '^-?[0-9]+(\.[0-9]+)?$' AND (CASE WHEN lat::text ~ '^-?[0-9]+(\.[0-9]+)?$' THEN lat::numeric ELSE 999 END) BETWEEN -90 AND 90)";
-            $validLng = "(lng::text ~ '^-?[0-9]+(\.[0-9]+)?$' AND (CASE WHEN lng::text ~ '^-?[0-9]+(\.[0-9]+)?$' THEN lng::numeric ELSE 999 END) BETWEEN -180 AND 180)";
+            $validLat = "(latitude::text ~ '^-?[0-9]+(\.[0-9]+)?$' AND (CASE WHEN latitude::text ~ '^-?[0-9]+(\.[0-9]+)?$' THEN latitude::numeric ELSE 999 END) BETWEEN -90 AND 90)";
+            $validLng = "(longitude::text ~ '^-?[0-9]+(\.[0-9]+)?$' AND (CASE WHEN longitude::text ~ '^-?[0-9]+(\.[0-9]+)?$' THEN longitude::numeric ELSE 999 END) BETWEEN -180 AND 180)";
 
             if ($statusPemetaan === 'Sudah Dipetakan') {
-                $query->whereNotNull('lat')->whereNotNull('lng')
+                $query->whereNotNull('latitude')->whereNotNull('longitude')
                       ->whereRaw($validLat)
                       ->whereRaw($validLng);
             } else if ($statusPemetaan === 'Belum Dipetakan') {
                 $query->where(function($q) use ($validLat, $validLng) {
-                    $q->whereNull('lat')
-                      ->orWhereNull('lng')
+                    $q->whereNull('latitude')
+                      ->orWhereNull('longitude')
                       ->orWhereRaw("NOT {$validLat}")
                       ->orWhereRaw("NOT {$validLng}");
                 });
@@ -67,7 +67,7 @@ class BusinessRepository
         if ($request->has('search') && !empty($request->search)) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->whereRaw("to_tsvector('simple', COALESCE(nama_perusahaan, '') || ' ' || COALESCE(judul_kbli, '') || ' ' || COALESCE(kbli, '') || ' ' || COALESCE(nib, '') || ' ' || COALESCE(id_proyek, '') || ' ' || COALESCE(kecamatan, '') || ' ' || COALESCE(kelurahan, '') || ' ' || COALESCE(alamat_proyek, '')) @@ plainto_tsquery('simple', ?)", [$search])
+                $q->whereRaw("to_tsvector('simple', COALESCE(nama_perusahaan, '') || ' ' || COALESCE(judul_kbli, '') || ' ' || COALESCE(kbli, '') || ' ' || COALESCE(nib, '') || ' ' || COALESCE(id_proyek, '') || ' ' || COALESCE(kecamatan_usaha, '') || ' ' || COALESCE(kelurahan_usaha, '') || ' ' || COALESCE(alamat_usaha, '')) @@ plainto_tsquery('simple', ?)", [$search])
                   ->orWhere('nama_perusahaan', 'ILIKE', '%' . $search . '%')
                   ->orWhere('nib', 'ILIKE', '%' . $search . '%')
                   ->orWhere('id_proyek', 'ILIKE', '%' . $search . '%');
@@ -115,11 +115,16 @@ class BusinessRepository
 
     public function searchByKeyword(string $keyword)
     {
-        $query = Business::select('id', 'nama_perusahaan', 'judul_kbli', 'nib', 'kecamatan', 'kelurahan', 'status', 'risiko', 'lat', 'lng');
+        $query = Business::select(
+            'id', 'nama_perusahaan', 'judul_kbli', 'nib', 
+            'kecamatan_usaha as kecamatan', 'kelurahan_usaha as kelurahan', 
+            'status', 'uraian_risiko_proyek as risiko', 
+            'latitude as lat', 'longitude as lng'
+        );
 
         if (!empty($keyword)) {
             $query->where(function($q) use ($keyword) {
-                $q->whereRaw("to_tsvector('simple', COALESCE(nama_perusahaan, '') || ' ' || COALESCE(judul_kbli, '') || ' ' || COALESCE(kbli, '') || ' ' || COALESCE(nib, '') || ' ' || COALESCE(id_proyek, '') || ' ' || COALESCE(kecamatan, '') || ' ' || COALESCE(kelurahan, '') || ' ' || COALESCE(alamat_proyek, '')) @@ plainto_tsquery('simple', ?)", [$keyword])
+                $q->whereRaw("to_tsvector('simple', COALESCE(nama_perusahaan, '') || ' ' || COALESCE(judul_kbli, '') || ' ' || COALESCE(kbli, '') || ' ' || COALESCE(nib, '') || ' ' || COALESCE(id_proyek, '') || ' ' || COALESCE(kecamatan_usaha, '') || ' ' || COALESCE(kelurahan_usaha, '') || ' ' || COALESCE(alamat_usaha, '')) @@ plainto_tsquery('simple', ?)", [$keyword])
                   ->orWhere('nama_perusahaan', 'ILIKE', "%{$keyword}%")
                   ->orWhere('nib', 'ILIKE', "%{$keyword}%");
             });
