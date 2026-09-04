@@ -203,6 +203,18 @@ export default function DataUsahaPage() {
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
 
+  const [isDeleting, setIsDeleting] = useState<string | number | null>(null);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+  const showToast = (message: string, type: 'success' | 'error') => {
+    const toast = document.createElement('div');
+    const bgClass = type === 'success' ? 'bg-green-500 text-white' : 'bg-destructive text-destructive-foreground';
+    toast.className = `fixed bottom-4 right-4 ${bgClass} px-4 py-2 rounded-md shadow-lg z-[100] font-medium text-sm transition-all animate-in slide-in-from-bottom-5`;
+    toast.innerText = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  };
+
   const [alertMsg, setAlertMsg] = useState("");
   const location = useLocation();
 
@@ -382,12 +394,18 @@ export default function DataUsahaPage() {
 
   const handleDelete = (id: string | number) => {
     if (confirm("Apakah Anda yakin ingin menghapus data ini?")) {
+      setIsDeleting(id);
       axios.delete(`/api/admin/businesses/${id}`)
         .then(() => {
           setRefreshTrigger(prev => prev + 1);
           setRowSelection({});
+          showToast("Data usaha berhasil dihapus", "success");
         })
-        .catch(err => console.error(err));
+        .catch(err => {
+          console.error(err);
+          showToast(err.response?.data?.message || "Gagal menghapus data usaha", "error");
+        })
+        .finally(() => setIsDeleting(null));
     }
   };
 
@@ -396,13 +414,20 @@ export default function DataUsahaPage() {
     const ids = selectedRows.map(row => row.original.id);
     if (ids.length === 0) return;
 
+    setIsBulkDeleting(true);
     Promise.all(ids.map(id => axios.delete(`/api/admin/businesses/${id}`)))
       .then(() => {
         setRowSelection({});
         setRefreshTrigger(prev => prev + 1);
         setIsBulkDeleteOpen(false);
+        showToast("Data usaha terpilih berhasil dihapus", "success");
       })
-      .catch(err => console.error(err));
+      .catch(err => {
+        console.error(err);
+        showToast("Gagal menghapus beberapa data usaha", "error");
+        setIsBulkDeleteOpen(false);
+      })
+      .finally(() => setIsBulkDeleting(false));
   };
 
   const columns = useMemo<ColumnDef<Business>[]>(() => [
@@ -538,17 +563,31 @@ export default function DataUsahaPage() {
                 <span>Edit Data</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(b.id)}>
-                <Trash2 className="mr-2 opacity-60" size={16} strokeWidth={2} />
-                <span>Hapus</span>
-                <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
+              <DropdownMenuItem 
+                className="text-destructive focus:text-destructive" 
+                onClick={(e) => {
+                  if (isDeleting === b.id) {
+                    e.preventDefault();
+                    return;
+                  }
+                  handleDelete(b.id);
+                }}
+                disabled={isDeleting === b.id}
+              >
+                {isDeleting === b.id ? (
+                  <Loader2 className="mr-2 animate-spin opacity-60" size={16} strokeWidth={2} />
+                ) : (
+                  <Trash2 className="mr-2 opacity-60" size={16} strokeWidth={2} />
+                )}
+                <span>{isDeleting === b.id ? 'Menghapus...' : 'Hapus'}</span>
+                {isDeleting !== b.id && <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         );
       }
     }
-  ], []);
+  ], [isDeleting]);
 
   const table = useReactTable({
     data: businesses,
@@ -632,8 +671,24 @@ export default function DataUsahaPage() {
                 </AlertDialogHeader>
               </div>
               <AlertDialogFooter>
-                <AlertDialogCancel>Batal</AlertDialogCancel>
-                <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Hapus</AlertDialogAction>
+                <AlertDialogCancel disabled={isBulkDeleting}>Batal</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleBulkDelete();
+                  }} 
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  disabled={isBulkDeleting}
+                >
+                  {isBulkDeleting ? (
+                    <>
+                      <Loader2 className="mr-2 animate-spin" size={16} strokeWidth={2} />
+                      Menghapus...
+                    </>
+                  ) : (
+                    "Hapus"
+                  )}
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

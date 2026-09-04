@@ -5,6 +5,7 @@ namespace App\Imports;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
@@ -17,6 +18,12 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
     public $importedCount = 0;
     public $updatedCount = 0;
     public $failedCount = 0;
+    protected $importId;
+
+    public function __construct($importId = null)
+    {
+        $this->importId = $importId;
+    }
 
     public function collection(Collection $rows)
     {
@@ -24,11 +31,11 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
             return;
         }
 
-        // --- 1. HEADER VALIDATION ---
-        // Get the actual keys from the first parsed row (they are automatically slugged by Maatwebsite Excel)
-        $firstRowKeys = array_keys($rows->first()->toArray());
+        // --- 1. HEADER VALIDATION & NORMALIZATION ---
+        $firstRowArray = is_array($rows->first()) ? $rows->first() : $rows->first()->toArray();
+        $firstRowKeys = array_keys($firstRowArray);
         
-        $expectedSluggedHeaders = [
+        $canonicalHeaders = [
             'id_proyek',
             'uraian_jenis_proyek',
             'nib',
@@ -58,20 +65,35 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
             'tki'
         ];
 
-        $missing = array_diff($expectedSluggedHeaders, $firstRowKeys);
-        $unexpected = array_diff($firstRowKeys, $expectedSluggedHeaders);
+        $aliasMap = [
+            'klsektor_pembina' => 'kl_sektor_pembina',
+            'klsektorpembina' => 'kl_sektor_pembina'
+        ];
 
-        if (!empty($missing) || !empty($unexpected)) {
-            $errorMessage = "Format CSV tidak sesuai.\n";
-            if (!empty($missing)) {
-                $errorMessage .= "Kolom yang hilang: " . implode(', ', $missing) . ".\n";
+        $headerMapping = []; // canonical_field => original_csv_column
+        $foundCanonicalHeaders = [];
+
+        foreach ($firstRowKeys as $key) {
+            $normalizedKey = trim(strtolower($key));
+            // normalisasi spasi dan karakter non-alfanumerik (termasuk /) menjadi underscore
+            $normalizedKey = preg_replace('/[^a-z0-9]+/', '_', $normalizedKey);
+            $normalizedKey = trim($normalizedKey, '_');
+            
+            if (in_array($normalizedKey, $canonicalHeaders)) {
+                $headerMapping[$normalizedKey] = $key;
+                $foundCanonicalHeaders[] = $normalizedKey;
+            } elseif (isset($aliasMap[$normalizedKey])) {
+                $headerMapping[$aliasMap[$normalizedKey]] = $key;
+                $foundCanonicalHeaders[] = $aliasMap[$normalizedKey];
             }
-            if (!empty($unexpected)) {
-                $errorMessage .= "Kolom yang tidak dikenali/salah nama: " . implode(', ', $unexpected) . ".\n";
-            }
-            throw new \Exception($errorMessage);
         }
-        // --- END HEADER VALIDATION ---
+
+        $missing = array_diff($canonicalHeaders, $foundCanonicalHeaders);
+
+        if (!empty($missing)) {
+            throw new \Exception("Format CSV tidak sesuai.\nKolom wajib yang hilang: " . implode(', ', $missing) . ".");
+        }
+        // --- END HEADER VALIDATION & NORMALIZATION ---
 
         $batch = []; // This will be an associative array keyed by 'nib|id_proyek'
         $now = now();
@@ -99,22 +121,43 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
         DB::beginTransaction();
         try {
             foreach ($rows as $row) {
-                $idProyek = isset($row['id_proyek']) ? trim((string) $row['id_proyek']) : null;
-                $nib = isset($row['nib']) ? trim((string) $row['nib']) : null;
+                // Map the original slugged keys to canonical keys
+                $mappedRow = [];
+                foreach ($canonicalHeaders as $canonical) {
+                    $original = $headerMapping[$canonical] ?? null;
+                    if ($original !== null) {
+                        $mappedRow[$canonical] = $row[$original] ?? null;
+                    } else {
+                        $mappedRow[$canonical] = null;
+                    }
+                }
+
+                $idProyek = isset($mappedRow['id_proyek']) ? trim((string) $mappedRow['id_proyek']) : null;
+                $nib = isset($mappedRow['nib']) ? trim((string) $mappedRow['nib']) : null;
 
                 if (empty($idProyek) || empty($nib)) {
                     $fails++;
-                    Log::warning("Import failed: Missing id_proyek or nib", ['row' => $row->toArray()]);
+                    Log::warning("Import failed: Missing id_proyek or nib", ['row' => (is_array($row) ? $row : $row->toArray())]);
                     continue;
                 }
+                
+                // --- DEBUG MAPPING AS REQUESTED ---
+                if (empty($mappedRow['nama_perusahaan'])) {
+                    Log::info("Debug Mapping (Empty nama_perusahaan)", [
+                        'original_row' => (is_array($row) ? $row : $row->toArray()),
+                        'mapped_row' => $mappedRow,
+                        'header_mapping' => $headerMapping,
+                    ]);
+                }
+                // --- END DEBUG ---
 
                 $tglTerbit = null;
-                if (!empty($row['tanggal_terbit_oss'])) {
-                    if (is_numeric($row['tanggal_terbit_oss'])) {
-                        $tglTerbit = Date::excelToDateTimeObject($row['tanggal_terbit_oss'])->format('Y-m-d');
+                if (!empty($mappedRow['tanggal_terbit_oss'])) {
+                    if (is_numeric($mappedRow['tanggal_terbit_oss'])) {
+                        $tglTerbit = Date::excelToDateTimeObject($mappedRow['tanggal_terbit_oss'])->format('Y-m-d');
                     } else {
                         try {
-                            $tglTerbit = Carbon::parse($row['tanggal_terbit_oss'])->format('Y-m-d');
+                            $tglTerbit = Carbon::parse($mappedRow['tanggal_terbit_oss'])->format('Y-m-d');
                         } catch (\Exception $e) {
                             $tglTerbit = null;
                         }
@@ -122,16 +165,16 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
                 }
 
                 $lat = null;
-                if (isset($row['latitude']) && is_numeric($row['latitude'])) {
-                    $lat = (float) $row['latitude'];
+                if (isset($mappedRow['latitude']) && is_numeric($mappedRow['latitude'])) {
+                    $lat = (float) $mappedRow['latitude'];
                     if ($lat < -90 || $lat > 90) {
                         $lat = null; // Invalid latitude
                     }
                 }
                 
                 $lng = null;
-                if (isset($row['longitude']) && is_numeric($row['longitude'])) {
-                    $lng = (float) $row['longitude'];
+                if (isset($mappedRow['longitude']) && is_numeric($mappedRow['longitude'])) {
+                    $lng = (float) $mappedRow['longitude'];
                     if ($lng < -180 || $lng > 180) {
                         $lng = null; // Invalid longitude
                     }
@@ -145,32 +188,32 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
 
                 $data = [
                     'id_proyek' => $idProyek,
-                    'uraian_jenis_proyek' => $row['uraian_jenis_proyek'] ?? null,
+                    'uraian_jenis_proyek' => $mappedRow['uraian_jenis_proyek'] ?? null,
                     'nib' => $nib,
-                    'nama_perusahaan' => $row['nama_perusahaan'] ?? null,
+                    'nama_perusahaan' => $mappedRow['nama_perusahaan'] ?? null,
                     'tanggal_terbit_oss' => $tglTerbit,
-                    'uraian_status_penanaman_modal' => $row['uraian_status_penanaman_modal'] ?? null,
-                    'uraian_jenis_perusahaan' => $row['uraian_jenis_perusahaan'] ?? null,
-                    'uraian_risiko_proyek' => $row['uraian_risiko_proyek'] ?? null,
-                    'nama_proyek' => $row['nama_proyek'] ?? null,
-                    'uraian_skala_usaha' => $row['uraian_skala_usaha'] ?? null,
-                    'alamat_usaha' => $row['alamat_usaha'] ?? null,
-                    'kab_kota_usaha' => $row['kab_kota_usaha'] ?? null,
-                    'kecamatan_usaha' => $row['kecamatan_usaha'] ?? null,
-                    'kelurahan_usaha' => $row['kelurahan_usaha'] ?? null,
+                    'uraian_status_penanaman_modal' => $mappedRow['uraian_status_penanaman_modal'] ?? null,
+                    'uraian_jenis_perusahaan' => $mappedRow['uraian_jenis_perusahaan'] ?? null,
+                    'uraian_risiko_proyek' => $mappedRow['uraian_risiko_proyek'] ?? null,
+                    'nama_proyek' => $mappedRow['nama_proyek'] ?? null,
+                    'uraian_skala_usaha' => $mappedRow['uraian_skala_usaha'] ?? null,
+                    'alamat_usaha' => $mappedRow['alamat_usaha'] ?? null,
+                    'kab_kota_usaha' => $mappedRow['kab_kota_usaha'] ?? null,
+                    'kecamatan_usaha' => $mappedRow['kecamatan_usaha'] ?? null,
+                    'kelurahan_usaha' => $mappedRow['kelurahan_usaha'] ?? null,
                     'longitude' => $lng,
                     'latitude' => $lat,
-                    'day_of_tanggal_pengajuan_proyek' => $row['day_of_tanggal_pengajuan_proyek'] ?? null,
-                    'kbli' => $row['kbli'] ?? null,
-                    'judul_kbli' => $row['judul_kbli'] ?? null,
-                    'kl_sektor_pembina' => $row['kl_sektor_pembina'] ?? null,
-                    'nama_user' => $row['nama_user'] ?? null,
-                    'email' => $row['email'] ?? null,
-                    'nomor_telp' => $row['nomor_telp'] ?? null,
-                    'luas_tanah' => $parseDecimal($row['luas_tanah'] ?? null),
-                    'satuan_tanah' => $row['satuan_tanah'] ?? null,
-                    'jumlah_investasi' => $parseDecimal($row['jumlah_investasi'] ?? null),
-                    'tki' => (int) ($row['tki'] ?? 0),
+                    'day_of_tanggal_pengajuan_proyek' => $mappedRow['day_of_tanggal_pengajuan_proyek'] ?? null,
+                    'kbli' => $mappedRow['kbli'] ?? null,
+                    'judul_kbli' => $mappedRow['judul_kbli'] ?? null,
+                    'kl_sektor_pembina' => $mappedRow['kl_sektor_pembina'] ?? null,
+                    'nama_user' => $mappedRow['nama_user'] ?? null,
+                    'email' => $mappedRow['email'] ?? null,
+                    'nomor_telp' => $mappedRow['nomor_telp'] ?? null,
+                    'luas_tanah' => $parseDecimal($mappedRow['luas_tanah'] ?? null),
+                    'satuan_tanah' => $mappedRow['satuan_tanah'] ?? null,
+                    'jumlah_investasi' => $parseDecimal($mappedRow['jumlah_investasi'] ?? null),
+                    'tki' => (int) ($mappedRow['tki'] ?? 0),
 
                     // Internal Columns
                     'status' => 'Aktif',
@@ -213,6 +256,14 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
             $this->importedCount += $inserts;
             $this->updatedCount += $updates;
             $this->failedCount += $fails;
+            
+            if ($this->importId) {
+                $progress = Cache::get('import_progress_' . $this->importId);
+                if ($progress) {
+                    $progress['processed_rows'] += count($rows);
+                    Cache::put('import_progress_' . $this->importId, $progress, 3600);
+                }
+            }
 
         } catch (\Exception $e) {
             DB::rollBack();

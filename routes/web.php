@@ -86,5 +86,6 @@ Route::prefix('api/admin')->group(function () {
         Route::get('/database/backup/{filename}', [DatabaseController::class, 'downloadBackup']);
         Route::get('/database/export', [DatabaseController::class, 'export']);
         Route::post('/database/import', [DatabaseController::class, 'import']);
+        Route::get('/database/import-progress/{id}', [DatabaseController::class, 'importProgress']);
     });
 });

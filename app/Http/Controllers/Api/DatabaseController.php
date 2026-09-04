@@ -13,6 +13,7 @@ use Symfony\Component\Process\Exception\ProcessFailedException;
 use App\Models\ActivityLog;
 use App\Models\Business;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Cache;
 use App\Repositories\BusinessRepository;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\BusinessesImport;
@@ -314,13 +315,48 @@ class DatabaseController extends Controller
 
         if ($request->hasFile('file')) {
             $file = $request->file('file');
+            $importId = $request->input('import_id');
+            
+            if ($importId) {
+                $totalRows = 0;
+                $handle = fopen($file->getPathname(), "r");
+                if ($handle !== false) {
+                    while (!feof($handle)) {
+                        fgets($handle);
+                        $totalRows++;
+                    }
+                    fclose($handle);
+                    $totalRows = max(0, $totalRows - 1); // Subtract header
+                }
+
+                Cache::put('import_progress_' . $importId, [
+                    'total_rows' => $totalRows,
+                    'processed_rows' => 0,
+                    'percentage' => 0,
+                    'status' => 'processing',
+                    'started_at' => microtime(true),
+                    'elapsed_seconds' => 0,
+                    'rows_per_second' => 0,
+                    'estimated_remaining_seconds' => 0,
+                ], 3600);
+            }
             
             try {
-                $import = new BusinessesImport();
+                $import = new BusinessesImport($importId);
                 Excel::import($import, $file);
                 
                 $msg = "Berhasil memproses file. {$import->importedCount} data baru, {$import->updatedCount} diupdate.";
                 $this->logActivity('Import Data', $msg, $request);
+                
+                if ($importId) {
+                    $progress = Cache::get('import_progress_' . $importId);
+                    if ($progress) {
+                        $progress['status'] = 'completed';
+                        $progress['percentage'] = 100;
+                        $progress['processed_rows'] = $progress['total_rows'] > 0 ? $progress['total_rows'] : $progress['processed_rows'];
+                        Cache::put('import_progress_' . $importId, $progress, 3600);
+                    }
+                }
 
                 return response()->json([
                     'status' => 'success',
@@ -329,11 +365,48 @@ class DatabaseController extends Controller
                     'updated' => $import->updatedCount
                 ]);
             } catch (\Exception $e) {
+                if ($importId) {
+                    $progress = Cache::get('import_progress_' . $importId);
+                    if ($progress) {
+                        $progress['status'] = 'failed';
+                        $progress['message'] = $e->getMessage();
+                        Cache::put('import_progress_' . $importId, $progress, 3600);
+                    }
+                }
                 return response()->json(['status' => 'error', 'message' => 'Gagal import: ' . $e->getMessage()], 422);
             }
         }
 
         return response()->json(['status' => 'error', 'message' => 'Gagal mengupload file'], 400);
+    }
+    
+    public function importProgress($id)
+    {
+        if (Auth::user()->role !== 'Super Admin' && Auth::user()->role !== 'Administrator') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $progress = Cache::get('import_progress_' . $id);
+        if (!$progress) {
+            return response()->json(['status' => 'not_found'], 404);
+        }
+
+        if ($progress['status'] === 'processing') {
+            $elapsed = max(0.1, microtime(true) - $progress['started_at']);
+            $speed = $progress['processed_rows'] / $elapsed;
+            $remainingRows = max(0, $progress['total_rows'] - $progress['processed_rows']);
+            $eta = $speed > 0 ? $remainingRows / $speed : 0;
+            
+            $progress['elapsed_seconds'] = round($elapsed);
+            $progress['rows_per_second'] = round($speed);
+            $progress['estimated_remaining_seconds'] = round($eta);
+            
+            if ($progress['total_rows'] > 0) {
+                $progress['percentage'] = min(99, (int) round(($progress['processed_rows'] / $progress['total_rows']) * 100));
+            }
+        }
+
+        return response()->json($progress);
     }
     
     /**
