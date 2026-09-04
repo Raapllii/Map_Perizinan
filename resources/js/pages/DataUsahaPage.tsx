@@ -415,16 +415,16 @@ export default function DataUsahaPage() {
     if (ids.length === 0) return;
 
     setIsBulkDeleting(true);
-    Promise.all(ids.map(id => axios.delete(`/api/admin/businesses/${id}`)))
-      .then(() => {
+    axios.post('/api/admin/businesses/bulk-delete', { ids })
+      .then((res) => {
         setRowSelection({});
         setRefreshTrigger(prev => prev + 1);
         setIsBulkDeleteOpen(false);
-        showToast("Data usaha terpilih berhasil dihapus", "success");
+        showToast(res.data?.message || "Data usaha terpilih berhasil dihapus", "success");
       })
       .catch(err => {
         console.error(err);
-        showToast("Gagal menghapus beberapa data usaha", "error");
+        showToast(err.response?.data?.message || "Gagal menghapus beberapa data usaha", "error");
         setIsBulkDeleteOpen(false);
       })
       .finally(() => setIsBulkDeleting(false));
@@ -1070,6 +1070,7 @@ export default function DataUsahaPage() {
         isOpen={isImportOpen}
         onClose={() => setIsImportOpen(false)}
         onSuccess={() => {
+          setRowSelection({});
           if (page === 1) {
             setRefreshTrigger(p => p + 1);
           } else {

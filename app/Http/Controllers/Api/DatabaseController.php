@@ -301,7 +301,7 @@ class DatabaseController extends Controller
     }
 
     /**
-     * Import Data
+     * Import Data (CSV & Excel)
      */
     public function import(Request $request)
     {
@@ -310,76 +310,118 @@ class DatabaseController extends Controller
         }
 
         $request->validate([
-            'file' => 'required|file|mimes:csv,txt|max:51200' // 50MB
+            'file' => [
+                'required',
+                'file',
+                'max:51200', // 50MB
+                function ($attribute, $value, $fail) {
+                    $ext = strtolower($value->getClientOriginalExtension());
+                    if (!in_array($ext, ['csv', 'txt', 'xlsx', 'xls'])) {
+                        $fail('Format file harus berupa CSV atau Excel (.xlsx / .xls).');
+                    }
+                }
+            ],
+            'import_id' => 'nullable|string'
         ]);
 
         if ($request->hasFile('file')) {
             $file = $request->file('file');
-            $importId = $request->input('import_id');
-            
-            if ($importId) {
-                $totalRows = 0;
-                $handle = fopen($file->getPathname(), "r");
+            $importId = $request->input('import_id') ?: ('import_' . uniqid() . '_' . time());
+            $ext = strtolower($file->getClientOriginalExtension());
+
+            $importsDir = storage_path('app/imports');
+            if (!File::exists($importsDir)) {
+                File::makeDirectory($importsDir, 0755, true);
+            }
+
+            $tempFilename = 'import_' . $importId . '_' . time() . '.' . $ext;
+            $targetPath = $importsDir . DIRECTORY_SEPARATOR . $tempFilename;
+            $file->move($importsDir, $tempFilename);
+
+            // Calculate total rows accurately
+            $totalRows = 0;
+            if (in_array($ext, ['xlsx', 'xls'])) {
+                try {
+                    $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($targetPath);
+                    if (method_exists($reader, 'listWorksheetInfo')) {
+                        $info = $reader->listWorksheetInfo($targetPath);
+                        $totalRows = max(0, ($info[0]['totalRows'] ?? 1) - 1);
+                    }
+                } catch (\Throwable $e) {
+                    $totalRows = 0;
+                }
+            } else {
+                $handle = fopen($targetPath, 'r');
                 if ($handle !== false) {
                     while (!feof($handle)) {
-                        fgets($handle);
-                        $totalRows++;
+                        $line = fgets($handle);
+                        if ($line !== false && trim($line) !== '') {
+                            $totalRows++;
+                        }
                     }
                     fclose($handle);
                     $totalRows = max(0, $totalRows - 1); // Subtract header
                 }
-
-                Cache::put('import_progress_' . $importId, [
-                    'total_rows' => $totalRows,
-                    'processed_rows' => 0,
-                    'percentage' => 0,
-                    'status' => 'processing',
-                    'started_at' => microtime(true),
-                    'elapsed_seconds' => 0,
-                    'rows_per_second' => 0,
-                    'estimated_remaining_seconds' => 0,
-                ], 3600);
             }
-            
-            try {
-                $import = new BusinessesImport($importId);
-                Excel::import($import, $file);
-                
-                $msg = "Berhasil memproses file. {$import->importedCount} data baru, {$import->updatedCount} diupdate.";
-                $this->logActivity('Import Data', $msg, $request);
-                
-                if ($importId) {
-                    $progress = Cache::get('import_progress_' . $importId);
-                    if ($progress) {
-                        $progress['status'] = 'completed';
-                        $progress['percentage'] = 100;
-                        $progress['processed_rows'] = $progress['total_rows'] > 0 ? $progress['total_rows'] : $progress['processed_rows'];
-                        Cache::put('import_progress_' . $importId, $progress, 3600);
-                    }
-                }
 
-                return response()->json([
-                    'status' => 'success',
-                    'message' => $msg,
-                    'imported' => $import->importedCount,
-                    'updated' => $import->updatedCount
-                ]);
-            } catch (\Exception $e) {
-                if ($importId) {
-                    $progress = Cache::get('import_progress_' . $importId);
-                    if ($progress) {
-                        $progress['status'] = 'failed';
-                        $progress['message'] = $e->getMessage();
-                        Cache::put('import_progress_' . $importId, $progress, 3600);
-                    }
-                }
-                return response()->json(['status' => 'error', 'message' => 'Gagal import: ' . $e->getMessage()], 422);
+            // Initialize Progress Cache
+            Cache::put('import_progress_' . $importId, [
+                'import_id' => $importId,
+                'status' => 'processing',
+                'total_rows' => $totalRows,
+                'processed_rows' => 0,
+                'percentage' => 0,
+                'started_at' => microtime(true),
+                'elapsed_seconds' => 0,
+                'rows_per_second' => 0,
+                'estimated_remaining_seconds' => 0,
+                'message' => 'Memulai proses import...',
+                'imported' => 0,
+                'updated' => 0,
+                'failed' => 0,
+            ], 3600);
+
+            // Dispatch background process
+            $userId = Auth::id();
+            $artisanPath = base_path('artisan');
+            $phpBinary = PHP_BINARY;
+
+            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                $cmd = sprintf(
+                    'start /B "" "%s" "%s" businesses:import "%s" "%s" %s > NUL 2>&1',
+                    $phpBinary,
+                    $artisanPath,
+                    $importId,
+                    $targetPath,
+                    $userId ?: 0
+                );
+                pclose(popen($cmd, 'r'));
+            } else {
+                $cmd = sprintf(
+                    '"%s" "%s" businesses:import "%s" "%s" %s > /dev/null 2>&1 &',
+                    $phpBinary,
+                    $artisanPath,
+                    $importId,
+                    $targetPath,
+                    $userId ?: 0
+                );
+                exec($cmd);
             }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'File berhasil diunggah dan sedang diproses di latar belakang.',
+                'import_id' => $importId,
+                'total_rows' => $totalRows
+            ]);
         }
 
-        return response()->json(['status' => 'error', 'message' => 'Gagal mengupload file'], 400);
+        return response()->json(['status' => 'error', 'message' => 'Gagal mengunggah file'], 400);
     }
-    
+
+    /**
+     * Get Import Progress
+     */
     public function importProgress($id)
     {
         if (Auth::user()->role !== 'Super Admin' && Auth::user()->role !== 'Administrator') {
@@ -388,21 +430,25 @@ class DatabaseController extends Controller
 
         $progress = Cache::get('import_progress_' . $id);
         if (!$progress) {
-            return response()->json(['status' => 'not_found'], 404);
+            return response()->json(['status' => 'not_found', 'message' => 'Proses import tidak ditemukan'], 404);
         }
 
         if ($progress['status'] === 'processing') {
-            $elapsed = max(0.1, microtime(true) - $progress['started_at']);
-            $speed = $progress['processed_rows'] / $elapsed;
-            $remainingRows = max(0, $progress['total_rows'] - $progress['processed_rows']);
+            $startedAt = $progress['started_at'] ?? microtime(true);
+            $elapsed = max(0.1, microtime(true) - $startedAt);
+            $processed = $progress['processed_rows'] ?? 0;
+            $total = $progress['total_rows'] ?? 0;
+
+            $speed = $processed / $elapsed;
+            $remainingRows = max(0, $total - $processed);
             $eta = $speed > 0 ? $remainingRows / $speed : 0;
-            
+
             $progress['elapsed_seconds'] = round($elapsed);
             $progress['rows_per_second'] = round($speed);
             $progress['estimated_remaining_seconds'] = round($eta);
-            
-            if ($progress['total_rows'] > 0) {
-                $progress['percentage'] = min(99, (int) round(($progress['processed_rows'] / $progress['total_rows']) * 100));
+
+            if ($total > 0) {
+                $progress['percentage'] = min(99, (int) round(($processed / $total) * 100));
             }
         }
 

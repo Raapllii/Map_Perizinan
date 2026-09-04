@@ -53,6 +53,7 @@ Route::prefix('api/admin')->group(function () {
         Route::get('/dashboard/export/excel', [DashboardController::class, 'exportExcel']);
         
         Route::post('/businesses', [BusinessController::class, 'store']);
+        Route::post('/businesses/bulk-delete', [BusinessController::class, 'bulkDestroy']);
         Route::get('/businesses/{business}', [BusinessController::class, 'show']);
         Route::put('/businesses/{business}', [BusinessController::class, 'update']);
         Route::delete('/businesses/{business}', [BusinessController::class, 'destroy']);

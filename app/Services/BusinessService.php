@@ -150,6 +150,28 @@ class BusinessService
         $this->clearCaches();
     }
 
+    public function bulkDestroy(array $ids, $user = null)
+    {
+        $count = \App\Models\Business::whereIn('id', $ids)->delete();
+
+        if ($user && $count > 0) {
+            try {
+                \App\Models\ActivityLog::create([
+                    'user_id' => $user->id,
+                    'user_name' => $user->name,
+                    'action' => 'Hapus Massal',
+                    'description' => "Menghapus {$count} data usaha secara massal",
+                ]);
+            } catch (\Exception $e) {
+                // Ignore activity log failure
+            }
+        }
+
+        $this->clearCaches();
+
+        return $count;
+    }
+
     private function clearCaches()
     {
         Cache::forget('dashboard_data');

@@ -57,4 +57,20 @@ class BusinessController extends Controller
         $this->businessService->destroy($id);
         return response()->json(['message' => 'Data usaha berhasil dihapus']);
     }
+
+    public function bulkDestroy(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'required|integer',
+        ]);
+
+        $count = $this->businessService->bulkDestroy($request->input('ids'), $request->user());
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "{$count} data usaha berhasil dihapus",
+            'count' => $count
+        ]);
+    }
 }
