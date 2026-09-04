@@ -179,32 +179,32 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
 
                 $data = [
                     'id_proyek' => $idProyek,
-                    'uraian_jenis_proyek' => $normRow['uraian_jenis_proyek'] ?? null,
+                    'uraian_jenis_proyek' => $this->cleanString($normRow['uraian_jenis_proyek'] ?? null),
                     'nib' => $nib,
-                    'nama_perusahaan' => $normRow['nama_perusahaan'] ?? null,
+                    'nama_perusahaan' => $this->cleanString($normRow['nama_perusahaan'] ?? null),
                     'tanggal_terbit_oss' => $tglTerbit,
-                    'uraian_status_penanaman_modal' => $normRow['uraian_status_penanaman_modal'] ?? null,
-                    'uraian_jenis_perusahaan' => $normRow['uraian_jenis_perusahaan'] ?? null,
-                    'uraian_risiko_proyek' => $normRow['uraian_risiko_proyek'] ?? null,
-                    'nama_proyek' => $normRow['nama_proyek'] ?? null,
-                    'uraian_skala_usaha' => $normRow['uraian_skala_usaha'] ?? null,
-                    'alamat_usaha' => $normRow['alamat_usaha'] ?? null,
-                    'kab_kota_usaha' => $normRow['kab_kota_usaha'] ?? null,
-                    'kecamatan_usaha' => $normRow['kecamatan_usaha'] ?? null,
-                    'kelurahan_usaha' => $normRow['kelurahan_usaha'] ?? null,
+                    'uraian_status_penanaman_modal' => $this->cleanString($normRow['uraian_status_penanaman_modal'] ?? null),
+                    'uraian_jenis_perusahaan' => $this->cleanString($normRow['uraian_jenis_perusahaan'] ?? null),
+                    'uraian_risiko_proyek' => $this->cleanString($normRow['uraian_risiko_proyek'] ?? null),
+                    'nama_proyek' => $this->cleanString($normRow['nama_proyek'] ?? null),
+                    'uraian_skala_usaha' => $this->cleanString($normRow['uraian_skala_usaha'] ?? null),
+                    'alamat_usaha' => $this->cleanString($normRow['alamat_usaha'] ?? null),
+                    'kab_kota_usaha' => $this->cleanString($normRow['kab_kota_usaha'] ?? null),
+                    'kecamatan_usaha' => $this->cleanString($normRow['kecamatan_usaha'] ?? null),
+                    'kelurahan_usaha' => $this->cleanString($normRow['kelurahan_usaha'] ?? null),
                     'longitude' => $lng,
                     'latitude' => $lat,
-                    'day_of_tanggal_pengajuan_proyek' => $normRow['day_of_tanggal_pengajuan_proyek'] ?? null,
-                    'kbli' => $normRow['kbli'] ?? null,
-                    'judul_kbli' => $normRow['judul_kbli'] ?? null,
-                    'kl_sektor_pembina' => $normRow['kl_sektor_pembina'] ?? null,
-                    'nama_user' => $normRow['nama_user'] ?? null,
-                    'email' => $normRow['email'] ?? null,
-                    'nomor_telp' => $normRow['nomor_telp'] ?? null,
+                    'day_of_tanggal_pengajuan_proyek' => $this->cleanString($normRow['day_of_tanggal_pengajuan_proyek'] ?? null),
+                    'kbli' => $this->cleanString($normRow['kbli'] ?? null),
+                    'judul_kbli' => $this->cleanString($normRow['judul_kbli'] ?? null),
+                    'kl_sektor_pembina' => $this->cleanString($normRow['kl_sektor_pembina'] ?? null),
+                    'nama_user' => $this->cleanString($normRow['nama_user'] ?? null),
+                    'email' => $this->cleanString($normRow['email'] ?? null),
+                    'nomor_telp' => $this->cleanString($normRow['nomor_telp'] ?? null),
                     'luas_tanah' => $this->parseDecimal($normRow['luas_tanah'] ?? null),
-                    'satuan_tanah' => $normRow['satuan_tanah'] ?? null,
+                    'satuan_tanah' => $this->cleanString($normRow['satuan_tanah'] ?? null),
                     'jumlah_investasi' => $this->parseDecimal($normRow['jumlah_investasi'] ?? null),
-                    'tki' => isset($normRow['tki']) ? (int) $normRow['tki'] : null,
+                    'tki' => $this->parseInteger($normRow['tki'] ?? null),
 
                     'status' => 'Aktif',
                     'color' => null,
@@ -371,5 +371,26 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
         }
 
         return is_numeric($str) ? (float) $str : null;
+    }
+
+    public function cleanString($val): ?string
+    {
+        if ($val === null) {
+            return null;
+        }
+        $str = trim((string) $val);
+        return $str === '' ? null : $str;
+    }
+
+    public function parseInteger($val): ?int
+    {
+        if ($val === null || $val === '') {
+            return null;
+        }
+        $str = trim((string) $val);
+        if ($str === '' || !is_numeric($str)) {
+            return null;
+        }
+        return (int) $str;
     }
 }
