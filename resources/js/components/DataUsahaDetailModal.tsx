@@ -57,8 +57,8 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
               <DetailItem label="Judul KBLI / Kategori" value={business.judul_kbli} className="md:col-span-2" />
               <DetailItem label="Sektor Pembina" value={business.sektor} />
               <DetailItem label="Uraian Jenis Proyek" value={business.uraian_jenis_proyek} className="md:col-span-2" />
-              <DetailItem label="Risiko Proyek" value={business.risiko} />
-              <DetailItem label="Skala Usaha" value={business.skala_usaha} />
+              <DetailItem label="Risiko Proyek" value={business.uraian_risiko_proyek} />
+              <DetailItem label="Skala Usaha" value={business.uraian_skala_usaha} />
             </div>
           </section>
 
@@ -69,13 +69,13 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
               <h3>Lokasi Proyek</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
-              <DetailItem label="Alamat Proyek" value={business.alamat_proyek} className="md:col-span-2" />
+              <DetailItem label="Alamat Proyek" value={business.alamat_usaha} className="md:col-span-2" />
               <DetailItem label="Provinsi" value={business.propinsi} />
               <DetailItem label="Kabupaten / Kota" value={business.kabupaten} />
-              <DetailItem label="Kecamatan" value={business.kecamatan} />
-              <DetailItem label="Kelurahan / Desa" value={business.kelurahan} />
-              <DetailItem label="Koordinat Latitude" value={business.lat ? business.lat : <span className="text-warning italic">Belum dipetakan</span>} />
-              <DetailItem label="Koordinat Longitude" value={business.lng ? business.lng : <span className="text-warning italic">Belum dipetakan</span>} />
+              <DetailItem label="Kecamatan" value={business.kecamatan_usaha} />
+              <DetailItem label="Kelurahan / Desa" value={business.kelurahan_usaha} />
+              <DetailItem label="Koordinat Latitude" value={business.latitude ? business.latitude : <span className="text-warning italic">Belum dipetakan</span>} />
+              <DetailItem label="Koordinat Longitude" value={business.longitude ? business.longitude : <span className="text-warning italic">Belum dipetakan</span>} />
             </div>
           </section>
 
@@ -88,7 +88,7 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
               <DetailItem label="Jumlah Investasi" value={formatCurrency(business.jumlah_investasi)} />
               <DetailItem label="Tenaga Kerja Indonesia (TKI)" value={business.tki ? `${business.tki} Orang` : '-'} />
-              <DetailItem label="Luas Tanah" value={business.luasan_pd ? `${business.luasan_pd} ${business.satuan_luasan_pd || ''}` : '-'} />
+              <DetailItem label="Luas Tanah" value={business.luas_tanah ? `${business.luas_tanah} ${business.satuan_luasan_pd || ''}` : '-'} />
               <DetailItem label="Mesin & Peralatan Impor" value={formatCurrency(business.mesin_peralatan_impor)} />
               <DetailItem label="Mesin & Peralatan Lokal" value={formatCurrency(business.mesin_peralatan_lokal)} />
               <DetailItem label="Pembelian/Pematangan Tanah" value={formatCurrency(business.pembelian_pematangan_tanah)} />
@@ -108,8 +108,8 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
                 <span className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Status Sistem</span>
                 <StatusBadge status={business.status} />
               </div>
-              <DetailItem label="Status Penanaman Modal" value={business.status_pm} />
-              <DetailItem label="Tanggal Terbit OSS" value={formatDate(business.tgl_terbit)} />
+              <DetailItem label="Status Penanaman Modal" value={business.uraian_status_penanaman_modal} />
+              <DetailItem label="Tanggal Terbit OSS" value={formatDate(business.tanggal_terbit_oss)} />
             </div>
           </section>
         </div>

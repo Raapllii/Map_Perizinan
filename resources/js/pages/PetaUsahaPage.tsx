@@ -168,7 +168,7 @@ export default function PetaUsahaPage() {
                 <BusinessDetailCard
                   business={marker}
                   onClose={() => setSelectedBusiness(null)}
-                  onDirectionsClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${marker.lat},${marker.lng}`, '_blank')}
+                  onDirectionsClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${marker.latitude},${marker.longitude}`, '_blank')}
                 />
               )}
             />
@@ -182,7 +182,7 @@ export default function PetaUsahaPage() {
           onClose={() => setSelectedBusiness(null)}
           onDirectionsClick={() => {
             if (selected) {
-              window.open(`https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lng}`, '_blank');
+              window.open(`https://www.google.com/maps/dir/?api=1&destination=${selected.latitude},${selected.longitude}`, '_blank');
             }
           }}
           onEditClick={() => {

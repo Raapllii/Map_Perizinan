@@ -171,7 +171,7 @@ export function Navbar({
                       <p className="text-xs text-muted-foreground mt-0.5 truncate flex items-center gap-1.5">
                         <span className="font-mono text-primary/70 bg-primary/5 px-1 rounded">{result.nib || 'N/A'}</span>
                         <span>&middot;</span>
-                        <span className="truncate">{result.kecamatan || result.judul_kbli}</span>
+                        <span className="truncate">{result.kecamatan_usaha || result.judul_kbli}</span>
                       </p>
                     </div>
                   </div>

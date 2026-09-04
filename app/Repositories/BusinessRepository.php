@@ -12,11 +12,11 @@ class BusinessRepository
         $query = Business::query();
 
         $filters = [
-            'kecamatan' => 'kecamatan_usaha',
-            'kelurahan' => 'kelurahan_usaha',
-            'risiko' => 'uraian_risiko_proyek',
+            'kecamatan_usaha' => 'kecamatan_usaha',
+            'kelurahan_usaha' => 'kelurahan_usaha',
+            'uraian_risiko_proyek' => 'uraian_risiko_proyek',
             'status' => 'status',
-            'kategori' => 'judul_kbli'
+            'judul_kbli' => 'judul_kbli'
         ];
 
         foreach ($filters as $requestKey => $dbColumn) {
@@ -117,9 +117,9 @@ class BusinessRepository
     {
         $query = Business::select(
             'id', 'nama_perusahaan', 'judul_kbli', 'nib', 
-            'kecamatan_usaha as kecamatan', 'kelurahan_usaha as kelurahan', 
-            'status', 'uraian_risiko_proyek as risiko', 
-            'latitude as lat', 'longitude as lng'
+            'kecamatan_usaha', 'kelurahan_usaha', 
+            'status', 'uraian_risiko_proyek', 
+            'latitude', 'longitude'
         );
 
         if (!empty($keyword)) {

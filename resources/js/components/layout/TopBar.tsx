@@ -49,8 +49,8 @@ export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
     setShowDropdown(false);
     setSearchQuery(""); // clear query on select
     
-    if (result.lat && result.lng) {
-      navigate('/admin/peta-usaha', { state: { flyTo: { lat: result.lat, lng: result.lng, id: result.id } } });
+    if (result.latitude && result.longitude) {
+      navigate('/admin/peta-usaha', { state: { flyTo: { lat: result.latitude, lng: result.longitude, id: result.id } } });
     } else {
       navigate('/admin/data-usaha', { state: { highlightId: result.id, noCoord: true } });
     }
@@ -153,7 +153,7 @@ export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
                         <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
                           <span className="font-mono text-primary/70">{result.nib}</span>
                           <span className="text-muted-foreground/30">•</span>
-                          <span className="truncate">{result.kecamatan || result.judul_kbli}</span>
+                          <span className="truncate">{result.kecamatan_usaha || result.judul_kbli}</span>
                         </div>
                       </div>
                     </div>

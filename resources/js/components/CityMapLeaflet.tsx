@@ -125,7 +125,7 @@ export default function CityMapLeaflet({ height = "100%", markers = [], onSelect
   const renderedMarkers = useMemo(() => {
     const safeMarkers = Array.isArray(markers) ? markers : [];
     return safeMarkers.map((marker, index) => {
-      if (!marker.lat || !marker.lng) return null;
+      if (!marker.latitude || !marker.longitude) return null;
 
       const isSelected = selectedMarker && marker.id === selectedMarker.id;
       const isHovered = hoveredMarker && marker.id === hoveredMarker.id;
@@ -133,7 +133,7 @@ export default function CityMapLeaflet({ height = "100%", markers = [], onSelect
       return (
         <Marker
           key={`${marker.id || index}-${index}`}
-          position={[parseFloat(marker.lat), parseFloat(marker.lng)]}
+          position={[parseFloat(marker.latitude), parseFloat(marker.longitude)]}
           icon={customSvgIcon(isSelected, isHovered)}
           zIndexOffset={isSelected ? 1000 : (isHovered ? 500 : 0)}
           eventHandlers={{
@@ -187,9 +187,9 @@ export default function CityMapLeaflet({ height = "100%", markers = [], onSelect
 
         {(() => {
           const activePopupMarker = hoveredMarker && (!selectedMarker || hoveredMarker.id !== selectedMarker.id) ? hoveredMarker : null;
-          return activePopupMarker && !isMobile && renderPopup && activePopupMarker.lat && activePopupMarker.lng ? (
+          return activePopupMarker && !isMobile && renderPopup && activePopupMarker.latitude && activePopupMarker.longitude ? (
             <Popup
-              position={[parseFloat(activePopupMarker.lat), parseFloat(activePopupMarker.lng)]}
+              position={[parseFloat(activePopupMarker.latitude), parseFloat(activePopupMarker.longitude)]}
               className="custom-popup"
               closeButton={false}
               autoPan={false}

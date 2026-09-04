@@ -40,14 +40,14 @@ export function BusinessSidePanel({ business, isMobile, onClose, onDirectionsCli
                 <div className="flex-1 overflow-y-auto p-5 space-y-5">
                   <div className="flex gap-2">
                     <StatusBadge status={business.status} />
-                    {business.risiko && (
-                      <span className="px-2.5 py-1 bg-primary/10 text-primary text-[11px] font-bold rounded-full">{business.risiko}</span>
+                    {business.uraian_risiko_proyek && (
+                      <span className="px-2.5 py-1 bg-primary/10 text-primary text-[11px] font-bold rounded-full">{business.uraian_risiko_proyek}</span>
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-[10px] font-bold text-muted-foreground uppercase">Kecamatan</p>
-                      <p className="text-sm font-medium text-foreground">{business.kecamatan || '-'}</p>
+                      <p className="text-sm font-medium text-foreground">{business.kecamatan_usaha || '-'}</p>
                     </div>
                     <div>
                       <p className="text-[10px] font-bold text-muted-foreground uppercase">NIB</p>
@@ -105,16 +105,16 @@ export function BusinessSidePanel({ business, isMobile, onClose, onDirectionsCli
               
               <div className="flex gap-2">
                 <StatusBadge status={business.status} />
-                {business.risiko && (
-                  <span className="px-2.5 py-1 bg-primary/10 text-primary text-[11px] font-bold rounded-full">{business.risiko}</span>
+                {business.uraian_risiko_proyek && (
+                  <span className="px-2.5 py-1 bg-primary/10 text-primary text-[11px] font-bold rounded-full">{business.uraian_risiko_proyek}</span>
                 )}
               </div>
 
               {[
                 { label: "NIB", value: business.nib || '-' },
                 { label: "Kategori", value: business.judul_kbli || '-' },
-                { label: "Kecamatan", value: business.kecamatan || '-' },
-                { label: "Koordinat", value: business.lat && business.lng ? `${business.lat}, ${business.lng}` : '-' },
+                { label: "Kecamatan", value: business.kecamatan_usaha || '-' },
+                { label: "Koordinat", value: business.latitude && business.longitude ? `${business.latitude}, ${business.longitude}` : '-' },
               ].map((f) => (
                 <div key={f.label} className="border-b border-border pb-3 last:border-0">
                   <p className="text-[11px] font-bold text-muted-foreground mb-0.5 uppercase">{f.label}</p>

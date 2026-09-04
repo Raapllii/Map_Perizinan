@@ -21,7 +21,7 @@ export default function VerifikasiIzinPage() {
           owner: item.nama_pemilik || "Pemilik Tidak Diketahui",
           nib: item.nib || "-",
           category: item.judul_kbli || "-",
-          district: item.kecamatan || "-",
+          district: item.kecamatan_usaha || "-",
           submitted: item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID') : "-",
           docs: item.docs || 3,
           status: item.status || "Pending"

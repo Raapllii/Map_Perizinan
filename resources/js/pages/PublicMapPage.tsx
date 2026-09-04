@@ -114,8 +114,8 @@ export default function PublicMapPage() {
 
     if (fromSearch) {
       saveToHistory(b);
-      if (b.lat && b.lng) {
-        setFlyTrigger({ lat: parseFloat(b.lat), lng: parseFloat(b.lng), zoom: 17, ts: Date.now() });
+      if (b.latitude && b.longitude) {
+        setFlyTrigger({ lat: parseFloat(b.latitude), lng: parseFloat(b.longitude), zoom: 17, ts: Date.now() });
       } else {
         setToastMsg("Data usaha ditemukan, namun belum memiliki titik koordinat lokasi di peta.");
         setTimeout(() => setToastMsg(""), 5000);
@@ -171,7 +171,7 @@ export default function PublicMapPage() {
           onClose={() => setSelectedBusiness(null)}
           onDirectionsClick={() => {
             if (selectedBusiness) {
-              window.open(`https://www.google.com/maps/dir/?api=1&destination=${selectedBusiness.lat},${selectedBusiness.lng}`, '_blank');
+              window.open(`https://www.google.com/maps/dir/?api=1&destination=${selectedBusiness.latitude},${selectedBusiness.longitude}`, '_blank');
             }
           }}
         />
@@ -193,7 +193,7 @@ export default function PublicMapPage() {
                 <BusinessDetailCard
                   business={marker}
                   onClose={() => setSelectedBusiness(null)}
-                  onDirectionsClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${marker.lat},${marker.lng}`, '_blank')}
+                  onDirectionsClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${marker.latitude},${marker.longitude}`, '_blank')}
                 />
               )}
             />

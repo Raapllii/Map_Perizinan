@@ -247,8 +247,8 @@ export default function DataUsahaPage() {
     if (debouncedSearch) params.append('search', debouncedSearch);
     if (activeFilters.status_pemetaan) params.append('status_pemetaan', activeFilters.status_pemetaan);
     if (activeFilters.status) params.append('status', activeFilters.status);
-    if (activeFilters.kecamatan && activeFilters.kecamatan !== "Semua") params.append('kecamatan', activeFilters.kecamatan);
-    if (activeFilters.kelurahan && activeFilters.kelurahan !== "Semua") params.append('kelurahan', activeFilters.kelurahan);
+    if (activeFilters.kecamatan && activeFilters.kecamatan !== "Semua") params.append('kecamatan_usaha', activeFilters.kecamatan);
+    if (activeFilters.kelurahan && activeFilters.kelurahan !== "Semua") params.append('kelurahan_usaha', activeFilters.kelurahan);
 
     if (sortType === 'terlama') {
       params.append('sort_by', 'created_at');
@@ -330,8 +330,8 @@ export default function DataUsahaPage() {
     if (debouncedSearch) params.append('search', debouncedSearch);
     if (activeFilters.status_pemetaan) params.append('status_pemetaan', activeFilters.status_pemetaan);
     if (activeFilters.status) params.append('status', activeFilters.status);
-    if (activeFilters.kecamatan && activeFilters.kecamatan !== "Semua") params.append('kecamatan', activeFilters.kecamatan);
-    if (activeFilters.kelurahan && activeFilters.kelurahan !== "Semua") params.append('kelurahan', activeFilters.kelurahan);
+    if (activeFilters.kecamatan && activeFilters.kecamatan !== "Semua") params.append('kecamatan_usaha', activeFilters.kecamatan);
+    if (activeFilters.kelurahan && activeFilters.kelurahan !== "Semua") params.append('kelurahan_usaha', activeFilters.kelurahan);
 
     if (sortType === 'terlama') {
       params.append('sort_by', 'created_at');
@@ -455,7 +455,7 @@ export default function DataUsahaPage() {
       }
     },
     {
-      accessorKey: "kecamatan",
+      accessorKey: "kecamatan_usaha",
       header: "Lokasi",
       size: 200,
       cell: ({ row }: any) => {
@@ -467,12 +467,12 @@ export default function DataUsahaPage() {
           const num = Number(val);
           return !isNaN(num) && num >= min && num <= max;
         };
-        const hasCoordinates = isValidCoordinate(b.lat, -90, 90) && isValidCoordinate(b.lng, -180, 180);
+        const hasCoordinates = isValidCoordinate(b.latitude, -90, 90) && isValidCoordinate(b.longitude, -180, 180);
 
         return (
           <div className="flex flex-col gap-1">
-            <div className="text-sm text-foreground truncate max-w-[200px]" title={`${b.kecamatan}${b.kelurahan ? ` / ${b.kelurahan}` : ''}`}>
-              {b.kecamatan} {b.kelurahan ? `/ ${b.kelurahan}` : ''}
+            <div className="text-sm text-foreground truncate max-w-[200px]" title={`${b.kecamatan_usaha}${b.kelurahan_usaha ? ` / ${b.kelurahan_usaha}` : ''}`}>
+              {b.kecamatan_usaha} {b.kelurahan_usaha ? `/ ${b.kelurahan_usaha}` : ''}
             </div>
             {!hasCoordinates && (
               <div className="text-[11px] text-warning flex items-center gap-1 font-medium">

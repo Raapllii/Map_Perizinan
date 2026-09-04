@@ -20,12 +20,12 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
     nama_user: "",
     kbli: "",
     judul_kbli: "",
-    alamat_proyek: "",
-    kecamatan: "",
-    kelurahan: "",
+    alamat_usaha: "",
+    kecamatan_usaha: "",
+    kelurahan_usaha: "",
     status: "Aktif",
-    lat: "",
-    lng: ""
+    latitude: "",
+    longitude: ""
   });
 
   useEffect(() => {
@@ -38,12 +38,12 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
           nama_user: business.nama_pemilik ?? business.nama_user ?? "",
           kbli: business.kbli ?? "",
           judul_kbli: business.judul_kbli ?? "",
-          alamat_proyek: business.alamat_proyek ?? "",
-          kecamatan: business.kecamatan ?? "",
-          kelurahan: business.kelurahan ?? "",
+          alamat_usaha: business.alamat_usaha ?? "",
+          kecamatan_usaha: business.kecamatan_usaha ?? "",
+          kelurahan_usaha: business.kelurahan_usaha ?? "",
           status: business.status ?? "Aktif",
-          lat: business.lat ?? "",
-          lng: business.lng ?? ""
+          latitude: business.latitude ?? "",
+          longitude: business.longitude ?? ""
         });
       } else {
         setFormData({
@@ -53,12 +53,12 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
           nama_user: "",
           kbli: "",
           judul_kbli: "",
-          alamat_proyek: "",
-          kecamatan: "",
-          kelurahan: "",
+          alamat_usaha: "",
+          kecamatan_usaha: "",
+          kelurahan_usaha: "",
           status: "Aktif",
-          lat: "",
-          lng: ""
+          latitude: "",
+          longitude: ""
         });
       }
     }
@@ -184,27 +184,27 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
 
               <div className="md:col-span-2">
                 <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Alamat Proyek</label>
-                <InputField name="alamat_proyek" value={formData.alamat_proyek} onChange={handleChange} placeholder="Alamat Lengkap" />
+                <InputField name="alamat_usaha" value={formData.alamat_usaha} onChange={handleChange} placeholder="Alamat Lengkap" />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Kecamatan</label>
-                <InputField name="kecamatan" value={formData.kecamatan} onChange={handleChange} placeholder="Kecamatan" />
+                <InputField name="kecamatan_usaha" value={formData.kecamatan_usaha} onChange={handleChange} placeholder="Kecamatan" />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Kelurahan</label>
-                <InputField name="kelurahan" value={formData.kelurahan} onChange={handleChange} placeholder="Kelurahan" />
+                <InputField name="kelurahan_usaha" value={formData.kelurahan_usaha} onChange={handleChange} placeholder="Kelurahan" />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Latitude</label>
-                <InputField name="lat" type="number" step="any" value={formData.lat} onChange={handleChange} placeholder="-0.xxxxxx" />
+                <InputField name="latitude" type="number" step="any" value={formData.latitude} onChange={handleChange} placeholder="-0.xxxxxx" />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Longitude</label>
-                <InputField name="lng" type="number" step="any" value={formData.lng} onChange={handleChange} placeholder="117.xxxxxx" />
+                <InputField name="longitude" type="number" step="any" value={formData.longitude} onChange={handleChange} placeholder="117.xxxxxx" />
               </div>
             </div>
 

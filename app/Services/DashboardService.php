@@ -67,8 +67,8 @@ class DashboardService
         $rejectedChange = $calcChange($rejectedCurrent, $rejectedPrevious);
 
         // New (last 30 days vs previous 30 days)
-        $newCurrent = Business::where('tgl_terbit', '>=', $thirtyDaysAgo)->count();
-        $newPrevious = Business::whereBetween('tgl_terbit', [$sixtyDaysAgo, $thirtyDaysAgo])->count();
+        $newCurrent = Business::where('tanggal_terbit_oss', '>=', $thirtyDaysAgo)->count();
+        $newPrevious = Business::whereBetween('tanggal_terbit_oss', [$sixtyDaysAgo, $thirtyDaysAgo])->count();
         $newChange = $calcChange($newCurrent, $newPrevious);
 
         return [
@@ -112,12 +112,12 @@ class DashboardService
         $year = request()->query('year', date('Y'));
         
         $monthlyQuery = Business::select(
-                DB::raw('EXTRACT(MONTH FROM tgl_terbit) as month'), 
+                DB::raw('EXTRACT(MONTH FROM tanggal_terbit_oss) as month'), 
                 'status', 
                 DB::raw('count(*) as total')
             )
-            ->whereYear('tgl_terbit', $year)
-            ->groupBy(DB::raw('EXTRACT(MONTH FROM tgl_terbit)'), 'status')
+            ->whereYear('tanggal_terbit_oss', $year)
+            ->groupBy(DB::raw('EXTRACT(MONTH FROM tanggal_terbit_oss)'), 'status')
             ->get();
             
         $monthly = [];
@@ -167,19 +167,19 @@ class DashboardService
 
     private function getDistrictData()
     {
-        $districtsQuery = Business::select('kecamatan', 
+        $districtsQuery = Business::select('kecamatan_usaha', 
             DB::raw('count(*) as total'),
             DB::raw("SUM(CASE WHEN status = 'Aktif' THEN 1 ELSE 0 END) as active"),
             DB::raw("SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) as pending"),
             DB::raw("SUM(CASE WHEN status = 'Kadaluarsa' THEN 1 ELSE 0 END) as expired")
         )
-        ->groupBy('kecamatan')
+        ->groupBy('kecamatan_usaha')
         ->orderBy('total', 'desc')
         ->get();
             
         $distcolors = ['#2E7D32', '#388E3C', '#43A047', '#4CAF50', '#66BB6A', '#81C784', '#A5D6A7', '#C8E6C9', '#1B5E20', '#004D40'];
         return $districtsQuery->map(function($dist, $index) use ($distcolors) {
-            $name = $dist->kecamatan ?: 'Tidak Diketahui';
+            $name = $dist->kecamatan_usaha ?: 'Tidak Diketahui';
             return [
                 'name' => str_replace('Kecamatan ', 'Kec. ', $name),
                 'total' => (int) $dist->total,
@@ -220,9 +220,9 @@ class DashboardService
 
     private function getTrendData()
     {
-        $trendQuery = Business::select(DB::raw('EXTRACT(YEAR FROM tgl_terbit) as year'), 'status', DB::raw('count(*) as total'))
-            ->whereNotNull('tgl_terbit')
-            ->groupBy(DB::raw('EXTRACT(YEAR FROM tgl_terbit)'), 'status')
+        $trendQuery = Business::select(DB::raw('EXTRACT(YEAR FROM tanggal_terbit_oss) as year'), 'status', DB::raw('count(*) as total'))
+            ->whereNotNull('tanggal_terbit_oss')
+            ->groupBy(DB::raw('EXTRACT(YEAR FROM tanggal_terbit_oss)'), 'status')
             ->orderBy('year', 'asc')
             ->get();
             
@@ -240,9 +240,9 @@ class DashboardService
 
     private function getMapMarkers()
     {
-        return Business::select('id', 'lat', 'lng', 'status', 'nama_perusahaan')
-            ->whereNotNull('lat')
-            ->whereNotNull('lng')
+        return Business::select('id', 'latitude', 'longitude', 'status', 'nama_perusahaan')
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
             ->where('status', 'Aktif')
             ->take(200) // Prevent rendering too many markers at once
             ->get();

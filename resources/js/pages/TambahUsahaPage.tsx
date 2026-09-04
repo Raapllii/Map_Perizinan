@@ -7,7 +7,7 @@ export default function TambahUsahaPage() {
   const [form, setForm] = useState({
     namaUsaha: "", nib: "", pemilik: "", kategori: "Perdagangan Umum",
     kecamatan: "Kec. Pusat", kelurahan: "Kel. Merdeka", alamat: "",
-    telepon: "", email: "", lat: "-6.2088", lng: "106.8456",
+    telepon: "", email: "", latitude: "-6.2088", longitude: "106.8456",
   });
   const [step, setStep] = useState(1);
   const [uploading, setUploading] = useState(false);
@@ -23,14 +23,14 @@ export default function TambahUsahaPage() {
     const payload = {
       nama_perusahaan: form.namaUsaha,
       nib: form.nib,
-      alamat_proyek: form.alamat,
-      kecamatan: form.kecamatan,
-      kelurahan: form.kelurahan,
+      alamat_usaha: form.alamat,
+      kecamatan_usaha: form.kecamatan,
+      kelurahan_usaha: form.kelurahan,
       judul_kbli: form.kategori,
-      lat: form.lat,
-      lng: form.lng,
+      latitude: form.latitude,
+      longitude: form.longitude,
       status: "Aktif",
-      tgl_terbit: new Date().toISOString().split('T')[0],
+      tanggal_terbit_oss: new Date().toISOString().split('T')[0],
       color: "#2E7D32"
     };
 
@@ -110,8 +110,8 @@ export default function TambahUsahaPage() {
             <Card>
               <SectionHeader title="Lokasi & Koordinat" subtitle="Tandai lokasi usaha pada peta atau masukkan koordinat secara manual" />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <InputField label="Latitude" value={form.lat} onChange={(e: any) => setForm({ ...form, lat: e.target.value })} placeholder="-6.2088" />
-                <InputField label="Longitude" value={form.lng} onChange={(e: any) => setForm({ ...form, lng: e.target.value })} placeholder="106.8456" />
+                <InputField label="Latitude" value={form.latitude} onChange={(e: any) => setForm({ ...form, latitude: e.target.value })} placeholder="-6.2088" />
+                <InputField label="Longitude" value={form.longitude} onChange={(e: any) => setForm({ ...form, longitude: e.target.value })} placeholder="106.8456" />
               </div>
             </Card>
           )}
@@ -170,7 +170,7 @@ export default function TambahUsahaPage() {
                     { label: "NIB", value: form.nib || "Belum diisi" },
                     { label: "Kategori", value: form.kategori },
                     { label: "Kecamatan", value: form.kecamatan },
-                    { label: "Koordinat", value: `${form.lat}, ${form.lng}` },
+                    { label: "Koordinat", value: `${form.latitude}, ${form.longitude}` },
                     { label: "Dokumen", value: "4 file siap upload" },
                   ].map((f) => (
                     <div key={f.label} className="text-xs min-w-0">

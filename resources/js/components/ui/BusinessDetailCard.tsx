@@ -106,9 +106,9 @@ const BusinessDetailCard = React.forwardRef<HTMLDivElement, BusinessDetailCardPr
 
           {/* Row 4: Grid Kategori, Skala, Status PM */}
           <div className="grid grid-cols-3 gap-2">
-            <StatItem label="Kategori" value={business.kategori || business.judul_kbli} />
-            <StatItem label="Skala" value={business.skala_usaha || business.risiko_proyek || business.risiko} />
-            <StatItem label="Status PM" value={business.status_pm || '-'} />
+            <StatItem label="Kategori" value={business.judul_kbli} />
+            <StatItem label="Skala/Risiko" value={business.uraian_skala_usaha || business.uraian_risiko_proyek} />
+            <StatItem label="Status PM" value={business.uraian_status_penanaman_modal || '-'} />
           </div>
         </div>
       </motion.div>

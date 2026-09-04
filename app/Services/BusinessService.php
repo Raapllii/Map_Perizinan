@@ -29,11 +29,11 @@ class BusinessService
         $cacheKey = 'province-map:' . md5(json_encode([
             'zoom' => $zoom,
             'bounds' => $request->bounds,
-            'kecamatan' => $request->kecamatan,
-            'kelurahan' => $request->kelurahan,
-            'kategori' => $request->kategori,
+            'kecamatan_usaha' => $request->kecamatan_usaha,
+            'kelurahan_usaha' => $request->kelurahan_usaha,
+            'judul_kbli' => $request->judul_kbli,
             'status' => $request->status,
-            'risiko' => $request->risiko,
+            'uraian_risiko_proyek' => $request->uraian_risiko_proyek,
             'tahun' => $request->tahun,
             'search' => $request->search,
         ]));
@@ -125,17 +125,7 @@ class BusinessService
     public function store(array $data)
     {
         $data['status'] = $data['status'] ?? 'Aktif';
-        $data['tanggal_terbit_oss'] = $data['tgl_terbit'] ?? now()->toDateString();
-        unset($data['tgl_terbit']);
-
-        // Mapping from old API contract to new database schema
-        if (isset($data['lat'])) { $data['latitude'] = $data['lat']; unset($data['lat']); }
-        if (isset($data['lng'])) { $data['longitude'] = $data['lng']; unset($data['lng']); }
-        if (isset($data['kecamatan'])) { $data['kecamatan_usaha'] = $data['kecamatan']; unset($data['kecamatan']); }
-        if (isset($data['kelurahan'])) { $data['kelurahan_usaha'] = $data['kelurahan']; unset($data['kelurahan']); }
-        if (isset($data['alamat_proyek'])) { $data['alamat_usaha'] = $data['alamat_proyek']; unset($data['alamat_proyek']); }
-        if (isset($data['risiko'])) { $data['uraian_risiko_proyek'] = $data['risiko']; unset($data['risiko']); }
-        if (isset($data['status_pm'])) { $data['uraian_status_penanaman_modal'] = $data['status_pm']; unset($data['status_pm']); }
+        $data['tanggal_terbit_oss'] = $data['tanggal_terbit_oss'] ?? now()->toDateString();
 
         $business = $this->repository->create($data);
 
@@ -146,16 +136,6 @@ class BusinessService
 
     public function update(int $id, array $data)
     {
-        // Mapping from old API contract to new database schema
-        if (isset($data['tgl_terbit'])) { $data['tanggal_terbit_oss'] = $data['tgl_terbit']; unset($data['tgl_terbit']); }
-        if (isset($data['lat'])) { $data['latitude'] = $data['lat']; unset($data['lat']); }
-        if (isset($data['lng'])) { $data['longitude'] = $data['lng']; unset($data['lng']); }
-        if (isset($data['kecamatan'])) { $data['kecamatan_usaha'] = $data['kecamatan']; unset($data['kecamatan']); }
-        if (isset($data['kelurahan'])) { $data['kelurahan_usaha'] = $data['kelurahan']; unset($data['kelurahan']); }
-        if (isset($data['alamat_proyek'])) { $data['alamat_usaha'] = $data['alamat_proyek']; unset($data['alamat_proyek']); }
-        if (isset($data['risiko'])) { $data['uraian_risiko_proyek'] = $data['risiko']; unset($data['risiko']); }
-        if (isset($data['status_pm'])) { $data['uraian_status_penanaman_modal'] = $data['status_pm']; unset($data['status_pm']); }
-
         $business = $this->repository->update($id, $data);
 
         $this->clearCaches();
