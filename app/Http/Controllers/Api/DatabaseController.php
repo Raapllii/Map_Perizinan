@@ -18,6 +18,7 @@ use App\Repositories\BusinessRepository;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\BusinessesImport;
 use App\Exports\BusinessesExport;
+use Illuminate\Support\Facades\Log;
 
 class DatabaseController extends Controller
 {
@@ -384,28 +385,59 @@ class DatabaseController extends Controller
             // Dispatch background process
             $userId = Auth::id();
             $artisanPath = base_path('artisan');
-            $phpBinary = PHP_BINARY;
+            $phpBinary = $this->getPhpCliBinary();
 
-            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-                $cmd = sprintf(
-                    'start /B "" "%s" "%s" businesses:import "%s" "%s" %s > NUL 2>&1',
-                    $phpBinary,
-                    $artisanPath,
-                    $importId,
-                    $targetPath,
-                    $userId ?: 0
-                );
-                pclose(popen($cmd, 'r'));
+            $logDir = storage_path('logs/imports');
+            if (!File::exists($logDir)) {
+                File::makeDirectory($logDir, 0755, true);
+            }
+            $logPath = $logDir . DIRECTORY_SEPARATOR . 'import_' . $importId . '.log';
+
+            // Verify prerequisites before launching
+            if (!file_exists($phpBinary)) {
+                Log::error("Import {$importId} failed: PHP CLI binary not found at {$phpBinary}");
+                Cache::put('import_progress_' . $importId, [
+                    'import_id' => $importId,
+                    'status' => 'failed',
+                    'total_rows' => $totalRows,
+                    'processed_rows' => 0,
+                    'percentage' => 0,
+                    'message' => 'Gagal memulai import: PHP CLI binary tidak ditemukan pada server.',
+                ], 3600);
+            } elseif (!file_exists($artisanPath)) {
+                Log::error("Import {$importId} failed: Artisan file not found at {$artisanPath}");
+                Cache::put('import_progress_' . $importId, [
+                    'import_id' => $importId,
+                    'status' => 'failed',
+                    'total_rows' => $totalRows,
+                    'processed_rows' => 0,
+                    'percentage' => 0,
+                    'message' => 'Gagal memulai import: File artisan tidak ditemukan.',
+                ], 3600);
             } else {
-                $cmd = sprintf(
-                    '"%s" "%s" businesses:import "%s" "%s" %s > /dev/null 2>&1 &',
-                    $phpBinary,
-                    $artisanPath,
-                    $importId,
-                    $targetPath,
-                    $userId ?: 0
-                );
-                exec($cmd);
+                if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                    $cmd = sprintf(
+                        'start /B "" "%s" "%s" businesses:import "%s" "%s" %s > "%s" 2>&1',
+                        $phpBinary,
+                        $artisanPath,
+                        $importId,
+                        $targetPath,
+                        $userId ?: 0,
+                        $logPath
+                    );
+                    pclose(popen($cmd, 'r'));
+                } else {
+                    $cmd = sprintf(
+                        '"%s" "%s" businesses:import "%s" "%s" %s > "%s" 2>&1 &',
+                        $phpBinary,
+                        $artisanPath,
+                        $importId,
+                        $targetPath,
+                        $userId ?: 0,
+                        $logPath
+                    );
+                    exec($cmd);
+                }
             }
 
             return response()->json([
@@ -420,6 +452,61 @@ class DatabaseController extends Controller
     }
 
     /**
+     * Resolve the CLI PHP executable safely across environments (especially Windows/Laragon).
+     */
+    protected function getPhpCliBinary(): string
+    {
+        $binary = PHP_BINARY;
+        $filename = strtolower(basename($binary));
+
+        // 1. If already CLI php.exe or php
+        if ($filename === 'php.exe' || $filename === 'php') {
+            return $binary;
+        }
+
+        // 2. If running under CGI / FastCGI / FPM (e.g. php-cgi.exe, php-fpm):
+        // Look for php.exe in the same directory as PHP_BINARY
+        $dir = dirname($binary);
+        $candidate = $dir . DIRECTORY_SEPARATOR . (PHP_OS_FAMILY === 'Windows' ? 'php.exe' : 'php');
+        if (file_exists($candidate) && is_executable($candidate)) {
+            return $candidate;
+        }
+
+        // 3. Check PHP_BINDIR if defined
+        if (defined('PHP_BINDIR') && PHP_BINDIR) {
+            $candidate = PHP_BINDIR . DIRECTORY_SEPARATOR . (PHP_OS_FAMILY === 'Windows' ? 'php.exe' : 'php');
+            if (file_exists($candidate) && is_executable($candidate)) {
+                return $candidate;
+            }
+        }
+
+        // 4. On Windows, check PATH via 'where php.exe'
+        if (PHP_OS_FAMILY === 'Windows') {
+            $whereOutput = @shell_exec('where php.exe 2>NUL');
+            if ($whereOutput) {
+                $lines = explode("\n", trim($whereOutput));
+                foreach ($lines as $line) {
+                    $trimmed = trim($line);
+                    if ($trimmed && file_exists($trimmed) && is_executable($trimmed)) {
+                        return $trimmed;
+                    }
+                }
+            }
+        } else {
+            $whichOutput = @shell_exec('which php 2>/dev/null');
+            if ($whichOutput) {
+                $candidate = trim($whichOutput);
+                if (file_exists($candidate) && is_executable($candidate)) {
+                    return $candidate;
+                }
+            }
+        }
+
+        // 5. Fallback to default PHP_BINARY
+        return $binary;
+    }
+
+    /**
      * Get Import Progress
      */
     public function importProgress($id)
@@ -431,6 +518,23 @@ class DatabaseController extends Controller
         $progress = Cache::get('import_progress_' . $id);
         if (!$progress) {
             return response()->json(['status' => 'not_found', 'message' => 'Proses import tidak ditemukan'], 404);
+        }
+
+        // Diagnostic check: if still marked processing and 0 rows processed, check log for startup crash
+        if ($progress['status'] === 'processing' && ($progress['processed_rows'] ?? 0) === 0) {
+            $logPath = storage_path('logs/imports/import_' . $id . '.log');
+            if (File::exists($logPath)) {
+                $logContent = trim(File::get($logPath));
+                if (!empty($logContent)) {
+                    if (preg_match('/(Fatal error|Parse error|ErrorException|Uncaught Exception|Command .* not defined)/i', $logContent)) {
+                        Log::error("Import process startup crash [{$id}]: " . $logContent);
+                        $progress['status'] = 'failed';
+                        $progress['message'] = 'Proses import gagal dimulai di latar belakang. Silakan periksa log server.';
+                        Cache::put('import_progress_' . $id, $progress, 3600);
+                        return response()->json($progress);
+                    }
+                }
+            }
         }
 
         if ($progress['status'] === 'processing') {

@@ -139,6 +139,18 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
                     $normRow[$this->normalizeKey($k)] = $v;
                 }
 
+                // Check if row is completely empty (e.g. blank line or trailing newline)
+                $allEmpty = true;
+                foreach ($normRow as $v) {
+                    if ($v !== null && trim((string)$v) !== '') {
+                        $allEmpty = false;
+                        break;
+                    }
+                }
+                if ($allEmpty) {
+                    continue;
+                }
+
                 $idProyek = isset($normRow['id_proyek']) ? trim((string) $normRow['id_proyek']) : null;
                 $nib = isset($normRow['nib']) ? trim((string) $normRow['nib']) : null;
 

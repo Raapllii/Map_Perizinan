@@ -36,11 +36,16 @@ export default function DataUsahaImportModal({ isOpen, onClose, onSuccess }: Dat
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pollIntervalRef = useRef<any>(null);
+  const timeoutRef = useRef<any>(null);
 
   const stopPolling = () => {
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = null;
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
   };
 
@@ -133,7 +138,7 @@ export default function DataUsahaImportModal({ isOpen, onClose, onSuccess }: Dat
     };
 
     // Run first check after a slight delay, then interval 800ms
-    setTimeout(() => {
+    timeoutRef.current = setTimeout(() => {
       checkProgress();
       pollIntervalRef.current = setInterval(checkProgress, 800);
     }, 400);
@@ -173,7 +178,8 @@ export default function DataUsahaImportModal({ isOpen, onClose, onSuccess }: Dat
 
       // Upload finished, backend dispatched background process
       setPhase("importing");
-      startPolling(importId);
+      const targetImportId = res.data?.import_id || importId;
+      startPolling(targetImportId);
 
     } catch (err: any) {
       stopPolling();
