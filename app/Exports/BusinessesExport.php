@@ -9,12 +9,15 @@ use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Cell\Cell;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
 
-class BusinessesExport extends DefaultValueBinder implements FromQuery, WithHeadings, WithMapping, WithStyles, WithColumnWidths, WithTitle, WithCustomValueBinder
+class BusinessesExport extends DefaultValueBinder implements FromQuery, WithHeadings, WithMapping, WithStyles, WithColumnWidths, WithTitle, WithCustomValueBinder, WithColumnFormatting
 {
     protected $query;
 
@@ -66,6 +69,16 @@ class BusinessesExport extends DefaultValueBinder implements FromQuery, WithHead
         ];
     }
 
+    private function parseExcelDate($value)
+    {
+        if (empty($value)) return null;
+        try {
+            return Date::dateTimeToExcel(\Carbon\Carbon::parse($value));
+        } catch (\Exception $e) {
+            return $value;
+        }
+    }
+
     public function map($business): array
     {
         return [
@@ -73,7 +86,7 @@ class BusinessesExport extends DefaultValueBinder implements FromQuery, WithHead
             $business->uraian_jenis_proyek,
             $business->nib,
             $business->nama_perusahaan,
-            $business->tanggal_terbit_oss,
+            $this->parseExcelDate($business->tanggal_terbit_oss),
             $business->uraian_status_penanaman_modal,
             $business->uraian_jenis_perusahaan,
             $business->uraian_risiko_proyek,
@@ -85,7 +98,7 @@ class BusinessesExport extends DefaultValueBinder implements FromQuery, WithHead
             $business->kelurahan_usaha,
             $business->longitude !== null ? (float) $business->longitude : null,
             $business->latitude !== null ? (float) $business->latitude : null,
-            $business->day_of_tanggal_pengajuan_proyek,
+            $this->parseExcelDate($business->day_of_tanggal_pengajuan_proyek),
             $business->kbli,
             $business->judul_kbli,
             $business->kl_sektor_pembina,
@@ -137,6 +150,14 @@ class BusinessesExport extends DefaultValueBinder implements FromQuery, WithHead
         }
 
         return [];
+    }
+
+    public function columnFormats(): array
+    {
+        return [
+            'E' => 'yyyy-mm-dd',
+            'Q' => 'yyyy-mm-dd',
+        ];
     }
 
     public function columnWidths(): array
