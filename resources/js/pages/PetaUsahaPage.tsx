@@ -41,7 +41,7 @@ export default function PetaUsahaPage() {
 
   useEffect(() => {
     if (filters.kecamatan_usaha && filters.kecamatan_usaha !== "Semua") {
-      axios.get(`/api/locations/kelurahan?kecamatan=${encodeURIComponent(filters.kecamatan_usaha)}`)
+      axios.get(`/api/locations/kelurahan?kecamatan_usaha=${encodeURIComponent(filters.kecamatan_usaha)}`)
         .then(res => setKelurahanOptions(res.data))
         .catch(err => console.error(err));
     } else {

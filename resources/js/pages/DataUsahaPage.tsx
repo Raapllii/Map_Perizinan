@@ -222,7 +222,7 @@ export default function DataUsahaPage() {
   useEffect(() => {
     const targetKecamatan = localFilters.kecamatan_usaha;
     if (targetKecamatan && targetKecamatan !== "Semua") {
-      axios.get(`/api/locations/kelurahan?kecamatan=${encodeURIComponent(targetKecamatan)}`)
+      axios.get(`/api/locations/kelurahan?kecamatan_usaha=${encodeURIComponent(targetKecamatan)}`)
         .then(res => setKelurahanOptions(res.data))
         .catch(err => console.error(err));
     } else {
@@ -809,8 +809,8 @@ export default function DataUsahaPage() {
                       onSelect={(event) => event.preventDefault()}
                     >
                       {column.id === 'nama_perusahaan' ? 'Nama Usaha' :
-                        column.id === 'nama_pemilik' ? 'Pemilik' :
-                          column.id === 'kecamatan' ? 'Lokasi' :
+                        column.id === 'nama_user' ? 'Pemilik' :
+                          column.id === 'kecamatan_usaha' ? 'Lokasi' :
                             column.id === 'judul_kbli' ? 'Kategori' :
                               column.id === 'status' ? 'Status' : column.id}
                     </DropdownMenuCheckboxItem>

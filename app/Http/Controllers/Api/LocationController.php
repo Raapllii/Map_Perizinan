@@ -10,14 +10,14 @@ class LocationController extends Controller
 {
     public function getKecamatan()
     {
-        $kecamatan = Business::select('kecamatan_usaha')
+        $kecamatan_usaha = Business::select('kecamatan_usaha')
             ->distinct()
             ->whereNotNull('kecamatan_usaha')
             ->where('kecamatan_usaha', '!=', '')
             ->orderBy('kecamatan_usaha', 'asc')
             ->pluck('kecamatan_usaha');
             
-        return response()->json($kecamatan);
+        return response()->json($kecamatan_usaha);
     }
 
     public function getKelurahan(Request $request)
@@ -27,8 +27,8 @@ class LocationController extends Controller
             ->whereNotNull('kelurahan_usaha')
             ->where('kelurahan_usaha', '!=', '');
             
-        if ($request->has('kecamatan') && $request->kecamatan !== '' && $request->kecamatan !== 'Semua') {
-            $query->where('kecamatan_usaha', $request->kecamatan);
+        if ($request->has('kecamatan_usaha') && $request->kecamatan_usaha !== '' && $request->kecamatan_usaha !== 'Semua') {
+            $query->where('kecamatan_usaha', $request->kecamatan_usaha);
         }
         
         $kelurahan = $query->orderBy('kelurahan_usaha', 'asc')->pluck('kelurahan_usaha');

@@ -19,9 +19,9 @@ try {
                   ->orWhere('kbli', 'LIKE', "%{$word}%")
                   ->orWhere('nib', 'LIKE', "%{$word}%")
                   ->orWhere('id_proyek', 'LIKE', "%{$word}%")
-                  ->orWhere('kecamatan', 'LIKE', "%{$word}%")
-                  ->orWhere('kelurahan', 'LIKE', "%{$word}%")
-                  ->orWhere('alamat_proyek', 'LIKE', "%{$word}%");
+                  ->orWhere('kecamatan_usaha', 'LIKE', "%{$word}%")
+                  ->orWhere('kelurahan_usaha', 'LIKE', "%{$word}%")
+                  ->orWhere('alamat_usaha', 'LIKE', "%{$word}%");
             });
         }
     }

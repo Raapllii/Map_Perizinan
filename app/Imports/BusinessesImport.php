@@ -29,7 +29,6 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
         $firstRowKeys = array_keys($rows->first()->toArray());
         
         $expectedSluggedHeaders = [
-            'no',
             'id_proyek',
             'uraian_jenis_proyek',
             'nib',
@@ -49,7 +48,7 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
             'day_of_tanggal_pengajuan_proyek',
             'kbli',
             'judul_kbli',
-            'klsektor_pembina',
+            'kl_sektor_pembina',
             'nama_user',
             'email',
             'nomor_telp',
@@ -148,7 +147,7 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
                     'id_proyek' => $idProyek,
                     'uraian_jenis_proyek' => $row['uraian_jenis_proyek'] ?? null,
                     'nib' => $nib,
-                    'nama_perusahaan' => !empty($row['nama_perusahaan']) ? $row['nama_perusahaan'] : (!empty($row['nama_user']) ? $row['nama_user'] : '-'),
+                    'nama_perusahaan' => $row['nama_perusahaan'] ?? null,
                     'tanggal_terbit_oss' => $tglTerbit,
                     'uraian_status_penanaman_modal' => $row['uraian_status_penanaman_modal'] ?? null,
                     'uraian_jenis_perusahaan' => $row['uraian_jenis_perusahaan'] ?? null,
@@ -164,7 +163,7 @@ class BusinessesImport implements ToCollection, WithHeadingRow, WithChunkReading
                     'day_of_tanggal_pengajuan_proyek' => $row['day_of_tanggal_pengajuan_proyek'] ?? null,
                     'kbli' => $row['kbli'] ?? null,
                     'judul_kbli' => $row['judul_kbli'] ?? null,
-                    'kl_sektor_pembina' => $row['klsektor_pembina'] ?? ($row['kl_sektor_pembina'] ?? null),
+                    'kl_sektor_pembina' => $row['kl_sektor_pembina'] ?? null,
                     'nama_user' => $row['nama_user'] ?? null,
                     'email' => $row['email'] ?? null,
                     'nomor_telp' => $row['nomor_telp'] ?? null,
