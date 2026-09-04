@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Schema;
 use App\Repositories\BusinessRepository;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\BusinessesImport;
+use App\Exports\BusinessesExport;
 
 class DatabaseController extends Controller
 {
@@ -289,44 +290,13 @@ class DatabaseController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $filename = "export_data_usaha_" . date('Y-m-d_His') . ".csv";
+        $filename = "data-usaha-" . date('Y-m-d') . ".xlsx";
         
-        $headers = [
-            "Content-type"        => "text/csv",
-            "Content-Disposition" => "attachment; filename=$filename",
-            "Pragma"              => "no-cache",
-            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
-            "Expires"             => "0"
-        ];
+        $query = $repository->getFilteredQuery($request);
         
-        // Get columns except postgis point (which causes issues in CSV if not formatted)
-        $columns = Schema::getColumnListing('businesses');
-        $columns = array_diff($columns, ['location']);
+        $this->logActivity('Export Data', "Melakukan export data usaha ke Excel", $request);
         
-        $callback = function() use($columns, $repository, $request) {
-            $file = fopen('php://output', 'w');
-            fputcsv($file, $columns);
-            
-            // Get filtered query
-            $query = $repository->getFilteredQuery($request);
-            
-            // Chunking to prevent memory limit issues for large tables
-            $query->select($columns)->chunk(1000, function ($businesses) use ($file, $columns) {
-                foreach ($businesses as $business) {
-                    $row = [];
-                    foreach ($columns as $col) {
-                        $row[] = $business->$col;
-                    }
-                    fputcsv($file, $row);
-                }
-            });
-            
-            fclose($file);
-        };
-        
-        $this->logActivity('Export Data', "Melakukan export data usaha ke CSV", $request);
-        
-        return response()->stream($callback, 200, $headers);
+        return Excel::download(new BusinessesExport($query), $filename);
     }
 
     /**
