@@ -18,7 +18,7 @@ export default function VerifikasiIzinPage() {
         const formattedData = rawData.map((item: any) => ({
           id: item.id,
           name: item.nama_perusahaan || "Tidak Ada Nama",
-          owner: item.nama_pemilik || "Pemilik Tidak Diketahui",
+          owner: item.nama_user || "Pemilik Tidak Diketahui",
           nib: item.nib || "-",
           category: item.judul_kbli || "-",
           district: item.kecamatan_usaha || "-",

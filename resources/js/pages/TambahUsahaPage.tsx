@@ -5,8 +5,8 @@ import { Card, SectionHeader, InputField, SelectField, Btn } from "../components
 
 export default function TambahUsahaPage() {
   const [form, setForm] = useState({
-    namaUsaha: "", nib: "", pemilik: "", kategori: "Perdagangan Umum",
-    kecamatan: "Kec. Pusat", kelurahan: "Kel. Merdeka", alamat: "",
+    namaUsaha: "", nib: "", nama_user: "", kategori: "Perdagangan Umum",
+    kecamatan_usaha: "Kec. Pusat", kelurahan_usaha: "Kel. Merdeka", alamat_usaha: "",
     telepon: "", email: "", latitude: "-6.2088", longitude: "106.8456",
   });
   const [step, setStep] = useState(1);
@@ -23,9 +23,10 @@ export default function TambahUsahaPage() {
     const payload = {
       nama_perusahaan: form.namaUsaha,
       nib: form.nib,
-      alamat_usaha: form.alamat,
-      kecamatan_usaha: form.kecamatan,
-      kelurahan_usaha: form.kelurahan,
+      alamat_usaha: form.alamat_usaha,
+      kecamatan_usaha: form.kecamatan_usaha,
+      kelurahan_usaha: form.kelurahan_usaha,
+      nama_user: form.nama_user,
       judul_kbli: form.kategori,
       latitude: form.latitude,
       longitude: form.longitude,
@@ -88,16 +89,16 @@ export default function TambahUsahaPage() {
                   value={form.namaUsaha} onChange={(e: any) => setForm({ ...form, namaUsaha: e.target.value })} className="sm:col-span-2" />
                 <InputField label="Nomor Induk Berusaha (NIB)" placeholder="12 digit NIB" required
                   value={form.nib} onChange={(e: any) => setForm({ ...form, nib: e.target.value })} />
-                <InputField label="Nama Pemilik" placeholder="Nama lengkap pemilik" required
-                  value={form.pemilik} onChange={(e: any) => setForm({ ...form, pemilik: e.target.value })} />
+                <InputField label="Nama Pemilik (User)" placeholder="Nama lengkap pemilik" required
+                  value={form.nama_user} onChange={(e: any) => setForm({ ...form, nama_user: e.target.value })} />
                 <SelectField label="Kategori Usaha" required options={["Perdagangan Umum", "Jasa & Layanan", "Kuliner & F&B", "Industri Kecil", "Properti & Konstruksi"]}
                   value={form.kategori} onChange={(e: any) => setForm({ ...form, kategori: e.target.value })} />
                 <SelectField label="Kecamatan" required options={["Kec. Pusat", "Kec. Utara", "Kec. Barat", "Kec. Timur", "Kec. Selatan", "Kec. Tenggara"]}
-                  value={form.kecamatan} onChange={(e: any) => setForm({ ...form, kecamatan: e.target.value })} />
+                  value={form.kecamatan_usaha} onChange={(e: any) => setForm({ ...form, kecamatan_usaha: e.target.value })} />
                 <SelectField label="Kelurahan" required options={["Kel. Merdeka", "Kel. Damai", "Kel. Sejahtera", "Kel. Makmur"]}
-                  value={form.kelurahan} onChange={(e: any) => setForm({ ...form, kelurahan: e.target.value })} />
+                  value={form.kelurahan_usaha} onChange={(e: any) => setForm({ ...form, kelurahan_usaha: e.target.value })} />
                 <InputField label="Alamat Lengkap" placeholder="Jl., No., RT/RW" required
-                  value={form.alamat} onChange={(e: any) => setForm({ ...form, alamat: e.target.value })} className="sm:col-span-2" />
+                  value={form.alamat_usaha} onChange={(e: any) => setForm({ ...form, alamat_usaha: e.target.value })} className="sm:col-span-2" />
                 <InputField label="Nomor Telepon" type="tel" placeholder="+62 812 xxxx xxxx"
                   value={form.telepon} onChange={(e: any) => setForm({ ...form, telepon: e.target.value })} />
                 <InputField label="Email Usaha" type="email" placeholder="usaha@email.com"
@@ -169,7 +170,7 @@ export default function TambahUsahaPage() {
                     { label: "Nama Usaha", value: form.namaUsaha || "Belum diisi" },
                     { label: "NIB", value: form.nib || "Belum diisi" },
                     { label: "Kategori", value: form.kategori },
-                    { label: "Kecamatan", value: form.kecamatan },
+                    { label: "Kecamatan", value: form.kecamatan_usaha },
                     { label: "Koordinat", value: `${form.latitude}, ${form.longitude}` },
                     { label: "Dokumen", value: "4 file siap upload" },
                   ].map((f) => (

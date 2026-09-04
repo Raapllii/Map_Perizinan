@@ -8,6 +8,7 @@ import {
   ListFilter, CircleX, Columns3, Trash, CircleAlert, Ellipsis, ChevronDown, ChevronUp, MapPinOff, Loader2
 } from "lucide-react";
 import { cn } from "../lib/utils";
+import { Business } from "../types";
 import {
   ColumnDef,
   flexRender,
@@ -157,7 +158,7 @@ TableCaption.displayName = "TableCaption";
 
 export default function DataUsahaPage() {
   const id = useId();
-  const [businesses, setBusinesses] = useState<any[]>([]);
+  const [businesses, setBusinesses] = useState<Business[]>([]);
   const [kecamatanOptions, setKecamatanOptions] = useState<string[]>([]);
   const [kelurahanOptions, setKelurahanOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -180,8 +181,8 @@ export default function DataUsahaPage() {
 
   // Filter State
   const [activeFilters, setActiveFilters] = useState({
-    kecamatan: "",
-    kelurahan: "",
+    kecamatan_usaha: "",
+    kelurahan_usaha: "",
     status_pemetaan: "Semua",
     status: "",
   });
@@ -200,7 +201,7 @@ export default function DataUsahaPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
-  const [selectedBusiness, setSelectedBusiness] = useState<any | null>(null);
+  const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
 
   const [alertMsg, setAlertMsg] = useState("");
   const location = useLocation();
@@ -219,7 +220,7 @@ export default function DataUsahaPage() {
   }, []);
 
   useEffect(() => {
-    const targetKecamatan = localFilters.kecamatan;
+    const targetKecamatan = localFilters.kecamatan_usaha;
     if (targetKecamatan && targetKecamatan !== "Semua") {
       axios.get(`/api/locations/kelurahan?kecamatan=${encodeURIComponent(targetKecamatan)}`)
         .then(res => setKelurahanOptions(res.data))
@@ -227,7 +228,7 @@ export default function DataUsahaPage() {
     } else {
       setKelurahanOptions([]);
     }
-  }, [localFilters.kecamatan]);
+  }, [localFilters.kecamatan_usaha]);
 
   // Debounce Search
   useEffect(() => {
@@ -247,8 +248,8 @@ export default function DataUsahaPage() {
     if (debouncedSearch) params.append('search', debouncedSearch);
     if (activeFilters.status_pemetaan) params.append('status_pemetaan', activeFilters.status_pemetaan);
     if (activeFilters.status) params.append('status', activeFilters.status);
-    if (activeFilters.kecamatan && activeFilters.kecamatan !== "Semua") params.append('kecamatan_usaha', activeFilters.kecamatan);
-    if (activeFilters.kelurahan && activeFilters.kelurahan !== "Semua") params.append('kelurahan_usaha', activeFilters.kelurahan);
+    if (activeFilters.kecamatan_usaha && activeFilters.kecamatan_usaha !== "Semua") params.append('kecamatan_usaha', activeFilters.kecamatan_usaha);
+    if (activeFilters.kelurahan_usaha && activeFilters.kelurahan_usaha !== "Semua") params.append('kelurahan_usaha', activeFilters.kelurahan_usaha);
 
     if (sortType === 'terlama') {
       params.append('sort_by', 'created_at');
@@ -301,7 +302,7 @@ export default function DataUsahaPage() {
   };
 
   const setLocalSingleFilter = (field: keyof typeof localFilters, value: string) => {
-    setLocalFilters(prev => ({ ...prev, [field]: value, ...(field === 'kecamatan' ? { kelurahan: "" } : {}) }));
+    setLocalFilters(prev => ({ ...prev, [field]: value, ...(field === 'kecamatan_usaha' ? { kelurahan_usaha: "" } : {}) }));
   };
 
   const applyFilters = () => {
@@ -312,8 +313,8 @@ export default function DataUsahaPage() {
 
   const resetLocalFilters = () => {
     const emptyFilters = {
-      kecamatan: "",
-      kelurahan: "",
+      kecamatan_usaha: "",
+      kelurahan_usaha: "",
       status_pemetaan: "Semua",
       status: "",
     };
@@ -330,8 +331,8 @@ export default function DataUsahaPage() {
     if (debouncedSearch) params.append('search', debouncedSearch);
     if (activeFilters.status_pemetaan) params.append('status_pemetaan', activeFilters.status_pemetaan);
     if (activeFilters.status) params.append('status', activeFilters.status);
-    if (activeFilters.kecamatan && activeFilters.kecamatan !== "Semua") params.append('kecamatan_usaha', activeFilters.kecamatan);
-    if (activeFilters.kelurahan && activeFilters.kelurahan !== "Semua") params.append('kelurahan_usaha', activeFilters.kelurahan);
+    if (activeFilters.kecamatan_usaha && activeFilters.kecamatan_usaha !== "Semua") params.append('kecamatan_usaha', activeFilters.kecamatan_usaha);
+    if (activeFilters.kelurahan_usaha && activeFilters.kelurahan_usaha !== "Semua") params.append('kelurahan_usaha', activeFilters.kelurahan_usaha);
 
     if (sortType === 'terlama') {
       params.append('sort_by', 'created_at');
@@ -355,7 +356,7 @@ export default function DataUsahaPage() {
     setIsFormOpen(true);
   };
 
-  const openEditModal = (business: any) => {
+  const openEditModal = (business: Business) => {
     axios.get(`/api/admin/businesses/${business.id}`)
       .then(res => {
         setSelectedBusiness(res.data);
@@ -367,7 +368,7 @@ export default function DataUsahaPage() {
       });
   };
 
-  const openDetailModal = (business: any) => {
+  const openDetailModal = (business: Business) => {
     axios.get(`/api/admin/businesses/${business.id}`)
       .then(res => {
         setSelectedBusiness(res.data);
@@ -404,7 +405,7 @@ export default function DataUsahaPage() {
       .catch(err => console.error(err));
   };
 
-  const columns = useMemo<ColumnDef<any>[]>(() => [
+  const columns = useMemo<ColumnDef<Business>[]>(() => [
     {
       id: "select",
       header: ({ table }) => (
@@ -431,7 +432,7 @@ export default function DataUsahaPage() {
       accessorKey: "nama_perusahaan",
       header: "Nama Usaha / NIB",
       size: 250,
-      cell: ({ row }: any) => {
+      cell: ({ row }) => {
         const b = row.original;
         return (
           <div className="flex flex-col gap-1">
@@ -442,14 +443,14 @@ export default function DataUsahaPage() {
       }
     },
     {
-      accessorKey: "nama_pemilik",
+      accessorKey: "nama_user",
       header: "Pemilik / User",
       size: 200,
-      cell: ({ row }: any) => {
+      cell: ({ row }) => {
         const b = row.original;
         return (
-          <div className="text-sm text-muted-foreground font-normal line-clamp-2 max-w-[200px]" title={b.nama_pemilik || b.nama_user || b.nama_perusahaan}>
-            {b.nama_pemilik || b.nama_user || b.nama_perusahaan || '-'}
+          <div className="text-sm text-muted-foreground font-normal line-clamp-2 max-w-[200px]" title={b.nama_user || b.nama_perusahaan}>
+            {b.nama_user || b.nama_perusahaan || '-'}
           </div>
         );
       }
@@ -458,7 +459,7 @@ export default function DataUsahaPage() {
       accessorKey: "kecamatan_usaha",
       header: "Lokasi",
       size: 200,
-      cell: ({ row }: any) => {
+      cell: ({ row }) => {
         const b = row.original;
         
         const isValidCoordinate = (val: any, min: number, max: number) => {
@@ -487,7 +488,7 @@ export default function DataUsahaPage() {
       accessorKey: "judul_kbli",
       header: "Kategori (KBLI)",
       size: 180,
-      cell: ({ row }: any) => {
+      cell: ({ row }) => {
         const b = row.original;
         return (
           <div className="text-sm font-normal text-muted-foreground line-clamp-2 max-w-[180px]" title={b.judul_kbli}>{b.judul_kbli || '-'}</div>
@@ -498,7 +499,7 @@ export default function DataUsahaPage() {
       accessorKey: "status",
       header: "Status",
       size: 100,
-      cell: ({ row }: any) => {
+      cell: ({ row }) => {
         const b = row.original;
         return (
           <Badge
@@ -520,7 +521,7 @@ export default function DataUsahaPage() {
       header: () => <span className="sr-only">Actions</span>,
       size: 60,
       enableHiding: false,
-      cell: ({ row }: any) => {
+      cell: ({ row }) => {
         const b = row.original;
         return (
           <DropdownMenu>
@@ -565,8 +566,8 @@ export default function DataUsahaPage() {
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
-    if (activeFilters.kecamatan && activeFilters.kecamatan !== "Semua" && activeFilters.kecamatan !== "Semua Kecamatan") count++;
-    if (activeFilters.kelurahan && activeFilters.kelurahan !== "Semua" && activeFilters.kelurahan !== "Semua Kelurahan") count++;
+    if (activeFilters.kecamatan_usaha && activeFilters.kecamatan_usaha !== "Semua" && activeFilters.kecamatan_usaha !== "Semua Kecamatan") count++;
+    if (activeFilters.kelurahan_usaha && activeFilters.kelurahan_usaha !== "Semua" && activeFilters.kelurahan_usaha !== "Semua Kelurahan") count++;
     if (activeFilters.status_pemetaan && activeFilters.status_pemetaan !== "Semua") count++;
     
     if (activeFilters.status) {
@@ -737,17 +738,17 @@ export default function DataUsahaPage() {
                 <div className="space-y-3">
                   <div className="text-sm font-medium text-muted-foreground">Lokasi</div>
                   <SelectField
-                    value={localFilters.kecamatan}
-                    onChange={(e: any) => setLocalSingleFilter('kecamatan', e.target.value)}
+                    value={localFilters.kecamatan_usaha}
+                    onChange={(e: any) => setLocalSingleFilter('kecamatan_usaha', e.target.value)}
                     options={[
                       { value: "", label: "Semua Kecamatan" },
                       ...kecamatanOptions.map(k => ({ value: k, label: k }))
                     ]}
                   />
                   <SelectField
-                    value={localFilters.kelurahan}
-                    onChange={(e: any) => setLocalSingleFilter('kelurahan', e.target.value)}
-                    disabled={!localFilters.kecamatan || localFilters.kecamatan === "Semua"}
+                    value={localFilters.kelurahan_usaha}
+                    onChange={(e: any) => setLocalSingleFilter('kelurahan_usaha', e.target.value)}
+                    disabled={!localFilters.kecamatan_usaha || localFilters.kecamatan_usaha === "Semua"}
                     options={[
                       { value: "", label: "Semua Kelurahan" },
                       ...kelurahanOptions.map(k => ({ value: k, label: k }))

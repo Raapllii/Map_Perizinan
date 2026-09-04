@@ -1,10 +1,12 @@
 import { X, MapPin, Building2, Briefcase, FileText, CheckCircle2 } from "lucide-react";
 import { StatusBadge, Btn } from "./ui";
 
+import { Business } from "../types";
+
 interface DataUsahaDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  business: any;
+  business: Business | null;
 }
 
 export default function DataUsahaDetailModal({ isOpen, onClose, business }: DataUsahaDetailModalProps) {
@@ -36,13 +38,12 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
               <DetailItem label="Nama Perusahaan" value={business.nama_perusahaan} />
-              <DetailItem label="Nama Pemilik / User" value={business.nama_pemilik || business.nama_user} />
+              <DetailItem label="Nama Pemilik / User" value={business.nama_user} />
               <DetailItem label="NIB" value={business.nib} />
               <DetailItem label="Nama Proyek" value={business.nama_proyek} />
-              <DetailItem label="Jenis Perusahaan" value={business.jenis_perusahaan || business.uraian_jenis_perusahaan} />
+              <DetailItem label="Jenis Perusahaan" value={business.uraian_jenis_perusahaan} />
               <DetailItem label="Email" value={business.email} />
-              <DetailItem label="Telepon" value={business.telp} />
-              <DetailItem label="Profile Name" value={business.profile_name} />
+              <DetailItem label="Telepon" value={business.nomor_telp} />
             </div>
           </section>
 
@@ -55,7 +56,7 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
               <DetailItem label="KBLI" value={business.kbli} />
               <DetailItem label="Judul KBLI / Kategori" value={business.judul_kbli} className="md:col-span-2" />
-              <DetailItem label="Sektor Pembina" value={business.sektor} />
+              <DetailItem label="Sektor Pembina" value={business.kl_sektor_pembina} />
               <DetailItem label="Uraian Jenis Proyek" value={business.uraian_jenis_proyek} className="md:col-span-2" />
               <DetailItem label="Risiko Proyek" value={business.uraian_risiko_proyek} />
               <DetailItem label="Skala Usaha" value={business.uraian_skala_usaha} />
@@ -70,8 +71,7 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
               <DetailItem label="Alamat Proyek" value={business.alamat_usaha} className="md:col-span-2" />
-              <DetailItem label="Provinsi" value={business.propinsi} />
-              <DetailItem label="Kabupaten / Kota" value={business.kabupaten} />
+              <DetailItem label="Kabupaten / Kota" value={business.kab_kota_usaha} />
               <DetailItem label="Kecamatan" value={business.kecamatan_usaha} />
               <DetailItem label="Kelurahan / Desa" value={business.kelurahan_usaha} />
               <DetailItem label="Koordinat Latitude" value={business.latitude ? business.latitude : <span className="text-warning italic">Belum dipetakan</span>} />
@@ -88,12 +88,7 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
               <DetailItem label="Jumlah Investasi" value={formatCurrency(business.jumlah_investasi)} />
               <DetailItem label="Tenaga Kerja Indonesia (TKI)" value={business.tki ? `${business.tki} Orang` : '-'} />
-              <DetailItem label="Luas Tanah" value={business.luas_tanah ? `${business.luas_tanah} ${business.satuan_luasan_pd || ''}` : '-'} />
-              <DetailItem label="Mesin & Peralatan Impor" value={formatCurrency(business.mesin_peralatan_impor)} />
-              <DetailItem label="Mesin & Peralatan Lokal" value={formatCurrency(business.mesin_peralatan_lokal)} />
-              <DetailItem label="Pembelian/Pematangan Tanah" value={formatCurrency(business.pembelian_pematangan_tanah)} />
-              <DetailItem label="Bangunan/Gedung" value={formatCurrency(business.bangunan_gedung)} />
-              <DetailItem label="Modal Kerja" value={formatCurrency(business.modal_kerja)} />
+              <DetailItem label="Luas Tanah" value={business.luas_tanah ? `${business.luas_tanah} ${business.satuan_tanah || ''}` : '-'} />
             </div>
           </section>
 

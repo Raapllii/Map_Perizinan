@@ -50,11 +50,13 @@ class CreateBusinessesLocationTrigger extends Migration
         // 3. Update existing records
         DB::unprepared("
             UPDATE businesses 
-            SET location = ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)
-            WHERE latitude IS NOT NULL 
-              AND longitude IS NOT NULL
-              AND latitude >= -90 AND latitude <= 90
-              AND longitude >= -180 AND longitude <= 180;
+            SET location = CASE
+                WHEN latitude IS NOT NULL AND longitude IS NOT NULL 
+                     AND latitude >= -90 AND latitude <= 90
+                     AND longitude >= -180 AND longitude <= 180
+                THEN ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)
+                ELSE NULL
+            END;
         ");
     }
 

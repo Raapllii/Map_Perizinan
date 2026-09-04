@@ -1,0 +1,34 @@
+export interface Business {
+  id: number;
+  id_proyek: string | null;
+  uraian_jenis_proyek: string | null;
+  nib: string;
+  nama_perusahaan: string;
+  tanggal_terbit_oss: string | null;
+  uraian_status_penanaman_modal: string | null;
+  uraian_jenis_perusahaan: string | null;
+  uraian_risiko_proyek: string | null;
+  nama_proyek: string | null;
+  uraian_skala_usaha: string | null;
+  alamat_usaha: string | null;
+  kab_kota_usaha: string | null;
+  kecamatan_usaha: string | null;
+  kelurahan_usaha: string | null;
+  longitude: number | null;
+  latitude: number | null;
+  day_of_tanggal_pengajuan_proyek: string | null;
+  kbli: string | null;
+  judul_kbli: string | null;
+  kl_sektor_pembina: string | null;
+  nama_user: string | null;
+  email: string | null;
+  nomor_telp: string | null;
+  luas_tanah: number | null;
+  satuan_tanah: string | null;
+  jumlah_investasi: number | null;
+  tki: number | null;
+  status: string;
+  color: string | null;
+  created_at?: string;
+  updated_at?: string;
+}

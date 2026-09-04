@@ -5,21 +5,49 @@ import { X, Search, RotateCcw, Filter, ZoomIn, ZoomOut, Layers, Maximize2, Build
 import { Card, Btn, StatusBadge } from "../components/ui";
 import { BusinessSidePanel } from "../components/ui/BusinessSidePanel";
 import { BusinessDetailCard } from "../components/ui/BusinessDetailCard";
+import { Business } from "../types";
 
 const CityMapLeaflet = lazy(() => import('../components/CityMapLeaflet'));
 
 export default function PetaUsahaPage() {
-  const [selectedBusiness, setSelectedBusiness] = useState<any>(null);
-  const [hoveredBusiness, setHoveredBusiness] = useState<any>(null);
+  const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
+  const [hoveredBusiness, setHoveredBusiness] = useState<Business | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
   const [activeLayer, setActiveLayer] = useState("cluster");
-  const [markers, setMarkers] = useState<any[]>([]);
+  const [markers, setMarkers] = useState<Business[]>([]);
   const [mapBounds, setMapBounds] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [flyTrigger, setFlyTrigger] = useState<{lat: number, lng: number, zoom: number, ts: number} | null>(null);
   const location = useLocation();
   const debounceTimer = React.useRef<any>(null);
+
+  const [kecamatanOptions, setKecamatanOptions] = useState<string[]>([]);
+  const [kelurahanOptions, setKelurahanOptions] = useState<string[]>([]);
+  const [filters, setFilters] = useState({
+    kecamatan_usaha: "Semua",
+    kelurahan_usaha: "Semua",
+    uraian_risiko_proyek: "Semua",
+    status: "Semua",
+    search: ""
+  });
+  const [appliedFilters, setAppliedFilters] = useState(filters);
+
+  useEffect(() => {
+    axios.get('/api/locations/kecamatan')
+      .then(res => setKecamatanOptions(res.data))
+      .catch(err => console.error('Failed to load kecamatan', err));
+  }, []);
+
+  useEffect(() => {
+    if (filters.kecamatan_usaha && filters.kecamatan_usaha !== "Semua") {
+      axios.get(`/api/locations/kelurahan?kecamatan=${encodeURIComponent(filters.kecamatan_usaha)}`)
+        .then(res => setKelurahanOptions(res.data))
+        .catch(err => console.error(err));
+    } else {
+      setKelurahanOptions([]);
+    }
+  }, [filters.kecamatan_usaha]);
 
   useEffect(() => {
     if (location.state && (location.state as any).flyTo) {
@@ -49,14 +77,19 @@ export default function PetaUsahaPage() {
   }, []);
 
   useEffect(() => {
-    let url = '/api/businesses?map=true';
-    if (mapBounds) {
-      url += `&bounds=${mapBounds}`;
-    }
-    axios.get(url)
+    const params = new URLSearchParams();
+    params.append('map', 'true');
+    if (mapBounds) params.append('bounds', mapBounds);
+    if (appliedFilters.kecamatan_usaha !== "Semua") params.append('kecamatan_usaha', appliedFilters.kecamatan_usaha);
+    if (appliedFilters.kelurahan_usaha !== "Semua") params.append('kelurahan_usaha', appliedFilters.kelurahan_usaha);
+    if (appliedFilters.uraian_risiko_proyek !== "Semua") params.append('uraian_risiko_proyek', appliedFilters.uraian_risiko_proyek);
+    if (appliedFilters.status !== "Semua") params.append('status', appliedFilters.status);
+    if (appliedFilters.search) params.append('search', appliedFilters.search);
+
+    axios.get(`/api/businesses?${params.toString()}`)
       .then(res => setMarkers(res.data.data || (Array.isArray(res.data) ? res.data : [])))
       .catch(err => console.error(err));
-  }, [mapBounds]);
+  }, [mapBounds, appliedFilters]);
 
   const handleBoundsChange = React.useCallback((bounds: string) => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -68,36 +101,96 @@ export default function PetaUsahaPage() {
   const selected = selectedBusiness;
 
   // Filter form content reused in desktop sidebar and mobile drawer
-  const FilterContent = () => (
-    <div className="space-y-3 text-sm">
-      {[
-        { label: "Kecamatan", opts: ["Semua", "Kec. Pusat", "Kec. Utara", "Kec. Barat", "Kec. Timur", "Kec. Selatan"] },
-        { label: "Kelurahan", opts: ["Semua", "Kel. Merdeka", "Kel. Damai", "Kel. Sejahtera"] },
-        { label: "Kategori", opts: ["Semua", "Perdagangan", "Kuliner", "Jasa", "Industri"] },
-        { label: "Status", opts: ["Semua", "Aktif", "Pending", "Kadaluarsa", "Ditolak"] },
-      ].map((f) => (
-        <div key={f.label}>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">{f.label}</label>
+  const FilterContent = () => {
+    const handleApply = () => {
+      setAppliedFilters(filters);
+      if (isMobile) setShowFilterDrawer(false);
+      else setShowFilters(false);
+    };
+
+    const handleReset = () => {
+      const reset = { kecamatan_usaha: "Semua", kelurahan_usaha: "Semua", uraian_risiko_proyek: "Semua", status: "Semua", search: "" };
+      setFilters(reset);
+      setAppliedFilters(reset);
+    };
+
+    return (
+      <div className="space-y-3 text-sm">
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Kecamatan</label>
           <div className="relative">
-            <select className="w-full text-xs border border-border rounded-lg px-2.5 py-1.5 bg-background appearance-none focus:outline-none focus:border-primary">
-              {f.opts.map(o => <option key={o}>{o}</option>)}
+            <select 
+              value={filters.kecamatan_usaha} 
+              onChange={e => setFilters(f => ({...f, kecamatan_usaha: e.target.value, kelurahan_usaha: "Semua"}))} 
+              className="w-full text-xs border border-border rounded-lg px-2.5 py-1.5 bg-background appearance-none focus:outline-none focus:border-primary"
+            >
+              <option value="Semua">Semua</option>
+              {kecamatanOptions.map(k => <option key={k} value={k}>{k}</option>)}
             </select>
             <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           </div>
         </div>
-      ))}
-      <div>
-        <label className="block text-xs font-medium text-muted-foreground mb-1">Nama Usaha</label>
-        <input type="text" placeholder="Cari nama..." className="w-full text-xs border border-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-primary bg-background" />
+
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Kelurahan</label>
+          <div className="relative">
+            <select 
+              value={filters.kelurahan_usaha} 
+              onChange={e => setFilters(f => ({...f, kelurahan_usaha: e.target.value}))} 
+              disabled={filters.kecamatan_usaha === "Semua"}
+              className="w-full text-xs border border-border rounded-lg px-2.5 py-1.5 bg-background appearance-none focus:outline-none focus:border-primary disabled:opacity-50"
+            >
+              <option value="Semua">Semua</option>
+              {kelurahanOptions.map(k => <option key={k} value={k}>{k}</option>)}
+            </select>
+            <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Risiko Proyek</label>
+          <div className="relative">
+            <select 
+              value={filters.uraian_risiko_proyek} 
+              onChange={e => setFilters(f => ({...f, uraian_risiko_proyek: e.target.value}))} 
+              className="w-full text-xs border border-border rounded-lg px-2.5 py-1.5 bg-background appearance-none focus:outline-none focus:border-primary"
+            >
+              {["Semua", "Rendah", "Menengah Rendah", "Menengah Tinggi", "Tinggi"].map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+            <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Status</label>
+          <div className="relative">
+            <select 
+              value={filters.status} 
+              onChange={e => setFilters(f => ({...f, status: e.target.value}))} 
+              className="w-full text-xs border border-border rounded-lg px-2.5 py-1.5 bg-background appearance-none focus:outline-none focus:border-primary"
+            >
+              {["Semua", "Aktif", "Pending", "Kadaluarsa", "Ditolak"].map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+            <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Pencarian</label>
+          <input 
+            type="text" 
+            placeholder="Cari nama atau NIB..." 
+            value={filters.search}
+            onChange={e => setFilters(f => ({...f, search: e.target.value}))}
+            className="w-full text-xs border border-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-primary bg-background" 
+          />
+        </div>
+        
+        <Btn variant="primary" size="sm" Icon={Search} onClick={handleApply} className="w-full justify-center">Terapkan</Btn>
+        <Btn variant="ghost" size="sm" Icon={RotateCcw} onClick={handleReset} className="w-full justify-center text-muted-foreground">Reset Filter</Btn>
       </div>
-      <div>
-        <label className="block text-xs font-medium text-muted-foreground mb-1">Rentang Tanggal</label>
-        <input type="date" className="w-full text-xs border border-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-primary bg-background" />
-      </div>
-      <Btn variant="primary" size="sm" Icon={Search} className="w-full justify-center">Terapkan</Btn>
-      <Btn variant="ghost" size="sm" Icon={RotateCcw} className="w-full justify-center text-muted-foreground">Reset Filter</Btn>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="flex flex-col md:flex-row gap-3 md:gap-4 h-[calc(100dvh-10rem)]">
