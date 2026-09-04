@@ -392,6 +392,7 @@ class DatabaseController extends Controller
                 File::makeDirectory($logDir, 0755, true);
             }
             $logPath = $logDir . DIRECTORY_SEPARATOR . 'import_' . $importId . '.log';
+            Log::info("Import background launcher [{$importId}]: PHP [{$phpBinary}], Artisan [{$artisanPath}]");
 
             // Verify prerequisites before launching
             if (!file_exists($phpBinary)) {
@@ -459,50 +460,70 @@ class DatabaseController extends Controller
         $binary = PHP_BINARY;
         $filename = strtolower(basename($binary));
 
-        // 1. If already CLI php.exe or php
+        // 1. If current process is already CLI php.exe or php
         if ($filename === 'php.exe' || $filename === 'php') {
             return $binary;
         }
 
-        // 2. If running under CGI / FastCGI / FPM (e.g. php-cgi.exe, php-fpm):
-        // Look for php.exe in the same directory as PHP_BINARY
-        $dir = dirname($binary);
-        $candidate = $dir . DIRECTORY_SEPARATOR . (PHP_OS_FAMILY === 'Windows' ? 'php.exe' : 'php');
-        if (file_exists($candidate) && is_executable($candidate)) {
-            return $candidate;
+        $candidates = [];
+
+        // 2. Under Apache mod_php / CGI / FPM, find php.exe via php_ini_loaded_file()
+        $iniFile = php_ini_loaded_file();
+        if ($iniFile) {
+            $candidates[] = dirname($iniFile) . DIRECTORY_SEPARATOR . (PHP_OS_FAMILY === 'Windows' ? 'php.exe' : 'php');
         }
 
-        // 3. Check PHP_BINDIR if defined
-        if (defined('PHP_BINDIR') && PHP_BINDIR) {
-            $candidate = PHP_BINDIR . DIRECTORY_SEPARATOR . (PHP_OS_FAMILY === 'Windows' ? 'php.exe' : 'php');
-            if (file_exists($candidate) && is_executable($candidate)) {
-                return $candidate;
-            }
+        // 3. Check cfg_file_path
+        $cfgFile = get_cfg_var('cfg_file_path');
+        if ($cfgFile) {
+            $candidates[] = dirname($cfgFile) . DIRECTORY_SEPARATOR . (PHP_OS_FAMILY === 'Windows' ? 'php.exe' : 'php');
         }
 
-        // 4. On Windows, check PATH via 'where php.exe'
+        // 4. In Laragon / CGI / FPM, look in the same directory as PHP_BINARY
+        $candidates[] = dirname($binary) . DIRECTORY_SEPARATOR . (PHP_OS_FAMILY === 'Windows' ? 'php.exe' : 'php');
+
+        // 5. In Windows, check Laragon's active PATH via 'where php.exe'
         if (PHP_OS_FAMILY === 'Windows') {
             $whereOutput = @shell_exec('where php.exe 2>NUL');
             if ($whereOutput) {
                 $lines = explode("\n", trim($whereOutput));
                 foreach ($lines as $line) {
                     $trimmed = trim($line);
-                    if ($trimmed && file_exists($trimmed) && is_executable($trimmed)) {
-                        return $trimmed;
+                    if ($trimmed) {
+                        $candidates[] = $trimmed;
                     }
                 }
             }
         } else {
             $whichOutput = @shell_exec('which php 2>/dev/null');
             if ($whichOutput) {
-                $candidate = trim($whichOutput);
-                if (file_exists($candidate) && is_executable($candidate)) {
+                $candidates[] = trim($whichOutput);
+            }
+        }
+
+        // 6. Check PHP_BINDIR as a later fallback
+        if (defined('PHP_BINDIR') && PHP_BINDIR) {
+            $candidates[] = PHP_BINDIR . DIRECTORY_SEPARATOR . (PHP_OS_FAMILY === 'Windows' ? 'php.exe' : 'php');
+        }
+
+        // Filter candidates: verify existence, executable status, and PHP >= 8.3.0
+        foreach ($candidates as $candidate) {
+            if ($candidate && file_exists($candidate) && is_executable($candidate)) {
+                $verOutput = @shell_exec(sprintf('"%s" -r "echo PHP_VERSION_ID;" 2>NUL', $candidate));
+                $versionId = (int) trim($verOutput ?? '0');
+                if ($versionId >= 80300) {
                     return $candidate;
                 }
             }
         }
 
-        // 5. Fallback to default PHP_BINARY
+        // Fallback to first existing executable candidate
+        foreach ($candidates as $candidate) {
+            if ($candidate && file_exists($candidate) && is_executable($candidate)) {
+                return $candidate;
+            }
+        }
+
         return $binary;
     }
 

@@ -32,6 +32,9 @@ class ProcessBusinessImportCommand extends Command
      */
     public function handle()
     {
+        @set_time_limit(0);
+        @ini_set('memory_limit', '1024M');
+
         $importId = $this->argument('importId');
         $filePath = $this->argument('filePath');
         $userId = $this->argument('userId');
@@ -39,6 +42,7 @@ class ProcessBusinessImportCommand extends Command
         if (!File::exists($filePath)) {
             $msg = "File import temporer tidak ditemukan: {$filePath}";
             Log::error($msg);
+            $this->error($msg);
             $progress = Cache::get('import_progress_' . $importId) ?: [];
             $progress['status'] = 'failed';
             $progress['message'] = $msg;
