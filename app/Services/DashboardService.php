@@ -31,9 +31,7 @@ class DashboardService
     private function getKpiData()
     {
         // Calculate current and previous periods for trends
-        $currentDate = now();
         $thirtyDaysAgo = now()->subDays(30);
-        $sixtyDaysAgo = now()->subDays(60);
 
         // Helper to calculate percentage change
         $calcChange = function($current, $previous) {
@@ -46,30 +44,35 @@ class DashboardService
         $totalPrevious = Business::where('created_at', '<', $thirtyDaysAgo)->count();
         $totalChange = $calcChange($totalCurrent, $totalPrevious);
 
-        // Active
-        $activeCurrent = Business::where('status', 'Aktif')->count();
-        $activePrevious = Business::where('status', 'Aktif')->where('created_at', '<', $thirtyDaysAgo)->count();
-        $activeChange = $calcChange($activeCurrent, $activePrevious);
-
-        // Pending
-        $pendingCurrent = Business::where('status', 'Pending')->count();
-        $pendingPrevious = Business::where('status', 'Pending')->where('created_at', '<', $thirtyDaysAgo)->count();
-        $pendingChange = $calcChange($pendingCurrent, $pendingPrevious);
-
-        // Expired
-        $expiredCurrent = Business::where('status', 'Kadaluarsa')->count();
-        $expiredPrevious = Business::where('status', 'Kadaluarsa')->where('created_at', '<', $thirtyDaysAgo)->count();
-        $expiredChange = $calcChange($expiredCurrent, $expiredPrevious);
+        // Risk categories
+        $risksQuery = Business::select('uraian_risiko_proyek', DB::raw('count(*) as total'))
+            ->groupBy('uraian_risiko_proyek')
+            ->orderBy('total', 'desc')
+            ->get();
+            
+        $aggregatedRisks = [];
+        foreach ($risksQuery as $risk) {
+            $name = trim($risk->uraian_risiko_proyek ?? '');
+            if (empty($name)) {
+                $name = 'Tidak Diisi';
+            }
+            if (!isset($aggregatedRisks[$name])) {
+                $aggregatedRisks[$name] = 0;
+            }
+            $aggregatedRisks[$name] += (int) $risk->total;
+        }
         
-        // Rejected
-        $rejectedCurrent = Business::where('status', 'Ditolak')->count();
-        $rejectedPrevious = Business::where('status', 'Ditolak')->where('created_at', '<', $thirtyDaysAgo)->count();
-        $rejectedChange = $calcChange($rejectedCurrent, $rejectedPrevious);
+        $finalRisks = [];
+        foreach ($aggregatedRisks as $name => $val) {
+            $finalRisks[] = [
+                'name' => $name,
+                'value' => $val,
+            ];
+        }
 
-        // New (last 30 days vs previous 30 days)
-        $newCurrent = Business::where('tanggal_terbit_oss', '>=', $thirtyDaysAgo)->count();
-        $newPrevious = Business::whereBetween('tanggal_terbit_oss', [$sixtyDaysAgo, $thirtyDaysAgo])->count();
-        $newChange = $calcChange($newCurrent, $newPrevious);
+        usort($finalRisks, function($a, $b) {
+            return $b['value'] <=> $a['value'];
+        });
 
         return [
             'total' => [
@@ -77,31 +80,7 @@ class DashboardService
                 'change' => ($totalChange > 0 ? '+' : '') . $totalChange . '%',
                 'up' => $totalChange >= 0
             ],
-            'active' => [
-                'value' => $activeCurrent,
-                'change' => ($activeChange > 0 ? '+' : '') . $activeChange . '%',
-                'up' => $activeChange >= 0
-            ],
-            'pending' => [
-                'value' => $pendingCurrent,
-                'change' => ($pendingChange > 0 ? '+' : '') . $pendingChange . '%',
-                'up' => $pendingChange >= 0
-            ],
-            'expired' => [
-                'value' => $expiredCurrent,
-                'change' => ($expiredChange > 0 ? '+' : '') . $expiredChange . '%',
-                'up' => $expiredChange <= 0 // Lower is better
-            ],
-            'rejected' => [
-                'value' => $rejectedCurrent,
-                'change' => ($rejectedChange > 0 ? '+' : '') . $rejectedChange . '%',
-                'up' => $rejectedChange <= 0 // Lower is better
-            ],
-            'new' => [
-                'value' => $newCurrent,
-                'change' => ($newChange > 0 ? '+' : '') . $newChange . '%',
-                'up' => $newChange >= 0
-            ],
+            'risks' => $finalRisks,
         ];
     }
 

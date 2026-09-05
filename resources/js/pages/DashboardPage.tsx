@@ -57,8 +57,8 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-[120px] w-full" />)}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+          {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-[120px] w-full" />)}
         </div>
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
           <Skeleton className="xl:col-span-7 h-[360px]" />
@@ -79,13 +79,39 @@ export default function DashboardPage() {
     );
   }
 
-  const KPI_CARDS = [
+  const TOTAL_CARD = [
     { label: "Total Usaha", value: kpiData?.total?.value?.toLocaleString('id') || "0", icon: Building2, change: kpiData?.total?.change || "+0%", up: kpiData?.total?.up ?? true, color: "text-primary", bg: "bg-primary/10" },
-    { label: "Izin Aktif", value: kpiData?.active?.value?.toLocaleString('id') || "0", icon: CheckCircle, change: kpiData?.active?.change || "+0%", up: kpiData?.active?.up ?? true, color: "text-success", bg: "bg-success/10" },
-    { label: "Izin Kadaluarsa", value: kpiData?.expired?.value?.toLocaleString('id') || "0", icon: AlertTriangle, change: kpiData?.expired?.change || "+0%", up: kpiData?.expired?.up ?? false, color: "text-danger", bg: "bg-danger/10" },
-    { label: "Ditolak", value: kpiData?.rejected?.value?.toLocaleString('id') || "0", icon: XCircle, change: kpiData?.rejected?.change || "+0%", up: kpiData?.rejected?.up ?? false, color: "text-danger", bg: "bg-danger/10" },
-    { label: "Usaha Baru", value: kpiData?.new?.value?.toLocaleString('id') || "0", icon: TrendingUp, change: kpiData?.new?.change || "+0%", up: kpiData?.new?.up ?? true, color: "text-info", bg: "bg-info/10" },
   ];
+
+  const riskCards = (kpiData?.risks || []).map((risk: any, index: number) => {
+    const colors = [
+      { color: "text-success", bg: "bg-success/10", icon: CheckCircle },
+      { color: "text-info", bg: "bg-info/10", icon: TrendingUp },
+      { color: "text-warning", bg: "bg-warning/10", icon: AlertTriangle },
+      { color: "text-danger", bg: "bg-danger/10", icon: XCircle },
+      { color: "text-secondary", bg: "bg-secondary/10", icon: Building2 },
+    ];
+    let style = colors[index % colors.length];
+    
+    const nameLower = risk.name.toLowerCase();
+    if (nameLower.includes('rendah') && !nameLower.includes('menengah')) style = { color: "text-success", bg: "bg-success/10", icon: CheckCircle };
+    else if (nameLower.includes('menengah rendah')) style = { color: "text-info", bg: "bg-info/10", icon: TrendingUp };
+    else if (nameLower.includes('menengah tinggi')) style = { color: "text-warning", bg: "bg-warning/10", icon: AlertTriangle };
+    else if (nameLower.includes('tinggi') && !nameLower.includes('menengah')) style = { color: "text-danger", bg: "bg-danger/10", icon: XCircle };
+    else if (nameLower.includes('tidak diisi')) style = { color: "text-secondary", bg: "bg-secondary/10", icon: Building2 };
+
+    return {
+      label: risk.name,
+      value: risk.value?.toLocaleString('id') || "0",
+      icon: style.icon,
+      change: "-",
+      up: true,
+      color: style.color,
+      bg: style.bg
+    };
+  });
+
+  const ALL_CARDS = [...TOTAL_CARD, ...riskCards];
 
   const currentYear = new Date().getFullYear();
 
@@ -93,7 +119,7 @@ export default function DashboardPage() {
     <div className="space-y-6">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
-        {KPI_CARDS.map((k) => (
+        {ALL_CARDS.map((k) => (
           <StatCard key={k.label} {...k} colorClass={k.color} bgClass={k.bg} />
         ))}
       </div>
