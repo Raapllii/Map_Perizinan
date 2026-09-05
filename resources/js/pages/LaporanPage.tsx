@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from 'axios';
-import { ChevronDown, FileText, FileSpreadsheet, Printer, TrendingUp, TrendingDown, Activity, CheckCircle, Clock, AlertTriangle, Loader2 } from "lucide-react";
+import { ChevronDown, FileText, FileSpreadsheet, Printer, TrendingUp, TrendingDown, Activity, CheckCircle, Clock, AlertTriangle, Loader2, ShieldCheck, ShieldAlert, CircleHelp, Info, XCircle, Building2 } from "lucide-react";
 import { AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Card, Btn } from "../components/ui";
 
@@ -75,21 +75,66 @@ export default function LaporanPage() {
     return <LaporanSkeleton />;
   }
 
-  // Fallback data mapping
-  const kpis = data?.kpi || {
-    total: { value: 0, change: '0%', up: true },
-    active: { value: 0, change: '0%', up: true },
-    pending: { value: 0, change: '0%', up: true },
-    expired: { value: 0, change: '0%', up: true },
-  };
+  const kpis = data?.kpi;
+  const risks = Array.isArray(kpis?.risks) ? kpis.risks : [];
+  
+  const riskColors = [
+    "var(--success)",
+    "var(--info)",
+    "var(--warning)",
+    "var(--danger)",
+    "var(--secondary)"
+  ];
+  
+  const statusPie = risks.map((r: any, i: number) => ({
+      name: r.name,
+      value: r.value,
+      color: riskColors[i % riskColors.length]
+  })).filter((d: any) => d.value > 0);
 
-  const statusPie = [
-    { name: "Izin Aktif", value: kpis.active.value, color: "var(--success)" },
-    { name: "Pending", value: kpis.pending.value, color: "var(--warning)" },
-    { name: "Kadaluarsa", value: kpis.expired.value, color: "var(--danger)" },
-  ].filter(d => d.value > 0);
+  const totalUsaha = kpis?.total?.value || 0; 
+  const denominator = totalUsaha > 0 ? totalUsaha : 1; // prevent div by 0 for percentages
 
-  const totalUsaha = kpis.total.value || 1; // prevent div by 0
+  const TOTAL_CARD = [
+    { 
+      title: "Total Usaha Terdaftar", 
+      value: kpis?.total?.value || 0, 
+      change: kpis?.total?.change || "+0%", 
+      isUp: kpis?.total?.up ?? true, 
+      icon: Building2, 
+      bgClass: "bg-primary/10",
+      iconColorClass: "text-primary" 
+    }
+  ];
+
+  const riskCards = risks.map((risk: any, index: number) => {
+    const fallbackColors = [
+      { color: "text-primary", bg: "bg-primary/10", icon: Info },
+      { color: "text-secondary", bg: "bg-secondary/10", icon: CircleHelp },
+      { color: "text-warning", bg: "bg-warning/10", icon: AlertTriangle },
+      { color: "text-danger", bg: "bg-danger/10", icon: XCircle },
+    ];
+    let style = fallbackColors[index % fallbackColors.length];
+    
+    const nameLower = (risk.name || "").toLowerCase().replace(/\s+/g, ' ').trim();
+    if (nameLower.includes('rendah') && !nameLower.includes('menengah')) style = { color: "text-success", bg: "bg-success/10", icon: ShieldCheck };
+    else if (nameLower.includes('menengah rendah')) style = { color: "text-info", bg: "bg-info/10", icon: Info };
+    else if (nameLower.includes('menengah tinggi')) style = { color: "text-warning", bg: "bg-warning/10", icon: AlertTriangle };
+    else if (nameLower.includes('tinggi') && !nameLower.includes('menengah')) style = { color: "text-danger", bg: "bg-danger/10", icon: ShieldAlert };
+    else if (nameLower.includes('tidak diisi')) style = { color: "text-secondary", bg: "bg-secondary/10", icon: CircleHelp };
+
+    return {
+      title: risk.name,
+      value: risk.value || 0,
+      change: "-",
+      isUp: true,
+      icon: style.icon,
+      bgClass: style.bg,
+      iconColorClass: style.color
+    };
+  });
+
+  const ALL_CARDS = [...TOTAL_CARD, ...riskCards];
 
   return (
     <div className="space-y-6 pb-10">
@@ -121,42 +166,9 @@ export default function LaporanPage() {
 
       {/* KPI Summary (Grid 4 Kolom) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard 
-          title="Total Usaha Terdaftar" 
-          value={kpis.total.value} 
-          change={kpis.total.change} 
-          isUp={kpis.total.up} 
-          icon={Activity} 
-          bgClass="bg-primary/10"
-          iconColorClass="text-primary"
-        />
-        <StatCard 
-          title="Izin Aktif" 
-          value={kpis.active.value} 
-          change={kpis.active.change} 
-          isUp={kpis.active.up} 
-          icon={CheckCircle} 
-          bgClass="bg-emerald-500/10"
-          iconColorClass="text-emerald-600 dark:text-emerald-400"
-        />
-        <StatCard 
-          title="Menunggu Verifikasi" 
-          value={kpis.pending.value} 
-          change={kpis.pending.change} 
-          isUp={kpis.pending.up} 
-          icon={Clock} 
-          bgClass="bg-amber-500/10"
-          iconColorClass="text-amber-600 dark:text-amber-400"
-        />
-        <StatCard 
-          title="Izin Kadaluarsa" 
-          value={kpis.expired.value} 
-          change={kpis.expired.change} 
-          isUp={kpis.expired.up} 
-          icon={AlertTriangle} 
-          bgClass="bg-rose-500/10"
-          iconColorClass="text-rose-600 dark:text-rose-400"
-        />
+        {ALL_CARDS.map((card, i) => (
+          <StatCard key={i} {...card} />
+        ))}
       </div>
 
       {/* Main Analytics Layout */}
@@ -205,7 +217,7 @@ export default function LaporanPage() {
           
           {/* Status Izin Pie */}
           <Card className="p-5 lg:p-6 border-border/50 shadow-sm flex flex-col">
-            <h3 className="text-base font-bold text-foreground tracking-tight mb-4">Proporsi Status Izin</h3>
+            <h3 className="text-base font-bold text-foreground tracking-tight mb-4">Proporsi Kategori Risiko</h3>
             <div className="flex-1 flex flex-col sm:flex-row lg:flex-col items-center justify-center gap-4">
               <div className="w-[140px] h-[140px] relative">
                 <ResponsiveContainer width="100%" height="100%">
@@ -232,7 +244,7 @@ export default function LaporanPage() {
                       <div className="w-2.5 h-2.5 rounded-full" style={{ background: d.color }} />
                       <span className="text-xs font-semibold text-foreground">{d.name}</span>
                     </div>
-                    <span className="text-xs font-bold text-muted-foreground">{((d.value / totalUsaha) * 100).toFixed(1)}%</span>
+                    <span className="text-xs font-bold text-muted-foreground">{(denominator > 0 ? (d.value / denominator) * 100 : 0).toFixed(1)}%</span>
                   </div>
                 ))}
               </div>
@@ -252,7 +264,7 @@ export default function LaporanPage() {
                   <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                     <div 
                       className="h-full rounded-full transition-all duration-1000 ease-out" 
-                      style={{ width: `${(d.value / totalUsaha) * 100}%`, background: d.color || `var(--chart-${(i % 5) + 1})` }} 
+                      style={{ width: `${(denominator > 0 ? (d.value / denominator) * 100 : 0)}%`, background: d.color || `var(--chart-${(i % 5) + 1})` }} 
                     />
                   </div>
                 </div>
