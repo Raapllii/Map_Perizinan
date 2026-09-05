@@ -2,7 +2,8 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import axios from 'axios';
 import {
   Building2, Clock, CheckCircle, AlertTriangle, XCircle, TrendingUp, TrendingDown,
-  Download, FileSpreadsheet, Printer, FileText
+  Download, FileSpreadsheet, Printer, FileText,
+  ShieldCheck, ShieldAlert, CircleHelp, Info
 } from "lucide-react";
 import { Card, SectionHeader, Btn, Skeleton, StatCard } from "../components/ui";
 
@@ -85,20 +86,19 @@ export default function DashboardPage() {
 
   const riskCards = (kpiData?.risks || []).map((risk: any, index: number) => {
     const colors = [
-      { color: "text-success", bg: "bg-success/10", icon: CheckCircle },
-      { color: "text-info", bg: "bg-info/10", icon: TrendingUp },
+      { color: "text-primary", bg: "bg-primary/10", icon: Info },
+      { color: "text-secondary", bg: "bg-secondary/10", icon: CircleHelp },
       { color: "text-warning", bg: "bg-warning/10", icon: AlertTriangle },
       { color: "text-danger", bg: "bg-danger/10", icon: XCircle },
-      { color: "text-secondary", bg: "bg-secondary/10", icon: Building2 },
     ];
     let style = colors[index % colors.length];
     
-    const nameLower = risk.name.toLowerCase();
-    if (nameLower.includes('rendah') && !nameLower.includes('menengah')) style = { color: "text-success", bg: "bg-success/10", icon: CheckCircle };
-    else if (nameLower.includes('menengah rendah')) style = { color: "text-info", bg: "bg-info/10", icon: TrendingUp };
+    const nameLower = (risk.name || "").toLowerCase().replace(/\s+/g, ' ').trim();
+    if (nameLower.includes('rendah') && !nameLower.includes('menengah')) style = { color: "text-success", bg: "bg-success/10", icon: ShieldCheck };
+    else if (nameLower.includes('menengah rendah')) style = { color: "text-info", bg: "bg-info/10", icon: Info };
     else if (nameLower.includes('menengah tinggi')) style = { color: "text-warning", bg: "bg-warning/10", icon: AlertTriangle };
-    else if (nameLower.includes('tinggi') && !nameLower.includes('menengah')) style = { color: "text-danger", bg: "bg-danger/10", icon: XCircle };
-    else if (nameLower.includes('tidak diisi')) style = { color: "text-secondary", bg: "bg-secondary/10", icon: Building2 };
+    else if (nameLower.includes('tinggi') && !nameLower.includes('menengah')) style = { color: "text-danger", bg: "bg-danger/10", icon: ShieldAlert };
+    else if (nameLower.includes('tidak diisi')) style = { color: "text-secondary", bg: "bg-secondary/10", icon: CircleHelp };
 
     return {
       label: risk.name,
