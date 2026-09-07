@@ -16,6 +16,6 @@ export const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = 
   "data-usaha": { title: "Data Usaha", subtitle: "Manajemen data seluruh usaha" },
   "verifikasi-izin": { title: "Verifikasi Izin", subtitle: "Antrian pengajuan izin usaha" },
   "monitoring": { title: "Monitoring", subtitle: "Pemantauan real-time kondisi usaha" },
-  "laporan": { title: "Laporan & Analitik", subtitle: "Laporan statistik dan distribusi usaha" },
+  "laporan": { title: "Laporan", subtitle: "Laporan statistik dan distribusi usaha" },
   "pengaturan": { title: "Pengaturan", subtitle: "Konfigurasi sistem dan preferensi" },
 };

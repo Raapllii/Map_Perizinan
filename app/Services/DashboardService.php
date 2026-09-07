@@ -23,7 +23,7 @@ class DashboardService
                 'monthly' => $this->getMonthlyData($year),
                 'distribution' => $this->getDistributionData($year),
                 'districts' => $this->getDistrictData($year),
-                'activities' => $this->getActivityFeed(),
+                'activities' => $this->getActivityFeed($year),
                 'trend' => $this->getTrendData(),
                 'markers' => $this->getMapMarkers($year),
             ];
@@ -56,14 +56,14 @@ class DashboardService
         $aggregatedRisks = [];
         
         $riskMap = [
-            'Rendah' => 'Risiko Rendah',
-            'Menengah Rendah' => 'Menengah Rendah',
-            'Menengah Tinggi' => 'Menengah Tinggi',
-            'Tinggi' => 'Risiko Tinggi',
+            'rendah' => 'Risiko Rendah',
+            'menengah rendah' => 'Menengah Rendah',
+            'menengah tinggi' => 'Menengah Tinggi',
+            'tinggi' => 'Risiko Tinggi',
         ];
 
         foreach ($risksQuery as $risk) {
-            $name = trim($risk->uraian_risiko_proyek ?? '');
+            $name = strtolower(trim($risk->uraian_risiko_proyek ?? ''));
             
             if (isset($riskMap[$name])) {
                 $mappedName = $riskMap[$name];
@@ -182,9 +182,9 @@ class DashboardService
         });
     }
 
-    private function getActivityFeed()
+    private function getActivityFeed($year)
     {
-        $activities = ActivityLog::latest()->take(7)->get();
+        $activities = ActivityLog::whereYear('created_at', $year)->latest()->take(7)->get();
         $activityFeed = $activities->map(function($act) {
             return [
                 'time' => $act->created_at ? $act->created_at->format('H:i') : null,
@@ -195,7 +195,7 @@ class DashboardService
         });
         
         if ($activityFeed->isEmpty()) {
-            $recent = Business::orderBy('created_at', 'desc')->take(5)->get();
+            $recent = Business::whereYear('tanggal_terbit_oss', $year)->orderBy('created_at', 'desc')->take(5)->get();
             $activityFeed = $recent->map(function($biz) {
                 return [
                     'time' => $biz->created_at ? $biz->created_at->format('H:i') : now()->format('H:i'),
