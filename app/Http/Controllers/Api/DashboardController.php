@@ -17,7 +17,8 @@ class DashboardController extends Controller
     public function index(\Illuminate\Http\Request $request)
     {
         $forceRefresh = $request->query('refresh') === 'true';
-        $data = $this->dashboardService->getDashboardData($forceRefresh);
+        $year = $request->query('year', date('Y'));
+        $data = $this->dashboardService->getDashboardData($year, $forceRefresh);
         return response()->json($data);
     }
 
@@ -27,7 +28,8 @@ class DashboardController extends Controller
         // in a controller might require creating an Export class which is tedious.
         // We'll generate a CSV of the monthly summary for simplicity and speed, fulfilling the requirement.
         
-        $data = $this->dashboardService->getDashboardData(false);
+        $year = request()->query('year', date('Y'));
+        $data = $this->dashboardService->getDashboardData($year, false);
         $monthly = $data['monthly'];
         
         $filename = "dashboard-export-" . date('Y-m-d') . ".csv";

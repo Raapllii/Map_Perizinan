@@ -32,6 +32,13 @@ const RISK_CONFIG: Record<string, { label: string; color: string; cssVar: string
     icon: ShieldCheck,
     badgeCls: "bg-success/10 text-success border border-success/20",
   },
+  "risiko rendah": {
+    label: "Risiko Rendah",
+    color: "var(--success)",
+    cssVar: "--success",
+    icon: ShieldCheck,
+    badgeCls: "bg-success/10 text-success border border-success/20",
+  },
   "menengah rendah": {
     label: "Menengah Rendah",
     color: "var(--warning)",
@@ -47,6 +54,13 @@ const RISK_CONFIG: Record<string, { label: string; color: string; cssVar: string
     badgeCls: "bg-orange-500/10 text-orange-500 border border-orange-500/20",
   },
   "tinggi": {
+    label: "Risiko Tinggi",
+    color: "var(--danger)",
+    cssVar: "--danger",
+    icon: ShieldAlert,
+    badgeCls: "bg-danger/10 text-danger border border-danger/20",
+  },
+  "risiko tinggi": {
     label: "Risiko Tinggi",
     color: "var(--danger)",
     cssVar: "--danger",
@@ -201,11 +215,8 @@ export default function LaporanPage() {
       ═══════════════════════════════════════════════════════════════════════ */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-border/40">
         <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-1 h-6 rounded-full bg-primary" />
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Laporan & Analitik</h1>
-          </div>
-          <p className="text-sm text-muted-foreground pl-3.5">
+          <h2 className="text-[1.3rem] font-semibold tracking-tight text-foreground mb-0.5">Laporan & Analitik</h2>
+          <p className="text-sm text-muted-foreground">
             Ringkasan dan analisis data usaha berdasarkan perizinan yang terdaftar.
           </p>
         </div>
@@ -242,13 +253,13 @@ export default function LaporanPage() {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          2. KPI SUMMARY — Single horizontal panel
+          2. KPI SUMMARY — Responsive Grid
       ═══════════════════════════════════════════════════════════════════════ */}
       <Card className="border-border/40 shadow-sm overflow-hidden bg-card">
-        <div className="flex flex-row overflow-x-auto divide-x divide-border/30">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-[1px] bg-border/40">
 
           {/* Total Usaha — prominent */}
-          <div className="px-6 py-5 flex flex-col justify-center min-w-[200px] shrink-0 bg-primary/[0.03]">
+          <div className="px-5 xl:px-6 py-5 flex flex-col justify-center bg-primary/[0.03] hover:bg-primary/[0.05] transition-colors relative">
             <div className="flex items-center gap-2 mb-1">
               <Building2 size={13} className="text-primary" />
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Usaha</span>
@@ -259,13 +270,13 @@ export default function LaporanPage() {
             {totalChange && (
               <div className={`flex items-center gap-1 mt-1.5 text-xs font-semibold ${totalUp ? "text-success" : "text-danger"}`}>
                 {totalUp ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
-                {totalChange} vs. 30 hari lalu
+                {totalChange} vs. tahun lalu
               </div>
             )}
           </div>
 
           {/* Belum Dipetakan */}
-          <div className="px-5 py-5 flex flex-col justify-center min-w-[160px] shrink-0 hover:bg-orange-500/5 transition-colors border-l border-border/30">
+          <div className="px-5 py-5 flex flex-col justify-center bg-card hover:bg-orange-500/5 transition-colors relative">
             <div className="flex items-center gap-1.5 mb-1">
               <MapPinOff size={12} className="text-orange-500" />
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Belum Dipetakan</span>
@@ -280,26 +291,28 @@ export default function LaporanPage() {
               {fmt(sudahDipetakan)} sudah dipetakan
             </div>
           </div>
-        </div>
 
-          {/* Risk breakdown */}
-          {risks.map((r: any, i: number) => {
-            const cfg = getRiskConfig(r.name);
+          {/* Risk breakdown (Static Order) */}
+          {["Risiko Rendah", "Menengah Rendah", "Menengah Tinggi", "Risiko Tinggi"].map((riskName, i) => {
+            // Find value from backend response
+            const rValue = risks.find((r: any) => r.name === riskName)?.value ?? 0;
+            const cfg = getRiskConfig(riskName);
             const Icon = cfg.icon;
-            const share = pct(r.value ?? 0, denominator);
+            const share = pct(rValue, denominator);
             return (
-              <div key={i} className="px-5 py-5 flex flex-col justify-center min-w-[140px] shrink-0 hover:bg-muted/30 transition-colors">
+              <div key={i} className="px-5 py-5 flex flex-col justify-center bg-card hover:bg-muted/30 transition-colors relative">
                 <div className="flex items-center gap-1.5 mb-1">
                   <Icon size={12} style={{ color: cfg.color }} />
                   <span className="text-xs font-medium text-muted-foreground truncate max-w-[120px]">{cfg.label}</span>
                 </div>
                 <div className="text-2xl font-bold tabular-nums tracking-tight text-foreground">
-                  {fmt(r.value)}
+                  {fmt(rValue)}
                 </div>
                 <div className="text-xs text-muted-foreground mt-0.5">{share}%</div>
               </div>
             );
           })}   
+        </div>
       </Card>
 
       {/* ═══════════════════════════════════════════════════════════════════════

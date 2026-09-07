@@ -9,60 +9,72 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardService
 {
-    public function getDashboardData($forceRefresh = false)
+    public function getDashboardData($year, $forceRefresh = false)
     {
+        $cacheKey = "dashboard_data_{$year}";
+
         if ($forceRefresh) {
-            Cache::forget('dashboard_data');
+            Cache::forget($cacheKey);
         }
 
-        return Cache::remember('dashboard_data', 3600, function () {
+        return Cache::remember($cacheKey, 3600, function () use ($year) {
             return [
-                'kpi' => $this->getKpiData(),
-                'monthly' => $this->getMonthlyData(),
-                'distribution' => $this->getDistributionData(),
-                'districts' => $this->getDistrictData(),
+                'kpi' => $this->getKpiData($year),
+                'monthly' => $this->getMonthlyData($year),
+                'distribution' => $this->getDistributionData($year),
+                'districts' => $this->getDistrictData($year),
                 'activities' => $this->getActivityFeed(),
                 'trend' => $this->getTrendData(),
-                'markers' => $this->getMapMarkers(),
+                'markers' => $this->getMapMarkers($year),
             ];
         });
     }
 
-    private function getKpiData()
+    private function getKpiData($year)
     {
-        // Calculate current and previous periods for trends
-        $thirtyDaysAgo = now()->subDays(30);
-
+        // Total by year
+        $totalCurrent = Business::whereYear('tanggal_terbit_oss', $year)->count();
+        $totalPrevious = Business::whereYear('tanggal_terbit_oss', $year - 1)->count();
+        
         // Helper to calculate percentage change
         $calcChange = function($current, $previous) {
             if ($previous == 0) return $current > 0 ? 100 : 0;
             return round((($current - $previous) / $previous) * 100, 1);
         };
-
-        // Total
-        $totalCurrent = Business::count();
-        $totalPrevious = Business::where('created_at', '<', $thirtyDaysAgo)->count();
         $totalChange = $calcChange($totalCurrent, $totalPrevious);
 
         // Unmapped: NULL or zero decimal coordinates are considered invalid
-        $belumDipetakan = $this->countUnmapped();
+        $belumDipetakan = $this->countUnmapped($year);
 
-        // Risk categories
+        // Risk categories explicitly mapped
         $risksQuery = Business::select('uraian_risiko_proyek', DB::raw('count(*) as total'))
+            ->whereYear('tanggal_terbit_oss', $year)
             ->groupBy('uraian_risiko_proyek')
             ->orderBy('total', 'desc')
             ->get();
             
         $aggregatedRisks = [];
+        
+        $riskMap = [
+            'Rendah' => 'Risiko Rendah',
+            'Menengah Rendah' => 'Menengah Rendah',
+            'Menengah Tinggi' => 'Menengah Tinggi',
+            'Tinggi' => 'Risiko Tinggi',
+        ];
+
         foreach ($risksQuery as $risk) {
             $name = trim($risk->uraian_risiko_proyek ?? '');
-            if (empty($name)) {
-                $name = 'Tidak Diisi';
+            
+            if (isset($riskMap[$name])) {
+                $mappedName = $riskMap[$name];
+            } else {
+                $mappedName = 'Tidak Diisi';
             }
-            if (!isset($aggregatedRisks[$name])) {
-                $aggregatedRisks[$name] = 0;
+            
+            if (!isset($aggregatedRisks[$mappedName])) {
+                $aggregatedRisks[$mappedName] = 0;
             }
-            $aggregatedRisks[$name] += (int) $risk->total;
+            $aggregatedRisks[$mappedName] += (int) $risk->total;
         }
         
         $finalRisks = [];
@@ -72,10 +84,6 @@ class DashboardService
                 'value' => $val,
             ];
         }
-
-        usort($finalRisks, function($a, $b) {
-            return $b['value'] <=> $a['value'];
-        });
 
         return [
             'total' => [
@@ -88,11 +96,9 @@ class DashboardService
         ];
     }
 
-    private function getMonthlyData()
+    private function getMonthlyData($year)
     {
         $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
-        
-        $year = request()->query('year', date('Y'));
         
         $monthlyQuery = Business::select(
                 DB::raw('EXTRACT(MONTH FROM tanggal_terbit_oss) as month'), 
@@ -117,9 +123,10 @@ class DashboardService
         return $monthly;
     }
 
-    private function getDistributionData()
+    private function getDistributionData($year)
     {
         $categoriesQuery = Business::select('judul_kbli', DB::raw('count(*) as total'))
+            ->whereYear('tanggal_terbit_oss', $year)
             ->groupBy('judul_kbli')
             ->orderBy('total', 'desc')
             ->take(5)
@@ -136,7 +143,7 @@ class DashboardService
         });
         
         $topCategories = $categoriesQuery->pluck('judul_kbli')->toArray();
-        $otherCount = Business::whereNotIn('judul_kbli', $topCategories)->count();
+        $otherCount = Business::whereYear('tanggal_terbit_oss', $year)->whereNotIn('judul_kbli', $topCategories)->count();
         if ($otherCount > 0) {
             $distribution->push([
                 'name' => 'Lainnya',
@@ -148,7 +155,7 @@ class DashboardService
         return $distribution;
     }
 
-    private function getDistrictData()
+    private function getDistrictData($year)
     {
         $districtsQuery = Business::select('kecamatan_usaha', 
             DB::raw('count(*) as total'),
@@ -156,6 +163,7 @@ class DashboardService
             DB::raw("SUM(CASE WHEN LOWER(TRIM(uraian_risiko_proyek)) IN ('menengah rendah', 'menengah tinggi') THEN 1 ELSE 0 END) as risiko_menengah"),
             DB::raw("SUM(CASE WHEN LOWER(TRIM(uraian_risiko_proyek)) = 'tinggi' THEN 1 ELSE 0 END) as risiko_tinggi")
         )
+        ->whereYear('tanggal_terbit_oss', $year)
         ->groupBy('kecamatan_usaha')
         ->orderBy('total', 'desc')
         ->get();
@@ -221,12 +229,13 @@ class DashboardService
         })->values();
     }
 
-    private function getMapMarkers()
+    private function getMapMarkers($year)
     {
         return Business::select('id', 'latitude', 'longitude', 'status', 'nama_perusahaan')
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
             ->where('status', 'Aktif')
+            ->whereYear('tanggal_terbit_oss', $year)
             ->take(200) // Prevent rendering too many markers at once
             ->get();
     }
@@ -239,15 +248,16 @@ class DashboardService
      *
      * Uses a raw COUNT so it works correctly with PostgreSQL decimal columns.
      */
-    private function countUnmapped(): int
+    private function countUnmapped($year): int
     {
         $result = DB::selectOne(
             "SELECT COUNT(*) AS cnt
              FROM businesses
-             WHERE latitude  IS NULL
+             WHERE (latitude IS NULL
                 OR longitude IS NULL
-                OR latitude  = 0
-                OR longitude = 0"
+                OR latitude = 0
+                OR longitude = 0)
+                AND EXTRACT(YEAR FROM tanggal_terbit_oss) = ?", [$year]
         );
 
         return (int) ($result->cnt ?? 0);
