@@ -44,6 +44,9 @@ class DashboardService
         $totalPrevious = Business::where('created_at', '<', $thirtyDaysAgo)->count();
         $totalChange = $calcChange($totalCurrent, $totalPrevious);
 
+        // Unmapped: NULL or zero decimal coordinates are considered invalid
+        $belumDipetakan = $this->countUnmapped();
+
         // Risk categories
         $risksQuery = Business::select('uraian_risiko_proyek', DB::raw('count(*) as total'))
             ->groupBy('uraian_risiko_proyek')
@@ -81,6 +84,7 @@ class DashboardService
                 'up' => $totalChange >= 0
             ],
             'risks' => $finalRisks,
+            'belum_dipetakan' => $belumDipetakan,
         ];
     }
 
@@ -148,9 +152,9 @@ class DashboardService
     {
         $districtsQuery = Business::select('kecamatan_usaha', 
             DB::raw('count(*) as total'),
-            DB::raw("SUM(CASE WHEN status = 'Aktif' THEN 1 ELSE 0 END) as active"),
-            DB::raw("SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) as pending"),
-            DB::raw("SUM(CASE WHEN status = 'Kadaluarsa' THEN 1 ELSE 0 END) as expired")
+            DB::raw("SUM(CASE WHEN LOWER(TRIM(uraian_risiko_proyek)) = 'rendah' THEN 1 ELSE 0 END) as risiko_rendah"),
+            DB::raw("SUM(CASE WHEN LOWER(TRIM(uraian_risiko_proyek)) IN ('menengah rendah', 'menengah tinggi') THEN 1 ELSE 0 END) as risiko_menengah"),
+            DB::raw("SUM(CASE WHEN LOWER(TRIM(uraian_risiko_proyek)) = 'tinggi' THEN 1 ELSE 0 END) as risiko_tinggi")
         )
         ->groupBy('kecamatan_usaha')
         ->orderBy('total', 'desc')
@@ -162,9 +166,9 @@ class DashboardService
             return [
                 'name' => str_replace('Kecamatan ', 'Kec. ', $name),
                 'total' => (int) $dist->total,
-                'active' => (int) $dist->active,
-                'pending' => (int) $dist->pending,
-                'expired' => (int) $dist->expired,
+                'risiko_rendah' => (int) $dist->risiko_rendah,
+                'risiko_menengah' => (int) $dist->risiko_menengah,
+                'risiko_tinggi' => (int) $dist->risiko_tinggi,
                 'color' => $distcolors[$index % count($distcolors)],
             ];
         });
@@ -225,5 +229,27 @@ class DashboardService
             ->where('status', 'Aktif')
             ->take(200) // Prevent rendering too many markers at once
             ->get();
+    }
+
+    /**
+     * Count businesses that have no valid map coordinates.
+     * A coordinate is considered invalid when it is:
+     *   - NULL, OR
+     *   - equal to 0 (decimal 0.00000000 is not a real location)
+     *
+     * Uses a raw COUNT so it works correctly with PostgreSQL decimal columns.
+     */
+    private function countUnmapped(): int
+    {
+        $result = DB::selectOne(
+            "SELECT COUNT(*) AS cnt
+             FROM businesses
+             WHERE latitude  IS NULL
+                OR longitude IS NULL
+                OR latitude  = 0
+                OR longitude = 0"
+        );
+
+        return (int) ($result->cnt ?? 0);
     }
 }
