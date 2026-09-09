@@ -81,7 +81,7 @@ export default function DashboardPage() {
   }
 
   const TOTAL_CARD = [
-    { label: "Total Usaha", value: kpiData?.total?.value?.toLocaleString('id') || "0", icon: Building2, change: kpiData?.total?.change || "+0%", up: kpiData?.total?.up ?? true, color: "text-primary", bg: "bg-primary/10" },
+    { label: "Total Usaha", value: kpiData?.total?.value?.toLocaleString('id') || "0", icon: Building2, change: kpiData?.total?.change, up: kpiData?.total?.up ?? true, color: "text-primary", bg: "bg-primary/10" },
   ];
 
   const riskCards = (kpiData?.risks || []).map((risk: any, index: number) => {
@@ -104,7 +104,7 @@ export default function DashboardPage() {
       label: risk.name,
       value: risk.value?.toLocaleString('id') || "0",
       icon: style.icon,
-      change: "-",
+      change: undefined,
       up: true,
       color: style.color,
       bg: style.bg
@@ -128,7 +128,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
         {/* Monthly registrations */}
         <Card className="xl:col-span-7" padding="p-5">
-          <SectionHeader title="Pendaftaran Usaha Bulanan" subtitle={`Tahun ${currentYear} — registrasi, terverifikasi, dan ditolak`}>
+          <SectionHeader title="Pendaftaran Usaha Bulanan" subtitle={`Tahun ${data?.target_year || currentYear} — registrasi, terverifikasi, dan ditolak`}>
             <Btn variant="outline" size="sm" Icon={Download} onClick={() => window.open('/api/admin/dashboard/export/excel', '_blank')}>Export</Btn>
           </SectionHeader>
           <div className="w-full min-w-0">
@@ -182,14 +182,26 @@ export default function DashboardPage() {
           <SectionHeader title="Statistik per Kecamatan" subtitle="Distribusi usaha di setiap kecamatan" />
           <div className="space-y-4 max-h-[380px] overflow-y-auto pr-2">
             {districtData.map((d: any, i: number) => (
-              <div key={d.name}>
-                <div className="flex items-center justify-between mb-2 gap-2">
+              <div key={d.name} className="mb-4 last:mb-0">
+                <div className="flex items-center justify-between mb-1.5 gap-2">
                   <span className="text-xs sm:text-sm font-semibold text-foreground truncate min-w-0">{d.name}</span>
-                  <span className="text-[10px] sm:text-xs font-medium text-muted-foreground flex-shrink-0">{d.active} / {d.total} aktif</span>
+                  <span className="text-[10px] sm:text-xs font-medium text-muted-foreground flex-shrink-0">Total {d.total?.toLocaleString("id") || 0} usaha</span>
                 </div>
-                <div className="h-2.5 bg-muted rounded-full overflow-hidden flex">
-                  <div className="h-full rounded-full transition-all duration-1000 ease-out" 
-                       style={{ width: `${(d.active / d.total) * 100}%`, background: d.color || `var(--chart-${(i % 5) + 1})` }} />
+                
+                <div className="h-2 bg-muted rounded-full overflow-hidden flex mb-2">
+                  {d.total > 0 && (
+                    <>
+                      <div className="h-full bg-success transition-all duration-1000 ease-out" style={{ width: `${(d.risiko_rendah / d.total) * 100}%` }} title={`Risiko Rendah: ${d.risiko_rendah}`} />
+                      <div className="h-full bg-warning transition-all duration-1000 ease-out" style={{ width: `${(d.risiko_menengah / d.total) * 100}%` }} title={`Risiko Menengah: ${d.risiko_menengah}`} />
+                      <div className="h-full bg-danger transition-all duration-1000 ease-out" style={{ width: `${(d.risiko_tinggi / d.total) * 100}%` }} title={`Risiko Tinggi: ${d.risiko_tinggi}`} />
+                    </>
+                  )}
+                </div>
+
+                <div className="flex justify-between items-center text-[10px] text-muted-foreground">
+                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-success"></span> Rendah {d.risiko_rendah}</div>
+                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-warning"></span> Menengah {d.risiko_menengah}</div>
+                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-danger"></span> Tinggi {d.risiko_tinggi}</div>
                 </div>
               </div>
             ))}
