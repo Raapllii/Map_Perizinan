@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import {
   ChevronDown, Activity, Loader2, MapPin, MapPinOff, History,
@@ -162,6 +163,11 @@ export default function LaporanPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   const [year, setYear] = useState("2025");
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setPortalTarget(document.getElementById("header-actions"));
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -208,26 +214,19 @@ export default function LaporanPage() {
   const Divider = () => <div className="border-t border-border/40" />;
 
   return (
-    <div className="space-y-7 pb-12 max-w-[1600px] mx-auto">
+    <div className="space-y-7 pb-12 pt-1 max-w-[1600px] mx-auto">
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          1. HEADER
+          1. ACTION TOOLBAR (Portaled to Global Header)
       ═══════════════════════════════════════════════════════════════════════ */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-border/40">
-        <div>
-          <h2 className="text-[1.3rem] font-semibold tracking-tight text-foreground mb-0.5">Laporan & Analitik</h2>
-          <p className="text-sm text-muted-foreground">
-            Ringkasan dan analisis data usaha berdasarkan perizinan yang terdaftar.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
+      {portalTarget && createPortal(
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-start sm:justify-end gap-2 w-full sm:w-auto mt-3 sm:mt-0">
           {/* Year filter */}
           <div className="relative">
             <select
               value={year}
               onChange={(e) => setYear(e.target.value)}
-              className="text-sm font-medium border border-border rounded-lg pl-3 pr-8 py-2 appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-background cursor-pointer transition-colors"
+              className="w-full sm:w-auto text-sm font-medium border border-border rounded-lg pl-3 pr-8 py-2 appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-background cursor-pointer transition-colors"
             >
               {["2025", "2024", "2023", "2022"].map((y) => (
                 <option key={y} value={y}>Tahun {y}</option>
@@ -236,21 +235,24 @@ export default function LaporanPage() {
             <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           </div>
 
-          <div className="w-px h-5 bg-border/60" />
+          <div className="hidden sm:block w-px h-5 bg-border/60 mx-1" />
 
-          <Btn variant="outline" size="sm" className="h-9 text-xs font-medium gap-1.5">
-            <FileDown size={13} /> PDF
-          </Btn>
-          <Btn variant="outline" size="sm" className="h-9 text-xs font-medium gap-1.5">
-            <FileDown size={13} /> Excel
-          </Btn>
-          <Btn variant="outline" size="sm" className="h-9 text-xs font-medium gap-1.5">
-            <Printer size={13} /> Cetak
-          </Btn>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Btn variant="outline" size="sm" className="h-9 text-xs font-medium gap-1.5 flex-1 sm:flex-none justify-center">
+              <FileDown size={13} /> PDF
+            </Btn>
+            <Btn variant="outline" size="sm" className="h-9 text-xs font-medium gap-1.5 flex-1 sm:flex-none justify-center">
+              <FileDown size={13} /> Excel
+            </Btn>
+            <Btn variant="outline" size="sm" className="h-9 text-xs font-medium gap-1.5 flex-1 sm:flex-none justify-center">
+              <Printer size={13} /> Cetak
+            </Btn>
+          </div>
 
-          {loading && <Loader2 size={15} className="animate-spin text-muted-foreground" />}
-        </div>
-      </div>
+          {loading && <Loader2 size={15} className="animate-spin text-muted-foreground hidden sm:block ml-1" />}
+        </div>,
+        portalTarget
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
           2. KPI SUMMARY — Responsive Grid

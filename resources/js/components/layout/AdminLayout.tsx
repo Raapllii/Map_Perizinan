@@ -84,6 +84,7 @@ export default function AdminLayout({ darkMode, setDarkMode, setUser }: any) {
                   </Btn>
                 </div>
               )}
+              <div id="header-actions" className="w-full sm:w-auto empty:hidden"></div>
             </div>
           </div>
           
