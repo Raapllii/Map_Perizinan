@@ -14,10 +14,10 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-      <div className="bg-card w-full max-w-4xl max-h-[90vh] rounded-xl shadow-xl border border-border flex flex-col animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-card w-full max-w-4xl max-h-[calc(100vh-2rem)] rounded-xl shadow-xl border border-border flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <div>
             <h2 className="text-lg font-bold text-foreground">Detail Data Usaha</h2>
             <p className="text-sm text-muted-foreground mt-0.5">NIB: {business.nib}</p>
@@ -28,7 +28,7 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto p-6 space-y-8 custom-scrollbar">
+        <div className="overflow-y-auto flex-1 min-h-0 p-4 sm:p-6 space-y-6 sm:space-y-8 custom-scrollbar">
           
           {/* Identitas Section */}
           <section>
@@ -123,7 +123,7 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-border bg-muted/20 flex justify-end">
+        <div className="px-6 py-4 border-t border-border bg-muted/20 flex justify-end shrink-0">
           <Btn variant="outline" onClick={onClose}>Tutup</Btn>
         </div>
       </div>
@@ -135,7 +135,7 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
 const DetailItem = ({ label, value, className = "" }: { label: string, value: any, className?: string }) => (
   <div className={className}>
     <span className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{label}</span>
-    <span className="block text-sm font-medium text-foreground">{value || '-'}</span>
+    <span className="block text-sm font-medium text-foreground break-words">{value || '-'}</span>
   </div>
 );
 

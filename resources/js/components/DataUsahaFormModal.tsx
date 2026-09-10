@@ -175,10 +175,10 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-      <div className="bg-card w-full max-w-4xl max-h-[90vh] rounded-xl shadow-xl border border-border flex flex-col animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-card w-full max-w-4xl max-h-[calc(100vh-2rem)] rounded-xl shadow-xl border border-border flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <h2 className="text-lg font-bold text-foreground">
             {isEdit ? "Edit Data Usaha" : "Tambah Data Usaha"}
           </h2>
@@ -188,8 +188,8 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
         </div>
 
         {/* Content */}
-        <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
-          <div className="overflow-y-auto p-6 space-y-8 custom-scrollbar">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="overflow-y-auto flex-1 min-h-0 p-4 sm:p-6 space-y-6 sm:space-y-8 custom-scrollbar">
             
             {/* A. Identitas Proyek */}
             <section>
@@ -346,7 +346,7 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-border bg-muted/20 flex justify-end gap-2 mt-auto">
+          <div className="px-6 py-4 border-t border-border bg-muted/20 flex justify-end gap-2 shrink-0">
             <Btn variant="outline" type="button" onClick={onClose} disabled={loading}>Batal</Btn>
             <Btn variant="primary" type="submit" disabled={loading}>
               {loading ? <Loader2 className="animate-spin" size={16} /> : (isEdit ? "Simpan Perubahan" : "Tambah Data")}
