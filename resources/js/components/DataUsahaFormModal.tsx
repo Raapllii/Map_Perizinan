@@ -14,51 +14,99 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
   const isEdit = !!business;
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
+    id_proyek: "",
     nib: "",
     nama_perusahaan: "",
     nama_proyek: "",
-    nama_user: "",
+    uraian_jenis_proyek: "",
+    tanggal_terbit_oss: "",
+    day_of_tanggal_pengajuan_proyek: "",
     kbli: "",
     judul_kbli: "",
+    kl_sektor_pembina: "",
+    uraian_jenis_perusahaan: "",
+    uraian_status_penanaman_modal: "",
+    uraian_risiko_proyek: "",
+    uraian_skala_usaha: "",
     alamat_usaha: "",
+    kab_kota_usaha: "",
     kecamatan_usaha: "",
     kelurahan_usaha: "",
-    status: "Aktif",
     latitude: "",
-    longitude: ""
+    longitude: "",
+    luas_tanah: "",
+    satuan_tanah: "",
+    jumlah_investasi: "",
+    tki: "",
+    nama_user: "",
+    email: "",
+    nomor_telp: "",
+    status: "Aktif",
   });
 
   useEffect(() => {
     if (isOpen) {
       if (business) {
         setFormData({
+          id_proyek: business.id_proyek ?? "",
           nib: business.nib ?? "",
           nama_perusahaan: business.nama_perusahaan ?? "",
           nama_proyek: business.nama_proyek ?? "",
-          nama_user: business.nama_user ?? "",
+          uraian_jenis_proyek: business.uraian_jenis_proyek ?? "",
+          tanggal_terbit_oss: business.tanggal_terbit_oss ? business.tanggal_terbit_oss.substring(0, 10) : "",
+          day_of_tanggal_pengajuan_proyek: business.day_of_tanggal_pengajuan_proyek ?? "",
           kbli: business.kbli ?? "",
           judul_kbli: business.judul_kbli ?? "",
+          kl_sektor_pembina: business.kl_sektor_pembina ?? "",
+          uraian_jenis_perusahaan: business.uraian_jenis_perusahaan ?? "",
+          uraian_status_penanaman_modal: business.uraian_status_penanaman_modal ?? "",
+          uraian_risiko_proyek: business.uraian_risiko_proyek ?? "",
+          uraian_skala_usaha: business.uraian_skala_usaha ?? "",
           alamat_usaha: business.alamat_usaha ?? "",
+          kab_kota_usaha: business.kab_kota_usaha ?? "",
           kecamatan_usaha: business.kecamatan_usaha ?? "",
           kelurahan_usaha: business.kelurahan_usaha ?? "",
-          status: business.status ?? "Aktif",
           latitude: business.latitude ?? "",
-          longitude: business.longitude ?? ""
+          longitude: business.longitude ?? "",
+          luas_tanah: business.luas_tanah ?? "",
+          satuan_tanah: business.satuan_tanah ?? "",
+          jumlah_investasi: business.jumlah_investasi ?? "",
+          tki: business.tki ?? "",
+          nama_user: business.nama_user ?? "",
+          email: business.email ?? "",
+          nomor_telp: business.nomor_telp ?? "",
+          status: business.status ?? "Aktif",
         });
       } else {
         setFormData({
+          id_proyek: "",
           nib: "",
           nama_perusahaan: "",
           nama_proyek: "",
-          nama_user: "",
+          uraian_jenis_proyek: "",
+          tanggal_terbit_oss: "",
+          day_of_tanggal_pengajuan_proyek: "",
           kbli: "",
           judul_kbli: "",
+          kl_sektor_pembina: "",
+          uraian_jenis_perusahaan: "",
+          uraian_status_penanaman_modal: "",
+          uraian_risiko_proyek: "",
+          uraian_skala_usaha: "",
           alamat_usaha: "",
+          kab_kota_usaha: "",
           kecamatan_usaha: "",
           kelurahan_usaha: "",
-          status: "Aktif",
           latitude: "",
-          longitude: ""
+          longitude: "",
+          luas_tanah: "",
+          satuan_tanah: "",
+          jumlah_investasi: "",
+          tki: "",
+          nama_user: "",
+          email: "",
+          nomor_telp: "",
+          status: "Aktif",
         });
       }
     }
@@ -127,7 +175,7 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-      <div className="bg-card w-full max-w-2xl max-h-[90vh] rounded-xl shadow-xl border border-border flex flex-col animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-card w-full max-w-4xl max-h-[90vh] rounded-xl shadow-xl border border-border flex flex-col animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
@@ -141,72 +189,159 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
 
         {/* Content */}
         <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
-          <div className="overflow-y-auto p-6 space-y-4 custom-scrollbar">
+          <div className="overflow-y-auto p-6 space-y-8 custom-scrollbar">
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">NIB *</label>
-                <InputField name="nib" value={formData.nib} onChange={handleChange} required placeholder="Nomor Induk Berusaha" disabled={isEdit} />
+            {/* A. Identitas Proyek */}
+            <section>
+              <h3 className="text-sm font-bold text-primary mb-4 border-b border-border pb-2 uppercase tracking-wider">A. Identitas Proyek</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">ID Proyek</label>
+                  <InputField name="id_proyek" value={formData.id_proyek} onChange={handleChange} placeholder="ID Proyek" disabled={isEdit} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">NIB *</label>
+                  <InputField name="nib" value={formData.nib} onChange={handleChange} required placeholder="Nomor Induk Berusaha" disabled={isEdit} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Nama Perusahaan *</label>
+                  <InputField name="nama_perusahaan" value={formData.nama_perusahaan} onChange={handleChange} required placeholder="PT / CV / dll" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Nama Proyek</label>
+                  <InputField name="nama_proyek" value={formData.nama_proyek} onChange={handleChange} placeholder="Nama Proyek (Jika ada)" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Uraian Jenis Proyek</label>
+                  <InputField name="uraian_jenis_proyek" value={formData.uraian_jenis_proyek} onChange={handleChange} placeholder="Misal: Utama / Pendukung" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Tanggal Terbit OSS</label>
+                  <InputField type="date" name="tanggal_terbit_oss" value={formData.tanggal_terbit_oss} onChange={handleChange} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Tanggal Pengajuan Proyek</label>
+                  <InputField name="day_of_tanggal_pengajuan_proyek" value={formData.day_of_tanggal_pengajuan_proyek} onChange={handleChange} placeholder="Hari Tanggal Pengajuan" />
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Nama Perusahaan *</label>
-                <InputField name="nama_perusahaan" value={formData.nama_perusahaan} onChange={handleChange} required placeholder="PT / CV / dll" />
-              </div>
-              
-              <div className="md:col-span-2">
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Nama Proyek</label>
-                <InputField name="nama_proyek" value={formData.nama_proyek} onChange={handleChange} placeholder="Nama Proyek (Jika ada)" />
-              </div>
+            </section>
 
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Nama Pemilik/User</label>
-                <InputField name="nama_user" value={formData.nama_user} onChange={handleChange} placeholder="Nama Pemilik" />
+            {/* B. Klasifikasi Usaha */}
+            <section>
+              <h3 className="text-sm font-bold text-primary mb-4 border-b border-border pb-2 uppercase tracking-wider">B. Klasifikasi Usaha</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Kode KBLI</label>
+                  <InputField name="kbli" value={formData.kbli} onChange={handleChange} placeholder="Misal: 47111" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Sektor Pembina</label>
+                  <InputField name="kl_sektor_pembina" value={formData.kl_sektor_pembina} onChange={handleChange} placeholder="Kementerian / Lembaga" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Judul KBLI</label>
+                  <InputField name="judul_kbli" value={formData.judul_kbli} onChange={handleChange} placeholder="Kategori Usaha" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Jenis Perusahaan</label>
+                  <InputField name="uraian_jenis_perusahaan" value={formData.uraian_jenis_perusahaan} onChange={handleChange} placeholder="Misal: PMA / PMDN" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Status Penanaman Modal</label>
+                  <InputField name="uraian_status_penanaman_modal" value={formData.uraian_status_penanaman_modal} onChange={handleChange} placeholder="Misal: PMDN" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Risiko Proyek</label>
+                  <InputField name="uraian_risiko_proyek" value={formData.uraian_risiko_proyek} onChange={handleChange} placeholder="Misal: Rendah / Tinggi" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Skala Usaha</label>
+                  <InputField name="uraian_skala_usaha" value={formData.uraian_skala_usaha} onChange={handleChange} placeholder="Misal: Mikro / Kecil" />
+                </div>
               </div>
+            </section>
 
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Status</label>
-                <SelectField name="status" value={formData.status} onChange={handleChange} options={[
-                  { value: 'Aktif', label: 'Aktif' },
-                  { value: 'Pending', label: 'Pending' },
-                  { value: 'Tidak Aktif', label: 'Tidak Aktif' }
-                ]} />
+            {/* C. Lokasi Usaha */}
+            <section>
+              <h3 className="text-sm font-bold text-primary mb-4 border-b border-border pb-2 uppercase tracking-wider">C. Lokasi Usaha</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Alamat Usaha</label>
+                  <InputField name="alamat_usaha" value={formData.alamat_usaha} onChange={handleChange} placeholder="Alamat Lengkap" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Kabupaten/Kota</label>
+                  <InputField name="kab_kota_usaha" value={formData.kab_kota_usaha} onChange={handleChange} placeholder="Kota/Kabupaten" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Kecamatan</label>
+                  <InputField name="kecamatan_usaha" value={formData.kecamatan_usaha} onChange={handleChange} placeholder="Kecamatan" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Kelurahan</label>
+                  <InputField name="kelurahan_usaha" value={formData.kelurahan_usaha} onChange={handleChange} placeholder="Kelurahan" />
+                </div>
+                <div></div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Latitude</label>
+                  <InputField name="latitude" type="number" step="any" value={formData.latitude} onChange={handleChange} placeholder="-0.xxxxxx" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Longitude</label>
+                  <InputField name="longitude" type="number" step="any" value={formData.longitude} onChange={handleChange} placeholder="117.xxxxxx" />
+                </div>
               </div>
+            </section>
 
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Kode KBLI</label>
-                <InputField name="kbli" value={formData.kbli} onChange={handleChange} placeholder="Misal: 47111" />
+            {/* D. Kontak / Pengguna */}
+            <section>
+              <h3 className="text-sm font-bold text-primary mb-4 border-b border-border pb-2 uppercase tracking-wider">D. Kontak / Pengguna</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Nama User</label>
+                  <InputField name="nama_user" value={formData.nama_user} onChange={handleChange} placeholder="Nama Pendaftar / User" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Status Sistem</label>
+                  <SelectField name="status" value={formData.status} onChange={handleChange} options={[
+                    { value: 'Aktif', label: 'Aktif' },
+                    { value: 'Pending', label: 'Pending' },
+                    { value: 'Tidak Aktif', label: 'Tidak Aktif' }
+                  ]} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Email</label>
+                  <InputField name="email" type="email" value={formData.email} onChange={handleChange} placeholder="email@contoh.com" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Nomor Telepon</label>
+                  <InputField name="nomor_telp" value={formData.nomor_telp} onChange={handleChange} placeholder="08123456789" />
+                </div>
               </div>
-              
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Judul KBLI</label>
-                <InputField name="judul_kbli" value={formData.judul_kbli} onChange={handleChange} placeholder="Kategori Usaha" />
-              </div>
+            </section>
 
-              <div className="md:col-span-2">
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Alamat Proyek</label>
-                <InputField name="alamat_usaha" value={formData.alamat_usaha} onChange={handleChange} placeholder="Alamat Lengkap" />
+            {/* E. Investasi & Tenaga Kerja */}
+            <section>
+              <h3 className="text-sm font-bold text-primary mb-4 border-b border-border pb-2 uppercase tracking-wider">E. Investasi & Tenaga Kerja</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Jumlah Investasi (Rp)</label>
+                  <InputField name="jumlah_investasi" type="number" step="any" value={formData.jumlah_investasi} onChange={handleChange} placeholder="Contoh: 10000000" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">TKI (Orang)</label>
+                  <InputField name="tki" type="number" step="1" value={formData.tki} onChange={handleChange} placeholder="Jumlah Tenaga Kerja" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Luas Tanah</label>
+                  <InputField name="luas_tanah" type="number" step="any" value={formData.luas_tanah} onChange={handleChange} placeholder="Luas Area" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Satuan Tanah</label>
+                  <InputField name="satuan_tanah" value={formData.satuan_tanah} onChange={handleChange} placeholder="Contoh: m2, Ha" />
+                </div>
               </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Kecamatan</label>
-                <InputField name="kecamatan_usaha" value={formData.kecamatan_usaha} onChange={handleChange} placeholder="Kecamatan" />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Kelurahan</label>
-                <InputField name="kelurahan_usaha" value={formData.kelurahan_usaha} onChange={handleChange} placeholder="Kelurahan" />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Latitude</label>
-                <InputField name="latitude" type="number" step="any" value={formData.latitude} onChange={handleChange} placeholder="-0.xxxxxx" />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Longitude</label>
-                <InputField name="longitude" type="number" step="any" value={formData.longitude} onChange={handleChange} placeholder="117.xxxxxx" />
-              </div>
-            </div>
+            </section>
 
           </div>
 
