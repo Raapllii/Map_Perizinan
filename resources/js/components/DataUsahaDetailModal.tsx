@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { X, MapPin, Building2, Briefcase, FileText, CheckCircle2 } from "lucide-react";
 import { StatusBadge, Btn } from "./ui";
 
@@ -12,7 +13,7 @@ interface DataUsahaDetailModalProps {
 export default function DataUsahaDetailModal({ isOpen, onClose, business }: DataUsahaDetailModalProps) {
   if (!isOpen || !business) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
       <div className="bg-card w-full max-w-4xl max-h-[calc(100vh-2rem)] rounded-xl shadow-xl border border-border flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
@@ -127,7 +128,8 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
           <Btn variant="outline" onClick={onClose}>Tutup</Btn>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

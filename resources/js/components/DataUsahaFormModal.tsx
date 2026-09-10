@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Loader2 } from "lucide-react";
 import axios from "axios";
 import { Btn, InputField, SelectField } from "./ui";
@@ -173,7 +174,7 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
       <div className="bg-card w-full max-w-4xl max-h-[calc(100vh-2rem)] rounded-xl shadow-xl border border-border flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
@@ -354,6 +355,7 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
