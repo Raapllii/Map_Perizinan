@@ -19,7 +19,7 @@ class CreateBusinessesTable extends Migration
             $table->string('id_proyek')->nullable();
             $table->string('uraian_jenis_proyek')->nullable();
             $table->string('nib')->index();
-            $table->string('nama_perusahaan');
+            $table->string('nama_perusahaan')->nullable();
             $table->date('tanggal_terbit_oss')->nullable();
             $table->string('uraian_status_penanaman_modal')->nullable();
             $table->string('uraian_jenis_perusahaan')->nullable();

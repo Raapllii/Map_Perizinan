@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Upload, FileSpreadsheet, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import axios from "axios";
 import { Btn } from "./ui";
@@ -50,10 +51,16 @@ export default function DataUsahaImportModal({ isOpen, onClose, onSuccess }: Dat
   };
 
   useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
     return () => {
+      document.body.style.overflow = '';
       stopPolling();
     };
-  }, []);
+  }, [isOpen]);
 
   const resetModalState = () => {
     stopPolling();
@@ -192,12 +199,12 @@ export default function DataUsahaImportModal({ isOpen, onClose, onSuccess }: Dat
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-      <div className="bg-card w-full max-w-lg rounded-xl shadow-xl border border-border flex flex-col animate-in fade-in zoom-in-95 duration-200">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-2 sm:p-4">
+      <div className="bg-card w-full max-w-lg rounded-xl shadow-xl border border-border flex flex-col overflow-hidden max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)] animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <h2 className="text-lg font-bold text-foreground">Import Data OSS (CSV / Excel)</h2>
           <button 
             onClick={handleClose} 
@@ -209,7 +216,7 @@ export default function DataUsahaImportModal({ isOpen, onClose, onSuccess }: Dat
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-4">
+        <div className="p-6 space-y-4 flex-1 min-h-0 overflow-y-auto">
           <p className="text-sm text-muted-foreground">
             Unggah file CSV atau Excel (.xlsx) data OSS untuk memperbarui atau menambahkan data usaha ke dalam sistem.
           </p>
@@ -336,7 +343,7 @@ export default function DataUsahaImportModal({ isOpen, onClose, onSuccess }: Dat
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-border bg-muted/20 flex justify-end gap-2">
+        <div className="px-6 py-4 border-t border-border bg-muted/20 flex justify-end gap-2 shrink-0">
           {phase === "completed" ? (
             <Btn variant="primary" onClick={handleClose}>
               Selesai
@@ -355,6 +362,7 @@ export default function DataUsahaImportModal({ isOpen, onClose, onSuccess }: Dat
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -238,13 +238,20 @@ export default function LaporanPage() {
           <div className="hidden sm:block w-px h-5 bg-border/60 mx-1" />
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Btn variant="outline" size="sm" className="h-9 text-xs font-medium gap-1.5 flex-1 sm:flex-none justify-center">
-              <FileDown size={13} /> PDF
-            </Btn>
-            <Btn variant="outline" size="sm" className="h-9 text-xs font-medium gap-1.5 flex-1 sm:flex-none justify-center">
+            <Btn 
+              variant="outline" 
+              size="sm" 
+              className="h-9 text-xs font-medium gap-1.5 flex-1 sm:flex-none justify-center"
+              onClick={() => window.open(`/api/admin/dashboard/export/excel?year=${year}`, '_blank')}
+            >
               <FileDown size={13} /> Excel
             </Btn>
-            <Btn variant="outline" size="sm" className="h-9 text-xs font-medium gap-1.5 flex-1 sm:flex-none justify-center">
+            <Btn 
+              variant="outline" 
+              size="sm" 
+              className="h-9 text-xs font-medium gap-1.5 flex-1 sm:flex-none justify-center"
+              onClick={() => window.print()}
+            >
               <Printer size={13} /> Cetak
             </Btn>
           </div>
