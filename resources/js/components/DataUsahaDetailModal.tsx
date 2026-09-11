@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, MapPin, Building2, Briefcase, FileText, CheckCircle2 } from "lucide-react";
 import { StatusBadge, Btn } from "./ui";
@@ -11,19 +12,31 @@ interface DataUsahaDetailModalProps {
 }
 
 export default function DataUsahaDetailModal({ isOpen, onClose, business }: DataUsahaDetailModalProps) {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   if (!isOpen || !business) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-      <div className="bg-card w-full max-w-4xl max-h-[calc(100vh-2rem)] rounded-xl shadow-xl border border-border flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-2 sm:p-4">
+      <div className="bg-card w-full max-w-4xl max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)] rounded-xl shadow-xl border border-border flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
-          <div>
-            <h2 className="text-lg font-bold text-foreground">Detail Data Usaha</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">NIB: {business.nib}</p>
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border shrink-0 min-w-0">
+          <div className="min-w-0 pr-2 flex-1">
+            <h2 className="text-base sm:text-lg font-bold text-foreground truncate">Detail Data Usaha</h2>
+            <p className="text-sm text-muted-foreground mt-0.5 truncate">NIB: {business.nib}</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg text-muted-foreground transition-colors">
+          <button onClick={onClose} aria-label="Tutup" className="p-2.5 -m-1 hover:bg-muted rounded-lg text-muted-foreground transition-colors shrink-0">
             <X size={20} />
           </button>
         </div>
@@ -37,7 +50,7 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
               <Building2 size={18} />
               <h3>Identitas Perusahaan</h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
               <DetailItem label="Nama Perusahaan" value={business.nama_perusahaan} />
               <DetailItem label="NIB" value={business.nib} />
               <DetailItem label="Nama User" value={business.nama_user} />
@@ -53,7 +66,7 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
               <FileText size={18} />
               <h3>Informasi Proyek</h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
               <DetailItem label="ID Proyek" value={business.id_proyek} />
               <DetailItem label="Nama Proyek" value={business.nama_proyek} />
               <DetailItem label="Uraian Jenis Proyek" value={business.uraian_jenis_proyek} />
@@ -71,7 +84,7 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
               <Briefcase size={18} />
               <h3>Kegiatan Usaha & KBLI</h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
               <DetailItem label="KBLI" value={business.kbli} />
               <DetailItem label="Sektor Pembina" value={business.kl_sektor_pembina} />
               <DetailItem label="Judul KBLI / Kategori" value={business.judul_kbli} className="md:col-span-2" />
@@ -84,7 +97,7 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
               <MapPin size={18} />
               <h3>Lokasi Usaha</h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
               <DetailItem label="Alamat Usaha" value={business.alamat_usaha} className="md:col-span-2" />
               <DetailItem label="Kabupaten / Kota" value={business.kab_kota_usaha} />
               <DetailItem label="Kecamatan" value={business.kecamatan_usaha} />
@@ -101,7 +114,7 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
               <CheckCircle2 size={18} />
               <h3>Tanah, Investasi & Tenaga Kerja</h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
               <DetailItem label="Luas Tanah" value={business.luas_tanah ? `${business.luas_tanah} ${business.satuan_tanah || ''}` : '-'} />
               <DetailItem label="Jumlah Investasi" value={formatCurrency(business.jumlah_investasi)} />
               <DetailItem label="Tenaga Kerja Indonesia (TKI)" value={business.tki ? `${business.tki} Orang` : '-'} />
@@ -124,8 +137,8 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-border bg-muted/20 flex justify-end shrink-0">
-          <Btn variant="outline" onClick={onClose}>Tutup</Btn>
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-border bg-muted/20 flex justify-end shrink-0">
+          <Btn variant="outline" onClick={onClose} className="w-full sm:w-auto justify-center">Tutup</Btn>
         </div>
       </div>
     </div>,
@@ -135,7 +148,7 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
 
 // Helpers
 const DetailItem = ({ label, value, className = "" }: { label: string, value: any, className?: string }) => (
-  <div className={className}>
+  <div className={`min-w-0 ${className}`}>
     <span className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{label}</span>
     <span className="block text-sm font-medium text-foreground break-words">{value || '-'}</span>
   </div>

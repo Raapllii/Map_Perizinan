@@ -47,6 +47,7 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
 
   useEffect(() => {
     if (isOpen) {
+      document.body.style.overflow = 'hidden';
       if (business) {
         setFormData({
           id_proyek: business.id_proyek ?? "",
@@ -110,7 +111,13 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
           status: "Aktif",
         });
       }
+    } else {
+      document.body.style.overflow = '';
     }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [isOpen, business]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -119,7 +126,7 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
 
   const showToast = (message: string, type: 'success' | 'error') => {
     const toast = document.createElement('div');
-    toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-md shadow-lg z-[100] font-medium text-sm transition-all animate-in slide-in-from-bottom-5 ${
+    toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-md shadow-lg z-[110] font-medium text-sm transition-all animate-in slide-in-from-bottom-5 ${
       type === 'success' ? 'bg-success text-success-foreground' : 'bg-danger text-danger-foreground'
     }`;
     toast.innerText = message;
@@ -175,15 +182,15 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-      <div className="bg-card w-full max-w-4xl max-h-[calc(100vh-2rem)] rounded-xl shadow-xl border border-border flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-2 sm:p-4">
+      <div className="bg-card w-full max-w-4xl max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)] rounded-xl shadow-xl border border-border flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
-          <h2 className="text-lg font-bold text-foreground">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border shrink-0 min-w-0">
+          <h2 className="text-base sm:text-lg font-bold text-foreground truncate pr-2 min-w-0 flex-1">
             {isEdit ? "Edit Data Usaha" : "Tambah Data Usaha"}
           </h2>
-          <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg text-muted-foreground transition-colors" disabled={loading}>
+          <button onClick={onClose} aria-label="Tutup" className="p-2.5 -m-1 hover:bg-muted rounded-lg text-muted-foreground transition-colors shrink-0" disabled={loading}>
             <X size={20} />
           </button>
         </div>
@@ -195,7 +202,7 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
             {/* A. Identitas Proyek */}
             <section>
               <h3 className="text-sm font-bold text-primary mb-4 border-b border-border pb-2 uppercase tracking-wider">A. Identitas Proyek</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 [&>div]:min-w-0">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">ID Proyek</label>
                   <InputField name="id_proyek" value={formData.id_proyek} onChange={handleChange} placeholder="ID Proyek" disabled={isEdit} />
@@ -230,7 +237,7 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
             {/* B. Klasifikasi Usaha */}
             <section>
               <h3 className="text-sm font-bold text-primary mb-4 border-b border-border pb-2 uppercase tracking-wider">B. Klasifikasi Usaha</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 [&>div]:min-w-0">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Kode KBLI</label>
                   <InputField name="kbli" value={formData.kbli} onChange={handleChange} placeholder="Misal: 47111" />
@@ -265,7 +272,7 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
             {/* C. Lokasi Usaha */}
             <section>
               <h3 className="text-sm font-bold text-primary mb-4 border-b border-border pb-2 uppercase tracking-wider">C. Lokasi Usaha</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 [&>div]:min-w-0">
                 <div className="md:col-span-2">
                   <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Alamat Usaha</label>
                   <InputField name="alamat_usaha" value={formData.alamat_usaha} onChange={handleChange} placeholder="Alamat Lengkap" />
@@ -297,7 +304,7 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
             {/* D. Kontak / Pengguna */}
             <section>
               <h3 className="text-sm font-bold text-primary mb-4 border-b border-border pb-2 uppercase tracking-wider">D. Kontak / Pengguna</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 [&>div]:min-w-0">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Nama User</label>
                   <InputField name="nama_user" value={formData.nama_user} onChange={handleChange} placeholder="Nama Pendaftar / User" />
@@ -324,7 +331,7 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
             {/* E. Investasi & Tenaga Kerja */}
             <section>
               <h3 className="text-sm font-bold text-primary mb-4 border-b border-border pb-2 uppercase tracking-wider">E. Investasi & Tenaga Kerja</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 [&>div]:min-w-0">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Jumlah Investasi (Rp)</label>
                   <InputField name="jumlah_investasi" type="number" step="any" value={formData.jumlah_investasi} onChange={handleChange} placeholder="Contoh: 10000000" />
@@ -347,9 +354,9 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-border bg-muted/20 flex justify-end gap-2 shrink-0">
-            <Btn variant="outline" type="button" onClick={onClose} disabled={loading}>Batal</Btn>
-            <Btn variant="primary" type="submit" disabled={loading}>
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-border bg-muted/20 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 shrink-0">
+            <Btn variant="outline" type="button" onClick={onClose} disabled={loading} className="w-full sm:w-auto justify-center">Batal</Btn>
+            <Btn variant="primary" type="submit" disabled={loading} className="w-full sm:w-auto justify-center">
               {loading ? <Loader2 className="animate-spin" size={16} /> : (isEdit ? "Simpan Perubahan" : "Tambah Data")}
             </Btn>
           </div>
