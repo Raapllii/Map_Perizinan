@@ -6,12 +6,16 @@ import { Card, Btn, StatusBadge } from "../components/ui";
 import { BusinessSidePanel } from "../components/ui/BusinessSidePanel";
 import { BusinessDetailCard } from "../components/ui/BusinessDetailCard";
 import { Business } from "../types";
+import DataUsahaFormModal from "../components/DataUsahaFormModal";
 
 const CityMapLeaflet = lazy(() => import('../components/CityMapLeaflet'));
 
 export default function PetaUsahaPage() {
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const [hoveredBusiness, setHoveredBusiness] = useState<Business | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
   const [activeLayer, setActiveLayer] = useState("cluster");
@@ -89,7 +93,7 @@ export default function PetaUsahaPage() {
     axios.get(`/api/businesses?${params.toString()}`)
       .then(res => setMarkers(res.data.data || (Array.isArray(res.data) ? res.data : [])))
       .catch(err => console.error(err));
-  }, [mapBounds, appliedFilters]);
+  }, [mapBounds, appliedFilters, refreshTrigger]);
 
   const handleBoundsChange = React.useCallback((bounds: string) => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -220,12 +224,6 @@ export default function PetaUsahaPage() {
                 ))}
               </div>
             </div>
-
-            <div className="hidden xl:flex items-center pointer-events-auto">
-              <span className="text-xs text-muted-foreground bg-card/95 backdrop-blur-sm px-3 py-1.5 rounded-md border border-border">
-                📍 -6.2088°, 106.8456°
-              </span>
-            </div>
           </div>
 
           {/* Desktop Floating Filter Panel */}
@@ -279,7 +277,29 @@ export default function PetaUsahaPage() {
             }
           }}
           onEditClick={() => {
-            // Ensure this uses the actual Edit route logic if it exists, or acts as a placeholder
+            if (selected) {
+              setEditingBusiness(selected);
+              setIsEditModalOpen(true);
+            }
+          }}
+        />
+
+        {/* Edit Business Modal */}
+        <DataUsahaFormModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditingBusiness(null);
+          }}
+          business={editingBusiness}
+          onSuccess={() => {
+            setIsEditModalOpen(false);
+            if (selected?.id) {
+              axios.get(`/api/admin/businesses/${selected.id}`)
+                .then(res => setSelectedBusiness(res.data))
+                .catch(() => {});
+            }
+            setRefreshTrigger(prev => prev + 1);
           }}
         />
 

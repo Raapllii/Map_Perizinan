@@ -7,7 +7,7 @@ export default function TambahUsahaPage() {
   const [form, setForm] = useState({
     namaUsaha: "", nib: "", nama_user: "", kategori: "Perdagangan Umum",
     kecamatan_usaha: "Kec. Pusat", kelurahan_usaha: "Kel. Merdeka", alamat_usaha: "",
-    telepon: "", email: "", latitude: "-6.2088", longitude: "106.8456",
+    telepon: "", email: "", latitude: "", longitude: "",
   });
   const [step, setStep] = useState(1);
   const [uploading, setUploading] = useState(false);

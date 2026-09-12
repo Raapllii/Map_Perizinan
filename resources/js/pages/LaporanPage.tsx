@@ -279,7 +279,7 @@ export default function LaporanPage() {
             {totalChange && (
               <div className={`flex items-center gap-1 mt-1 sm:mt-1.5 text-[11px] sm:text-xs font-semibold ${totalUp ? "text-success" : "text-danger"}`}>
                 {totalUp ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
-                <span className="truncate">{totalChange} vs. lalu</span>
+                <span className="truncate">{totalChange} vs. tahun lalu</span>
               </div>
             )}
           </div>
