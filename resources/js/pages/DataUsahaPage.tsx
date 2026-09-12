@@ -67,9 +67,7 @@ import { Card, StatusBadge, Btn, InputField, SelectField } from "../components/u
 // Inline Table Component
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto">
-      <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
-    </div>
+    <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
   ),
 );
 Table.displayName = "Table";
@@ -619,7 +617,7 @@ export default function DataUsahaPage() {
   const hasActiveFilters = activeFiltersCount > 0;
 
   return (
-    <div className="space-y-5" ref={pageTopRef}>
+    <div className="space-y-5 w-full min-w-0" ref={pageTopRef}>
       {alertMsg && (
         <div className="bg-warning/10 border border-warning/20 text-warning px-4 py-3 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
           <AlertCircle className="shrink-0 mt-0.5" size={18} />
@@ -631,8 +629,8 @@ export default function DataUsahaPage() {
       )}
 
       {/* Modern Filter Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-2 w-full min-w-0">
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto min-w-0">
 
           {/* Contextual Action Button */}
           <Button
@@ -875,69 +873,72 @@ export default function DataUsahaPage() {
           </DropdownMenu>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto min-w-0">
           <Btn variant="outline" Icon={Upload} onClick={() => setIsImportOpen(true)}>Import CSV</Btn>
           <Btn variant="outline" Icon={FileSpreadsheet} onClick={handleExport}>Export</Btn>
         </div>
 
       </div>
 
-      {/* Data Table */}
+      {/* Table Section */}
       <div
-        className="overflow-hidden rounded-lg border border-border bg-background transition-opacity duration-200 relative"
+        className="w-full min-w-0 rounded-lg border border-border bg-background overflow-hidden relative transition-opacity duration-200"
       >
-        <Table className="table-fixed min-w-[960px]">
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup: any) => (
-              <TableRow key={headerGroup.id} className="hover:bg-transparent">
-                {headerGroup.headers.map((header: any) => (
-                  <TableHead
-                    key={header.id}
-                    style={{ width: `${header.getSize()}px` }}
-                    className="h-11"
-                  >
-                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody className={loading && businesses.length > 0 ? "opacity-75 pointer-events-none transition-opacity" : ""}>
-            {loading && businesses.length === 0 ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={`skeleton-${i}`}>
-                  {columns.map((col, j) => (
-                    <TableCell key={`skeleton-${i}-${j}`} className="px-4 py-4 align-middle">
-                      <div className="h-4 w-3/4 bg-muted/60 rounded animate-pulse"></div>
-                    </TableCell>
+        {/* Table Scroll Container */}
+        <div className="w-full overflow-x-auto">
+          <Table className="table-fixed min-w-[960px]">
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup: any) => (
+                <TableRow key={headerGroup.id} className="hover:bg-transparent">
+                  {headerGroup.headers.map((header: any) => (
+                    <TableHead
+                      key={header.id}
+                      style={{ width: `${header.getSize()}px` }}
+                      className="h-11"
+                    >
+                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>
                   ))}
                 </TableRow>
-              ))
-            ) : businesses.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center align-middle">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <div className="w-10 h-10 bg-muted/50 rounded-full flex items-center justify-center text-muted-foreground mb-1">
-                      <Inbox size={20} strokeWidth={1.5} />
+              ))}
+            </TableHeader>
+            <TableBody className={loading && businesses.length > 0 ? "opacity-75 pointer-events-none transition-opacity" : ""}>
+              {loading && businesses.length === 0 ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={`skeleton-${i}`}>
+                    {columns.map((col, j) => (
+                      <TableCell key={`skeleton-${i}-${j}`} className="px-4 py-4 align-middle">
+                        <div className="h-4 w-3/4 bg-muted/60 rounded animate-pulse"></div>
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : businesses.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center align-middle">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className="w-10 h-10 bg-muted/50 rounded-full flex items-center justify-center text-muted-foreground mb-1">
+                        <Inbox size={20} strokeWidth={1.5} />
+                      </div>
+                      <p className="text-sm font-medium text-foreground">Belum ada data usaha</p>
+                      <p className="text-xs text-muted-foreground">Coba ubah kata pencarian atau filter yang digunakan.</p>
                     </div>
-                    <p className="text-sm font-medium text-foreground">Belum ada data usaha</p>
-                    <p className="text-xs text-muted-foreground">Coba ubah kata pencarian atau filter yang digunakan.</p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              table.getRowModel().rows.map((row: any) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                  {row.getVisibleCells().map((cell: any) => (
-                    <TableCell key={cell.id} className="last:py-0">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
+                  </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                table.getRowModel().rows.map((row: any) => (
+                  <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                    {row.getVisibleCells().map((cell: any) => (
+                      <TableCell key={cell.id} className="last:py-0">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       {/* Pagination */}
