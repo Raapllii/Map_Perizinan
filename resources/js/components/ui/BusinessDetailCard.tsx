@@ -1,121 +1,111 @@
-import * as React from "react";
-import { motion, HTMLMotionProps } from "motion/react";
-import { X, Navigation, Building2 } from "lucide-react";
-import { cn } from "../../lib/utils";
-import { Button } from "./button";
-import { StatusBadge } from "./StatusBadge";
+import * as React from 'react';
+import { motion, HTMLMotionProps } from 'motion/react';
+import { X, Navigation, Building2, MapPin } from 'lucide-react';
+import { cn } from '../../lib/utils';
+import { Button } from './button';
+import { StatusBadge } from './StatusBadge';
 
-interface BusinessDetailCardProps extends Omit<HTMLMotionProps<"div">, "ref"> {
-  business: any; // The selectedBusiness object
+interface BusinessDetailCardProps extends Omit<HTMLMotionProps<'div'>, 'ref'> {
+  business: any;
   onClose?: () => void;
   onDirectionsClick?: () => void;
 }
-
-const StatItem = ({ label, value }: { label: string; value: string }) => (
-  <div className="flex flex-col">
-    <span className="text-[10px] font-bold text-muted-foreground uppercase">{label}</span>
-    <span className="text-xs font-medium text-foreground line-clamp-1" title={value}>{value || '-'}</span>
-  </div>
-);
 
 const BusinessDetailCard = React.forwardRef<HTMLDivElement, BusinessDetailCardProps>(
   ({ className, business, onClose, onDirectionsClick, ...props }, ref) => {
     if (!business) return null;
 
-    const imageUrl = business.image_url || business.photo_url || "";
+    const hasCoords = Boolean(
+      business.latitude !== null &&
+      business.longitude !== null &&
+      business.latitude !== undefined &&
+      business.longitude !== undefined &&
+      !isNaN(Number(business.latitude)) &&
+      !isNaN(Number(business.longitude)) &&
+      !(Number(business.latitude) === 0 && Number(business.longitude) === 0)
+    );
 
     return (
       <motion.div
         ref={ref}
         className={cn(
-          "w-[260px] overflow-hidden rounded-2xl bg-card text-card-foreground shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-border relative pointer-events-auto",
+          'w-[280px] overflow-hidden rounded-2xl bg-card text-card-foreground shadow-[0_12px_36px_rgba(0,0,0,0.14)] border border-border/80 relative pointer-events-auto',
           className
         )}
-        initial={{ y: 15, opacity: 0, scale: 0.95 }}
+        initial={{ y: 10, opacity: 0, scale: 0.96 }}
         animate={{ y: 0, opacity: 1, scale: 1 }}
-        exit={{ y: 15, opacity: 0, scale: 0.95 }}
-        transition={{ type: "spring", stiffness: 350, damping: 25 }}
+        exit={{ y: 10, opacity: 0, scale: 0.96 }}
+        transition={{ type: 'spring', stiffness: 350, damping: 25 }}
         {...props}
       >
-        {/* Top section with background image or placeholder */}
-        <div className="relative h-28 w-full bg-muted flex items-center justify-center overflow-hidden">
-          {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt={business.nama_perusahaan || "Business Image"}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full bg-primary/10 flex items-center justify-center">
-              <Building2 className="text-primary/40 size-10" />
+        {/* Card Header with Icon & Close Button */}
+        <div className="px-4 py-3 border-b border-border/60 bg-card flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/15">
+              <Building2 size={14} />
             </div>
-          )}
-          
-          {/* Close Button */}
+            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider truncate">
+              Pratinjau Usaha
+            </span>
+          </div>
           {onClose && (
             <button
+              type="button"
               onClick={onClose}
-              className="absolute top-2 right-2 z-10 p-1.5 bg-black/40 hover:bg-black/60 rounded-full text-white backdrop-blur-sm transition-colors"
-              aria-label="Tutup detail usaha"
+              className="min-w-[32px] min-h-[32px] flex items-center justify-center -mr-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              aria-label="Tutup pratinjau"
             >
-              <X size={14} strokeWidth={2.5} />
+              <X size={14} strokeWidth={2.2} />
             </button>
           )}
         </div>
 
-        {/* Content section */}
-        <div className="p-4 bg-card flex flex-col gap-3">
-          {/* Row 1: Status & Rute */}
-          <div className="flex items-start justify-between gap-2">
-            <StatusBadge status={business.status} />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onDirectionsClick}
-              className="h-7 px-2.5 text-[11px] shrink-0 rounded-lg shadow-sm"
-              aria-label={`Rute ke ${business.nama_perusahaan}`}
-            >
-              <Navigation className="mr-1 h-3 w-3" />
-              Rute
-            </Button>
+        {/* Content Body */}
+        <div className="p-4 space-y-3">
+          {/* Status & NIB */}
+          <div className="flex items-center justify-between gap-2">
+            <StatusBadge status={business.status || 'Aktif'} />
+            <span className="text-[11px] font-mono text-muted-foreground shrink-0">
+              NIB: {business.nib || '-'}
+            </span>
           </div>
 
-          {/* Row 2: NIB */}
-          <div>
-            <p className="text-[11px] text-muted-foreground font-medium">NIB: <span className="text-foreground font-mono">{business.nib || '-'}</span></p>
+          {/* Business Name & Project */}
+          <div className="space-y-0.5">
+            <h4 className="text-sm font-bold leading-tight text-foreground line-clamp-2" title={business.nama_perusahaan}>
+              {business.nama_perusahaan || 'Usaha Tanpa Nama'}
+            </h4>
+            <p className="text-xs text-muted-foreground line-clamp-1" title={business.judul_kbli}>
+              {business.judul_kbli || 'Kategori belum diisi'}
+            </p>
           </div>
 
-          {/* Row 3: Nama Usaha & Proyek */}
-          <div className="flex flex-col gap-0.5">
-            <h3 className="text-sm font-bold leading-tight line-clamp-2 text-foreground" title={business.nama_perusahaan}>
-              {business.nama_perusahaan || '-'}
-            </h3>
-            {business.nama_proyek && (
-              <p className="text-xs font-semibold text-primary line-clamp-1" title={business.nama_proyek}>
-                Proyek: {business.nama_proyek}
-              </p>
-            )}
-            {business.uraian_jenis_proyek && (
-              <p className="text-[10px] font-medium text-muted-foreground line-clamp-1" title={business.uraian_jenis_proyek}>
-                Jenis Proyek: {business.uraian_jenis_proyek}
-              </p>
-            )}
+          {/* Location snippet */}
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 rounded-lg p-2 border border-border/50">
+            <MapPin size={12} className="text-primary shrink-0" />
+            <span className="truncate">
+              {business.kecamatan_usaha ? `Kec. ${business.kecamatan_usaha}` : 'Samarinda'}
+            </span>
           </div>
 
-          <div className="h-px w-full bg-border" />
-
-          {/* Row 4: Grid Kategori, Skala, Status PM */}
-          <div className="grid grid-cols-3 gap-2">
-            <StatItem label="Kategori" value={business.judul_kbli} />
-            <StatItem label="Skala/Risiko" value={business.uraian_skala_usaha || business.uraian_risiko_proyek} />
-            <StatItem label="Status PM" value={business.uraian_status_penanaman_modal || '-'} />
-          </div>
+          {/* Primary Action: Directions */}
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!hasCoords}
+            onClick={onDirectionsClick}
+            className="w-full h-8 text-xs font-semibold rounded-xl gap-1.5"
+            aria-label={hasCoords ? `Rute ke ${business.nama_perusahaan}` : 'Rute tidak tersedia'}
+          >
+            <Navigation className="h-3 w-3 text-primary" />
+            <span>{hasCoords ? 'Lihat Rute' : 'Belum Ada Koordinat'}</span>
+          </Button>
         </div>
       </motion.div>
     );
   }
 );
 
-BusinessDetailCard.displayName = "BusinessDetailCard";
+BusinessDetailCard.displayName = 'BusinessDetailCard';
 
 export { BusinessDetailCard };

@@ -1,13 +1,9 @@
 import React, { useState, useEffect, lazy, Suspense, useRef, useCallback } from "react";
 import axios from 'axios';
-import { Map, Search, X, Navigation, Eye } from "lucide-react";
-import { Drawer } from "vaul";
-import { motion } from "motion/react";
-import { StatusBadge, Btn } from "../components/ui";
+import { Search, X } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import Navbar from "../components/ui/mini-navbar";
-import { BusinessDetailCard } from "../components/ui/BusinessDetailCard";
-import { BusinessSidePanel } from "../components/ui/BusinessSidePanel";
-import { AnimatePresence } from "motion/react";
+import { BusinessDetailCard, BusinessSidePanel } from "../components/ui";
 import { useBusinessSearch } from "../hooks/useBusinessSearch";
 
 const CityMapLeaflet = lazy(() => import('../components/CityMapLeaflet'));
@@ -128,7 +124,6 @@ export default function PublicMapPage() {
   };
 
   const selected = selectedBusiness || {};
-  const [snap, setSnap] = useState<number | string | null>(1);
 
   return (
     <div className="w-screen h-screen overflow-hidden bg-background flex flex-col md:flex-row font-[Inter,sans-serif]">
