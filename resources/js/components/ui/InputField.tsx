@@ -7,7 +7,7 @@ export function InputField({ label, type = "text", placeholder, required = false
   const inputType = isPassword ? (showPassword ? "text" : "password") : type;
 
   return (
-    <div className={className}>
+    <div className={`min-w-0 ${className}`}>
       {label && (
         <label className={`block text-sm font-medium mb-1.5 ${disabled ? 'text-muted-foreground' : 'text-foreground'}`}>
           {label} {required && <span className="text-danger">*</span>}

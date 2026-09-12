@@ -193,15 +193,15 @@ export default function PetaUsahaPage() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row gap-3 md:gap-4 h-[calc(100dvh-10rem)]">
+    <div className="flex flex-col md:flex-row gap-3 md:gap-4 min-h-[420px] h-[calc(100dvh-7.5rem)] sm:h-[calc(100dvh-8.5rem)] md:h-[calc(100dvh-10rem)]">
 
       {/* Map area — full width on mobile */}
       <div className="flex-1 relative min-w-0 h-full overflow-hidden rounded-xl border border-border bg-card">
 
         {/* Floating Controls Overlay */}
-        <div className={`absolute top-4 z-[400] pointer-events-none flex flex-col items-start gap-2 transition-all duration-300 ${selected && !isMobile ? 'left-[412px]' : 'left-4'}`}>
-          <div className="flex w-full items-start gap-4">
-            <div className="flex items-center gap-2 pointer-events-auto">
+        <div className={`absolute top-3 sm:top-4 z-[400] pointer-events-none flex flex-col items-start gap-2 transition-all duration-300 ${selected && !isMobile ? 'left-[404px] max-w-[calc(100%-416px)]' : 'left-3 sm:left-4 max-w-[calc(100%-1.5rem)]'}`}>
+          <div className="flex w-full items-start gap-2 sm:gap-4 flex-wrap">
+            <div className="flex items-center gap-2 pointer-events-auto flex-wrap">
               <Btn
                 variant="outline"
                 size="sm"
@@ -214,14 +214,14 @@ export default function PetaUsahaPage() {
               <div className="flex items-center gap-0.5 bg-card/95 backdrop-blur-sm rounded-md p-1 border border-border">
                 {["cluster", "heatmap", "boundary"].map(l => (
                   <button key={l} onClick={() => setActiveLayer(l)}
-                    className={`px-2 md:px-3 py-1 text-xs font-medium rounded-md transition-all capitalize ${activeLayer === l ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                    className={`px-2 sm:px-2.5 md:px-3 py-1 text-xs font-medium rounded-md transition-all capitalize ${activeLayer === l ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
                     {l}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="hidden lg:flex items-center pointer-events-auto">
+            <div className="hidden xl:flex items-center pointer-events-auto">
               <span className="text-xs text-muted-foreground bg-card/95 backdrop-blur-sm px-3 py-1.5 rounded-md border border-border">
                 📍 -6.2088°, 106.8456°
               </span>
@@ -230,7 +230,7 @@ export default function PetaUsahaPage() {
 
           {/* Desktop Floating Filter Panel */}
           {showFilters && !isMobile && (
-            <Card className="w-64 flex-shrink-0 flex-col pointer-events-auto shadow-xl" padding="p-4">
+            <Card className="w-64 max-w-[calc(100vw-3rem)] flex-shrink-0 flex-col pointer-events-auto shadow-xl" padding="p-4">
               <div className="flex items-center justify-between mb-4">
                 <span className="text-sm font-semibold text-foreground">Filter Usaha</span>
                 <button onClick={() => setShowFilters(false)} className="text-muted-foreground hover:text-foreground">
@@ -289,15 +289,15 @@ export default function PetaUsahaPage() {
       {isMobile && showFilterDrawer && (
         <div className="fixed inset-0 z-[1000] flex flex-col justify-end md:hidden">
           <div className="absolute inset-0 bg-black/30" onClick={() => setShowFilterDrawer(false)} />
-          <div className="bg-card rounded-t-3xl border-t border-border shadow-xl max-h-[80vh] flex flex-col relative">
+          <div className="bg-card rounded-t-3xl border-t border-border shadow-xl max-h-[85dvh] pb-[max(1rem,env(safe-area-inset-bottom,0px))] flex flex-col relative">
             <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mt-3 mb-1 flex-shrink-0" />
             <div className="flex items-center justify-between px-5 py-3 border-b border-border flex-shrink-0">
               <span className="text-sm font-semibold text-foreground">Filter Usaha</span>
-              <button onClick={() => setShowFilterDrawer(false)} className="text-muted-foreground hover:text-foreground p-1">
+              <button onClick={() => setShowFilterDrawer(false)} className="text-muted-foreground hover:text-foreground p-1" aria-label="Tutup filter">
                 <X size={18} />
               </button>
             </div>
-            <div className="flex-1 overflow-auto p-5">
+            <div className="flex-1 overflow-auto p-4 sm:p-5">
               <FilterContent />
             </div>
           </div>

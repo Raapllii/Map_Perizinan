@@ -694,12 +694,12 @@ export default function DataUsahaPage() {
           </AlertDialog>
 
           {/* Search Bar */}
-          <div className="relative">
+          <div className="relative min-w-0 flex-1 sm:flex-none w-full sm:w-auto">
             <Input
               id={`${id}-input`}
               ref={inputRef}
               className={cn(
-                "peer min-w-60 ps-9",
+                "peer min-w-0 sm:min-w-60 w-full sm:w-60 ps-9",
                 "[&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none [&::-webkit-search-results-button]:appearance-none [&::-webkit-search-results-decoration]:appearance-none",
                 Boolean(searchTerm) && "pe-9",
               )}
@@ -886,7 +886,7 @@ export default function DataUsahaPage() {
       <div
         className="overflow-hidden rounded-lg border border-border bg-background transition-opacity duration-200 relative"
       >
-        <Table className="table-fixed">
+        <Table className="table-fixed min-w-[960px]">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup: any) => (
               <TableRow key={headerGroup.id} className="hover:bg-transparent">
@@ -942,47 +942,47 @@ export default function DataUsahaPage() {
 
       {/* Pagination */}
       {!loading && businesses.length > 0 && (
-        <div className="flex items-center justify-between gap-8 pt-2">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-6 pt-3 w-full">
           {/* Results per page */}
-          <div className="flex items-center gap-3">
-            <Label htmlFor={id} className="max-sm:sr-only text-muted-foreground font-normal">
-              Baris per halaman
-            </Label>
-            <Select
-              value={perPage.toString()}
-              disabled={loading}
-              onValueChange={(value) => {
-                setPerPage(Number(value));
-                isPaginationAction.current = true;
-                setPage(1);
-              }}
-            >
-              <SelectTrigger id={id} className="w-fit whitespace-nowrap h-8">
-                <SelectValue placeholder="Select number of results" />
-              </SelectTrigger>
-              <SelectContent className="[&_*[role=option]>span]:end-2 [&_*[role=option]>span]:start-auto [&_*[role=option]]:pe-8 [&_*[role=option]]:ps-2">
-                {[5, 10, 25, 50].map((size) => (
-                  <SelectItem key={size} value={size.toString()}>
-                    {size}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <div className="flex items-center justify-between sm:justify-start gap-4 w-full sm:w-auto">
+            <div className="flex items-center gap-2.5">
+              <Label htmlFor={id} className="max-sm:sr-only text-xs sm:text-sm text-muted-foreground font-normal">
+                Baris per halaman
+              </Label>
+              <Select
+                value={perPage.toString()}
+                disabled={loading}
+                onValueChange={(value) => {
+                  setPerPage(Number(value));
+                  isPaginationAction.current = true;
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger id={id} className="w-fit whitespace-nowrap h-8 text-xs">
+                  <SelectValue placeholder="Select number of results" />
+                </SelectTrigger>
+                <SelectContent className="[&_*[role=option]>span]:end-2 [&_*[role=option]>span]:start-auto [&_*[role=option]]:pe-8 [&_*[role=option]]:ps-2">
+                  {[5, 10, 25, 50].map((size) => (
+                    <SelectItem key={size} value={size.toString()}>
+                      {size}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Page number information */}
-          <div className="flex grow justify-end whitespace-nowrap text-sm text-muted-foreground">
-            <p className="whitespace-nowrap text-sm text-muted-foreground" aria-live="polite">
-              <span className="text-foreground">
-                {(page - 1) * perPage + 1}-
+            {/* Page number information */}
+            <p className="whitespace-nowrap text-xs sm:text-sm text-muted-foreground" aria-live="polite">
+              <span className="text-foreground font-medium">
+                {totalItems > 0 ? (page - 1) * perPage + 1 : 0}-
                 {Math.min(page * perPage, totalItems)}
               </span>{" "}
-              dari <span className="text-foreground">{totalItems}</span>
+              dari <span className="text-foreground font-medium">{totalItems}</span>
             </p>
           </div>
 
           {/* Pagination buttons */}
-          <div>
+          <div className="flex justify-center sm:justify-end w-full sm:w-auto">
             <Pagination>
               <PaginationContent>
                 <PaginationItem>

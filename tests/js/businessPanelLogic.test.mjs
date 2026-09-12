@@ -116,6 +116,19 @@ describe('boundary & safety checks', () => {
     assert.equal(validateCoordinates('NaN', 'undefined').hasCoordinates, false);
     assert.equal(validateCoordinates('Infinity', '-Infinity').hasCoordinates, false);
   });
+
+  test('handles very long strings without truncation failure', () => {
+    const longName = 'PT PERUSAHAAN PERDAGANGAN DAN DISTRIBUSI NUSANTARA SEJAHTERA INDONESIA '.repeat(3);
+    const formatted = formatFallback(longName);
+    assert.equal(formatted.length, longName.trim().length);
+  });
+
+  test('handles completely empty business object values safely', () => {
+    assert.equal(formatFallback(null), '-');
+    assert.equal(formatFallback(''), '-');
+    assert.equal(formatFallback(undefined), '-');
+  });
 });
+
 
 

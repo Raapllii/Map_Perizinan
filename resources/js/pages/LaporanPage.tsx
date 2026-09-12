@@ -268,35 +268,35 @@ export default function LaporanPage() {
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-[1px] bg-border/40">
 
           {/* Total Usaha — prominent */}
-          <div className="px-5 xl:px-6 py-5 flex flex-col justify-center bg-primary/[0.03] hover:bg-primary/[0.05] transition-colors relative">
-            <div className="flex items-center gap-2 mb-1">
-              <Building2 size={13} className="text-primary" />
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Usaha</span>
+          <div className="px-3.5 sm:px-5 xl:px-6 py-3.5 sm:py-5 flex flex-col justify-center bg-primary/[0.03] hover:bg-primary/[0.05] transition-colors relative min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+              <Building2 size={13} className="text-primary shrink-0" />
+              <span className="text-[11px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">Total Usaha</span>
             </div>
-            <div className="text-3xl font-bold tabular-nums tracking-tight text-foreground">
+            <div className="text-xl sm:text-2xl xl:text-3xl font-bold tabular-nums tracking-tight text-foreground break-words">
               {fmt(totalUsaha)}
             </div>
             {totalChange && (
-              <div className={`flex items-center gap-1 mt-1.5 text-xs font-semibold ${totalUp ? "text-success" : "text-danger"}`}>
+              <div className={`flex items-center gap-1 mt-1 sm:mt-1.5 text-[11px] sm:text-xs font-semibold ${totalUp ? "text-success" : "text-danger"}`}>
                 {totalUp ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
-                {totalChange} vs. tahun lalu
+                <span className="truncate">{totalChange} vs. lalu</span>
               </div>
             )}
           </div>
 
           {/* Belum Dipetakan */}
-          <div className="px-5 py-5 flex flex-col justify-center bg-card hover:bg-orange-500/5 transition-colors relative">
+          <div className="px-3.5 sm:px-5 py-3.5 sm:py-5 flex flex-col justify-center bg-card hover:bg-orange-500/5 transition-colors relative min-w-0">
             <div className="flex items-center gap-1.5 mb-1">
-              <MapPinOff size={12} className="text-orange-500" />
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Belum Dipetakan</span>
+              <MapPinOff size={12} className="text-orange-500 shrink-0" />
+              <span className="text-[11px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">Belum Dipetakan</span>
             </div>
-            <div className="text-2xl font-bold tabular-nums tracking-tight text-foreground">
+            <div className="text-lg sm:text-xl xl:text-2xl font-bold tabular-nums tracking-tight text-foreground break-words">
               {fmt(belumDipetakan)}
             </div>
-            <div className="text-xs text-orange-500/80 mt-0.5 font-medium">
+            <div className="text-[11px] sm:text-xs text-orange-500/80 mt-0.5 font-medium truncate">
               {pct(belumDipetakan, denominator)}% dari total
             </div>
-            <div className="text-[11px] text-muted-foreground mt-1">
+            <div className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 truncate">
               {fmt(sudahDipetakan)} sudah dipetakan
             </div>
           </div>
@@ -309,15 +309,15 @@ export default function LaporanPage() {
             const Icon = cfg.icon;
             const share = pct(rValue, denominator);
             return (
-              <div key={i} className="px-5 py-5 flex flex-col justify-center bg-card hover:bg-muted/30 transition-colors relative">
+              <div key={i} className="px-3.5 sm:px-5 py-3.5 sm:py-5 flex flex-col justify-center bg-card hover:bg-muted/30 transition-colors relative min-w-0">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <Icon size={12} style={{ color: cfg.color }} />
-                  <span className="text-xs font-medium text-muted-foreground truncate max-w-[120px]">{cfg.label}</span>
+                  <Icon size={12} style={{ color: cfg.color }} className="shrink-0" />
+                  <span className="text-[11px] sm:text-xs font-medium text-muted-foreground truncate max-w-[120px]">{cfg.label}</span>
                 </div>
-                <div className="text-2xl font-bold tabular-nums tracking-tight text-foreground">
+                <div className="text-lg sm:text-xl xl:text-2xl font-bold tabular-nums tracking-tight text-foreground break-words">
                   {fmt(rValue)}
                 </div>
-                <div className="text-xs text-muted-foreground mt-0.5">{share}%</div>
+                <div className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">{share}%</div>
               </div>
             );
           })}   
@@ -488,7 +488,7 @@ export default function LaporanPage() {
             />
           </div>
           <div className="overflow-x-auto flex-1">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[540px] text-sm">
               <thead>
                 <tr className="bg-muted/30 border-b border-border/30">
                   <th className="py-3 px-5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider w-6 whitespace-nowrap">No.</th>

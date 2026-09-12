@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import axios from 'axios';
 import { Award, Shield, UserCheck, Navigation, Search, Plus, Eye, Edit, Key, UserX, User, Save, RefreshCw, Trash2, PowerOff, Power } from "lucide-react";
 import { Card, Btn, StatusBadge, InputField, SelectField, SectionHeader } from "../components/ui";
@@ -238,7 +239,7 @@ export default function PenggunaPage() {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
                 {["Pengguna", "Email", "Peran", "Status", "Aktivitas", "Aksi"].map(h => (
@@ -321,70 +322,75 @@ export default function PenggunaPage() {
         </div>
       </Card>
 
-      {showFormModal && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4" onClick={() => !loading && setShowFormModal(false)}>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-[520px] shadow-xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-base font-semibold text-gray-900 mb-4">{editingId ? "Edit Pengguna" : "Tambah Pengguna Baru"}</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="sm:col-span-2">
-                <InputField
-                  label="Nama Lengkap" placeholder="Nama dengan gelar" required
-                  value={formData.name} onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <InputField
-                  label="Email" type="email" placeholder="nama@pemkab.go.id" required
-                  value={formData.email} onChange={(e: any) => setFormData({ ...formData, email: e.target.value })}
-                />
-              </div>
-              <SelectField
-                label="Peran" required options={["Super Admin", "Administrator", "Verifier", "Surveyor"]}
-                value={formData.role} onChange={(e: any) => setFormData({ ...formData, role: e.target.value })}
-              />
-              <SelectField
-                label="Status" options={["Aktif", "Nonaktif"]}
-                value={formData.status} onChange={(e: any) => setFormData({ ...formData, status: e.target.value })}
-              />
-              {!editingId && (
-                <div className="sm:col-span-2">
+      {showFormModal && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-2 sm:p-4 animate-in fade-in duration-200" onClick={() => !loading && setShowFormModal(false)}>
+          <div className="bg-card text-card-foreground border border-border rounded-xl sm:rounded-2xl p-4 sm:p-6 w-[min(520px,calc(100vw-1.5rem))] max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-foreground mb-4 shrink-0">{editingId ? "Edit Pengguna" : "Tambah Pengguna Baru"}</h3>
+            <div className="overflow-y-auto flex-1 min-h-0 pr-1 -mr-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2 min-w-0">
                   <InputField
-                    label="Password Awal" type="password" placeholder="Min. 8 karakter" required
-                    value={formData.password} onChange={(e: any) => setFormData({ ...formData, password: e.target.value })}
+                    label="Nama Lengkap" placeholder="Nama dengan gelar" required
+                    value={formData.name} onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
                   />
                 </div>
-              )}
+                <div className="sm:col-span-2 min-w-0">
+                  <InputField
+                    label="Email" type="email" placeholder="nama@pemkab.go.id" required
+                    value={formData.email} onChange={(e: any) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                </div>
+                <SelectField
+                  label="Peran" required options={["Super Admin", "Administrator", "Verifier", "Surveyor"]}
+                  value={formData.role} onChange={(e: any) => setFormData({ ...formData, role: e.target.value })}
+                />
+                <SelectField
+                  label="Status" options={["Aktif", "Nonaktif"]}
+                  value={formData.status} onChange={(e: any) => setFormData({ ...formData, status: e.target.value })}
+                />
+                {!editingId && (
+                  <div className="sm:col-span-2 min-w-0">
+                    <InputField
+                      label="Password Awal" type="password" placeholder="Min. 8 karakter" required
+                      value={formData.password} onChange={(e: any) => setFormData({ ...formData, password: e.target.value })}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="flex gap-3 mt-5">
+            <div className="flex gap-3 mt-5 pt-3 border-t border-border shrink-0">
               <Btn variant="outline" className="flex-1 justify-center" onClick={() => setShowFormModal(false)} disabled={loading}>Batal</Btn>
               <Btn variant="primary" className="flex-1 justify-center" Icon={Save} onClick={handleSaveUser} disabled={loading}>
                 {loading ? "Menyimpan..." : "Simpan Pengguna"}
               </Btn>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal Ubah Password */}
-      {showResetModal && (
+      {showResetModal && createPortal(
         <div
-          className="fixed inset-0 bg-black/30 flex items-center justify-center z-[60] p-4"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[110] p-2 sm:p-4 animate-in fade-in duration-200"
           onClick={() => !loading && setShowResetModal(false)}
         >
           <div
-            className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto"
+            className="bg-card text-card-foreground border border-border rounded-xl sm:rounded-2xl p-4 sm:p-6 w-[min(460px,calc(100vw-1.5rem))] max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200"
             onClick={e => e.stopPropagation()}
           >
-            <h3 className="text-xl font-bold text-gray-900 mb-1">Ubah Password</h3>
-            <p className="text-sm text-gray-500 mb-5">Konfirmasi password lama sebelum membuat password baru.</p>
+            <div className="shrink-0 mb-4">
+              <h3 className="text-lg font-bold text-foreground mb-1">Ubah Password</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground">Konfirmasi password lama sebelum membuat password baru.</p>
+            </div>
 
             {resetErrors.general && (
-              <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
+              <div className="mb-4 p-3 bg-danger/15 text-danger text-sm rounded-lg border border-danger/30 shrink-0">
                 {resetErrors.general[0]}
               </div>
             )}
 
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-y-auto flex-1 min-h-0 pr-1 -mr-1">
               <div>
                 <InputField
                   label="Password Lama"
@@ -409,7 +415,7 @@ export default function PenggunaPage() {
                   disabled={loading}
                   error={resetErrors.new_password?.[0]}
                 />
-                {!resetErrors.new_password && <p className="text-xs text-gray-400 mt-1.5">Min. 8 karakter</p>}
+                {!resetErrors.new_password && <p className="text-xs text-muted-foreground mt-1.5">Min. 8 karakter</p>}
               </div>
 
               <div>
@@ -426,7 +432,7 @@ export default function PenggunaPage() {
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-3 mt-5 pt-3 border-t border-border shrink-0">
               <Btn variant="outline" className="flex-1 justify-center" onClick={() => setShowResetModal(false)} disabled={loading}>
                 Batal
               </Btn>
@@ -435,13 +441,14 @@ export default function PenggunaPage() {
               </Btn>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Confirmation Modal */}
-      {confirmDialog.isOpen && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-[70] p-4" onClick={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}>
-          <div className="bg-card rounded-md p-6 w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
+      {confirmDialog.isOpen && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[120] p-2 sm:p-4 animate-in fade-in duration-200" onClick={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}>
+          <div className="bg-card text-card-foreground border border-border rounded-xl p-5 w-[min(380px,calc(100vw-1.5rem))] shadow-2xl" onClick={e => e.stopPropagation()}>
             <h3 className="text-base font-semibold text-foreground mb-2">Konfirmasi Aksi</h3>
             <p className="text-sm text-muted-foreground mb-6">{confirmDialog.message}</p>
             <div className="flex gap-3">
@@ -449,7 +456,8 @@ export default function PenggunaPage() {
               <Btn variant="primary" className="flex-1 justify-center" onClick={confirmDialog.onConfirm}>Ya, Lanjutkan</Btn>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

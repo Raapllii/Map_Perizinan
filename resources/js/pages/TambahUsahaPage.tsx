@@ -57,11 +57,11 @@ export default function TambahUsahaPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto min-w-0 space-y-4 sm:space-y-5">
       {/* Step indicator */}
-      <Card padding="p-0" className="mb-5 overflow-hidden">
-        <div className="overflow-x-auto w-full min-w-0">
-          <div className="flex items-center gap-0 min-w-max px-6 py-4">
+      <Card padding="p-0" className="mb-4 sm:mb-5 overflow-hidden min-w-0">
+        <div className="overflow-x-auto w-full min-w-0 custom-scrollbar">
+          <div className="flex items-center gap-0 min-w-max px-4 sm:px-6 py-3.5 sm:py-4">
             {["Informasi Usaha", "Lokasi & Koordinat", "Dokumen & Foto", "Konfirmasi"].map((s, i) => (
               <div key={s} className="flex items-center flex-1 last:flex-none mr-2 lg:mr-0">
                 <div className="flex items-center gap-2.5">

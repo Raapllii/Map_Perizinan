@@ -201,22 +201,23 @@ export default function DataUsahaImportModal({ isOpen, onClose, onSuccess }: Dat
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-2 sm:p-4">
-      <div className="bg-card w-full max-w-lg rounded-xl shadow-xl border border-border flex flex-col overflow-hidden max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)] animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-card w-[min(32rem,calc(100vw-1rem))] sm:w-full sm:max-w-lg rounded-xl shadow-xl border border-border flex flex-col overflow-hidden max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)] animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
-          <h2 className="text-lg font-bold text-foreground">Import Data OSS (CSV / Excel)</h2>
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-border shrink-0 min-w-0">
+          <h2 className="text-base sm:text-lg font-bold text-foreground truncate pr-2 min-w-0 flex-1">Import Data OSS (CSV / Excel)</h2>
           <button 
             onClick={handleClose} 
-            className="p-2 hover:bg-muted rounded-lg text-muted-foreground transition-colors" 
+            className="p-2 hover:bg-muted rounded-lg text-muted-foreground transition-colors shrink-0" 
             disabled={loading && phase !== "completed" && phase !== "error"}
+            aria-label="Tutup modal import"
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-4 flex-1 min-h-0 overflow-y-auto">
+        <div className="p-4 sm:p-6 space-y-4 flex-1 min-h-0 overflow-y-auto">
           <p className="text-sm text-muted-foreground">
             Unggah file CSV atau Excel (.xlsx) data OSS untuk memperbarui atau menambahkan data usaha ke dalam sistem.
           </p>

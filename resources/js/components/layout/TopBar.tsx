@@ -86,10 +86,10 @@ export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
   ];
 
   return (
-    <header className="h-16 flex-shrink-0 bg-card border-b border-border flex items-center px-4 lg:px-6 gap-3 lg:gap-4 relative z-[1100]">
+    <header className="h-16 flex-shrink-0 bg-card border-b border-border flex items-center px-3 sm:px-4 lg:px-6 gap-2.5 sm:gap-3 lg:gap-4 relative z-[1100]">
       {/* Mobile Menu Button */}
       <button 
-        className="lg:hidden p-2 -ml-2 text-muted-foreground hover:bg-muted hover:text-foreground rounded-md transition-colors"
+        className="lg:hidden p-2 -ml-1 text-muted-foreground hover:bg-muted hover:text-foreground rounded-md transition-colors"
         onClick={onMenuClick}
         aria-label="Open menu"
       >
@@ -107,7 +107,7 @@ export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
 
       {/* Search */}
       <div className="relative flex-1 min-w-0" ref={searchRef}>
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         <input 
           placeholder="Cari usaha, NIB..."
           value={searchQuery}
@@ -117,12 +117,12 @@ export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
           }}
           onFocus={() => { if (searchQuery) setShowDropdown(true); }}
           onKeyDown={handleKeyDown}
-          className="w-full pl-9 pr-4 py-2 text-sm border border-input rounded-lg bg-input-background focus:bg-background focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" 
+          className="w-full pl-9 pr-3 sm:pr-4 py-2 text-xs sm:text-sm border border-input rounded-lg bg-input-background focus:bg-background focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" 
         />
         
         {/* Dropdown Results */}
         {showDropdown && searchQuery.length >= 2 && (
-          <div className="fixed inset-x-3 top-[72px] md:absolute md:inset-auto md:top-full md:left-0 md:mt-1 md:w-full md:max-w-[480px] bg-card border border-border rounded-xl md:rounded-xl shadow-xl md:shadow-md overflow-hidden z-[1100] flex flex-col max-h-[300px] md:max-h-[360px]">
+          <div className="fixed inset-x-3 top-[72px] md:absolute md:inset-auto md:top-full md:left-0 md:mt-1 md:w-full md:max-w-[480px] bg-card border border-border rounded-xl shadow-xl md:shadow-md overflow-hidden z-[1100] flex flex-col max-h-[min(360px,calc(100dvh-5.5rem))]">
             {isSearching ? (
               <div className="p-4 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
                 <RefreshCw size={14} className="animate-spin" /> Mencari data...
@@ -196,12 +196,12 @@ export default function TopBar({ darkMode, setDarkMode, onMenuClick }: any) {
         </button>
 
         {showNotifs && (
-          <div className="fixed inset-x-3 top-[72px] md:absolute md:inset-auto md:right-0 md:top-12 md:w-[320px] bg-popover border border-border rounded-xl md:rounded-xl shadow-md overflow-hidden z-50 md:origin-top-right">
-            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+          <div className="fixed inset-x-3 top-[72px] md:absolute md:inset-auto md:right-0 md:top-12 md:w-[320px] bg-popover border border-border rounded-xl shadow-xl md:shadow-md overflow-hidden z-50 md:origin-top-right flex flex-col max-h-[min(420px,calc(100dvh-5.5rem))]">
+            <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
               <span className="text-sm font-semibold text-popover-foreground">Notifikasi</span>
               <span className="text-xs text-primary font-medium cursor-pointer hover:underline">Tandai semua dibaca</span>
             </div>
-            <div className="max-h-[calc(100dvh-120px)] sm:max-h-72 overflow-y-auto">
+            <div className="overflow-y-auto flex-1">
               {notifications.map((n, i) => (
                 <div key={i} className={`px-4 py-3 border-b border-border/50 hover:bg-muted cursor-pointer transition-colors ${!n.read ? "bg-primary/5" : ""}`}>
                   <div className="flex items-start gap-3">

@@ -29,7 +29,7 @@ const BusinessDetailCard = React.forwardRef<HTMLDivElement, BusinessDetailCardPr
       <motion.div
         ref={ref}
         className={cn(
-          'w-[280px] overflow-hidden rounded-2xl bg-card text-card-foreground shadow-[0_12px_36px_rgba(0,0,0,0.14)] border border-border/80 relative pointer-events-auto',
+          'w-[min(280px,calc(100vw-2rem))] overflow-hidden rounded-2xl bg-card text-card-foreground shadow-[0_12px_36px_rgba(0,0,0,0.14)] border border-border/80 relative pointer-events-auto',
           className
         )}
         initial={{ y: 10, opacity: 0, scale: 0.96 }}

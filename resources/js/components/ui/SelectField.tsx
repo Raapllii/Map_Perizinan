@@ -2,7 +2,7 @@ import { ChevronDown } from "lucide-react";
 
 export function SelectField({ label, options, required = false, value, onChange, name, className = "", error, disabled }: any) {
   return (
-    <div className={className}>
+    <div className={`min-w-0 ${className}`}>
       {label && (
         <label className={`block text-sm font-medium mb-1.5 ${disabled ? 'text-muted-foreground' : 'text-foreground'}`}>
           {label} {required && <span className="text-danger">*</span>}

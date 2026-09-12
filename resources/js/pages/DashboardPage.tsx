@@ -180,7 +180,7 @@ export default function DashboardPage() {
         {/* District breakdown */}
         <Card className="xl:col-span-5 flex flex-col" padding="p-5">
           <SectionHeader title="Statistik per Kecamatan" subtitle="Distribusi usaha di setiap kecamatan" />
-          <div className="space-y-4 max-h-[380px] overflow-y-auto pr-2">
+          <div className="space-y-4 max-h-[380px] overflow-y-auto pr-1 sm:pr-2">
             {districtData.map((d: any, i: number) => (
               <div key={d.name} className="mb-4 last:mb-0">
                 <div className="flex items-center justify-between mb-1.5 gap-2">
@@ -198,10 +198,10 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                <div className="flex justify-between items-center text-[10px] text-muted-foreground">
-                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-success"></span> Rendah {d.risiko_rendah}</div>
-                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-warning"></span> Menengah {d.risiko_menengah}</div>
-                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-danger"></span> Tinggi {d.risiko_tinggi}</div>
+                <div className="flex justify-between items-center text-[10px] text-muted-foreground gap-1.5 flex-wrap">
+                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-success shrink-0"></span> Rendah {d.risiko_rendah}</div>
+                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-warning shrink-0"></span> Menengah {d.risiko_menengah}</div>
+                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-danger shrink-0"></span> Tinggi {d.risiko_tinggi}</div>
                 </div>
               </div>
             ))}
@@ -209,15 +209,15 @@ export default function DashboardPage() {
         </Card>
 
         {/* Mini map + quick actions */}
-        <Card className="xl:col-span-3 h-[460px] flex flex-col" padding="p-5">
+        <Card className="xl:col-span-3 min-h-[440px] xl:h-[460px] flex flex-col" padding="p-5">
           <SectionHeader title="Pratinjau Peta" />
-          <div className="rounded-md overflow-hidden flex-1 mb-5 border border-border relative z-0 min-w-0">
+          <div className="rounded-md overflow-hidden flex-1 min-h-[180px] mb-4 border border-border relative z-0 min-w-0">
             <Suspense fallback={<Skeleton className="h-full w-full absolute inset-0" />}>
               <CityMapLeaflet height="100%" isMiniMap={true} markers={data?.markers || []} />
             </Suspense>
           </div>
-          <div className="space-y-2.5 flex-shrink-0 flex flex-col justify-end">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Aksi Cepat</p>
+          <div className="space-y-2 flex-shrink-0 flex flex-col justify-end">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">Aksi Cepat</p>
             <Btn variant="outline" Icon={FileText} size="sm" className="w-full justify-start" onClick={() => window.print()}>
               Export PDF
             </Btn>

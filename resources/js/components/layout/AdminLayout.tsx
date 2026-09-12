@@ -36,7 +36,7 @@ export default function AdminLayout({ darkMode, setDarkMode, setUser }: any) {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-muted font-sans text-foreground">
+    <div className="flex h-screen h-[100dvh] overflow-hidden bg-muted font-sans text-foreground">
       {/* Mobile backdrop */}
       {isMobileMenuOpen && (
         <div 
@@ -56,11 +56,11 @@ export default function AdminLayout({ darkMode, setDarkMode, setUser }: any) {
         
         <main className="flex-1 overflow-auto">
           {/* Page header */}
-          <div className="px-4 md:px-6 pt-5 pb-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="px-3 sm:px-4 md:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
               <div className="min-w-0 flex-1">
-                <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">{pageInfo?.title}</h1>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 truncate">{pageInfo?.subtitle}</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground break-words">{pageInfo?.title}</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 break-words line-clamp-2 sm:line-clamp-none">{pageInfo?.subtitle}</p>
               </div>
               {activePage === "dashboard" && (
                 <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -84,11 +84,11 @@ export default function AdminLayout({ darkMode, setDarkMode, setUser }: any) {
                   </Btn>
                 </div>
               )}
-              <div id="header-actions" className="w-full sm:w-auto empty:hidden"></div>
+              <div id="header-actions" className="w-full sm:w-auto empty:hidden flex flex-wrap items-center gap-2"></div>
             </div>
           </div>
           
-          <div className="px-4 md:px-6 pb-6">
+          <div className="px-3 sm:px-4 md:px-6 pb-6">
             {renderPage()}
           </div>
         </main>

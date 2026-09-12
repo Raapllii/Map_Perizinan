@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router";
 import axios from 'axios';
-import { User, Lock, Sun, Bell, Map, Database, Upload, Save, RotateCcw, Moon, Globe, CheckCircle, FileText, Download, FileSpreadsheet, FileUp, AlertTriangle, Loader2 } from "lucide-react";
+import { User, Users, Lock, Sun, Bell, Map, Database, Upload, Save, RotateCcw, Moon, Globe, CheckCircle, FileText, Download, FileSpreadsheet, FileUp, AlertTriangle, Loader2 } from "lucide-react";
 import { Card, Btn, InputField, SelectField, SectionHeader } from "../components/ui";
 import { useAuth } from "../contexts/AuthContext";
 import PenggunaPage from "./PenggunaPage";
@@ -140,36 +140,41 @@ export default function PengaturanPage({ darkMode, setDarkMode }: any) {
 
   // Security Actions
   const handlePasswordSave = async () => {
-    if (!user) return;
+    if (securityForm.new_password !== securityForm.new_password_confirmation) {
+      showMessage('Konfirmasi password tidak cocok', 'error');
+      return;
+    }
     setIsLoading(true);
     try {
-      await axios.post(`/api/admin/users/${user.id}/reset-password`, securityForm);
-      showMessage('Password berhasil diperbarui', 'success');
+      await axios.put('/api/admin/user/password', securityForm);
+      showMessage('Password berhasil diubah', 'success');
       setSecurityForm({ old_password: '', new_password: '', new_password_confirmation: '' });
     } catch (error: any) {
-      showMessage(error.response?.data?.message || 'Gagal memperbarui password', 'error');
+      showMessage(error.response?.data?.message || 'Gagal mengubah password', 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
   // Settings Actions
-  const handleSettingsSave = async (newSettings = settings) => {
+  const handleSettingsSave = async (customSettings = null) => {
     setIsLoading(true);
     try {
-      await axios.put('/api/admin/settings', newSettings);
+      const dataToSave = customSettings || settings;
+      await axios.put('/api/admin/user/settings', { settings: dataToSave });
       showMessage('Pengaturan berhasil disimpan', 'success');
-      setSettings(newSettings);
+      if (customSettings) setSettings(customSettings);
       
-      if (newSettings.theme === 'dark' || (newSettings.theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      const themeToApply = dataToSave.theme;
+      if (themeToApply === 'dark' || (themeToApply === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
         setDarkMode(true);
       } else {
         setDarkMode(false);
       }
       
-      if (newSettings.font_size) {
+      if (dataToSave.font_size) {
         document.documentElement.classList.remove('text-sm', 'text-base', 'text-lg');
-        document.documentElement.classList.add(`text-${newSettings.font_size}`);
+        document.documentElement.classList.add(`text-${dataToSave.font_size}`);
       }
     } catch (error: any) {
       showMessage(error.response?.data?.message || 'Gagal menyimpan pengaturan', 'error');
@@ -235,13 +240,45 @@ export default function PengaturanPage({ darkMode, setDarkMode }: any) {
   return (
     <div className="w-full space-y-5 relative">
       {message.text && (
-        <div className={`absolute top-0 right-0 z-50 p-4 rounded-xl shadow-lg border ${message.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+        <div className={`absolute top-0 right-0 z-50 p-4 rounded-xl shadow-lg border ${message.type === 'success' ? 'bg-success/15 border-success/30 text-success' : 'bg-danger/15 border-danger/30 text-danger'}`}>
           <div className="flex items-center gap-2">
             {message.type === 'success' ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
             <span className="text-sm font-medium">{message.text}</span>
           </div>
         </div>
       )}
+
+      {/* In-page responsive horizontal navigation tabs */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-border text-xs sm:text-sm custom-scrollbar">
+        {[
+          { id: "profil", label: "Profil & Akun", icon: User },
+          ...(user?.role === "Super Admin" ? [{ id: "pengguna", label: "Manajemen Pengguna", icon: Users }] : []),
+          { id: "keamanan", label: "Keamanan", icon: Lock },
+          { id: "tampilan", label: "Tampilan & Tema", icon: Sun },
+          { id: "peta", label: "Konfigurasi Peta", icon: Map },
+          ...(user?.role === "Super Admin" ? [{ id: "database", label: "Database & Backup", icon: Database }] : []),
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeSection === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveSection(tab.id);
+                window.location.hash = tab.id;
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors shrink-0 ${
+                isActive
+                  ? "bg-[#2E7D32] text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              }`}
+            >
+              <Icon size={14} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
 
       {activeSection === "profil" && (
         <Card>

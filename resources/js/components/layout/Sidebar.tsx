@@ -161,7 +161,7 @@ export default function Sidebar({ isOpen = false, setIsOpen = () => { } }: any) 
       </nav>
 
       {/* User info */}
-      <div className={`p-4 border-t border-sidebar-border bg-sidebar ${isCollapsed ? 'flex flex-col items-center gap-3' : 'flex items-center gap-3'}`}>
+      <div className={`p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] border-t border-sidebar-border bg-sidebar shrink-0 ${isCollapsed ? 'flex flex-col items-center gap-3' : 'flex items-center gap-3'}`}>
         {user ? (
           <>
             <div className="w-9 h-9 rounded-full bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground text-sm font-bold flex-shrink-0 overflow-hidden" title={isCollapsed ? user.name : undefined}>

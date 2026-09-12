@@ -80,21 +80,21 @@ export default function VerifikasiIzinPage() {
       </div>
 
       {/* Summary cards / Tabs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         {summaryCards.map((c) => (
           <button key={c.tab} onClick={() => setActiveTab(c.tab)}
-            className={`p-4 rounded-xl border-2 text-left transition-all duration-200 ${activeTab === c.tab ? `${c.bg} ${c.border} shadow-sm ring-2 ring-primary/20 ring-offset-2 ring-offset-background` : "bg-card border-border hover:border-primary/30 hover:shadow-sm opacity-80 hover:opacity-100"}`}>
-            <div className={`text-3xl font-bold ${c.color} mb-1 tracking-tight`}>{c.count}</div>
-            <div className="text-sm text-muted-foreground font-semibold">{c.label}</div>
+            className={`p-3 sm:p-4 rounded-xl border-2 text-left transition-all duration-200 min-w-0 ${activeTab === c.tab ? `${c.bg} ${c.border} shadow-sm ring-2 ring-primary/20 ring-offset-2 ring-offset-background` : "bg-card border-border hover:border-primary/30 hover:shadow-sm opacity-80 hover:opacity-100"}`}>
+            <div className={`text-2xl sm:text-3xl font-bold ${c.color} mb-0.5 sm:mb-1 tracking-tight break-words`}>{c.count}</div>
+            <div className="text-xs sm:text-sm text-muted-foreground font-semibold break-words line-clamp-1">{c.label}</div>
           </button>
         ))}
       </div>
 
       {/* Verification table */}
-      <Card padding="p-0" className="overflow-hidden border-border flex flex-col shadow-sm">
-        <div className="px-5 py-4 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-4 bg-muted/10">
-          <div className="flex items-center gap-3">
-            <h3 className="text-base font-bold text-foreground">
+      <Card padding="p-0" className="overflow-hidden border-border flex flex-col shadow-sm min-w-0">
+        <div className="px-4 sm:px-5 py-3.5 sm:py-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-muted/10">
+          <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+            <h3 className="text-sm sm:text-base font-bold text-foreground">
               {activeTab === 'pending' ? 'Antrian Verifikasi' : 
                activeTab === 'approved' ? 'Riwayat Disetujui' : 
                activeTab === 'rejected' ? 'Riwayat Ditolak' : 'Antrian Revisi'}
@@ -103,13 +103,13 @@ export default function VerifikasiIzinPage() {
               {filtered.length} Data
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="relative hidden sm:block w-64">
+          <div className="flex items-center gap-2 flex-wrap justify-between sm:justify-end w-full sm:w-auto">
+            <div className="relative hidden sm:block w-56 md:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={15} />
               <InputField placeholder="Cari pemohon..." className="pl-9 w-full !py-1.5 !text-sm" />
             </div>
             <Btn variant="outline" size="sm" Icon={Filter} className="hidden sm:inline-flex">Filter</Btn>
-            <Btn variant="secondary" size="sm" Icon={RefreshCw} onClick={fetchQueue} disabled={loading}>Refresh</Btn>
+            <Btn variant="secondary" size="sm" Icon={RefreshCw} onClick={fetchQueue} disabled={loading} className="w-full sm:w-auto justify-center">Refresh</Btn>
           </div>
         </div>
         <div className="overflow-x-auto">
