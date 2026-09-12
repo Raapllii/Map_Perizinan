@@ -8,3 +8,4 @@ export * from './Skeleton';
 export * from './StatCard';
 export * from './BusinessSidePanel';
 export * from './BusinessDetailCard';
+export * from './businessPanelUtils';
