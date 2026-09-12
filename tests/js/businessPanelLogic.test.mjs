@@ -98,10 +98,24 @@ describe('formatFallback', () => {
 });
 
 describe('boundary & safety checks', () => {
-  test('handles extreme coordinates outside valid lat/lng range if needed', () => {
-    // Normal lat is -90 to 90, lng -180 to 180
-    assert.equal(validateCoordinates(91, 100).hasCoordinates, true);
+  test('rejects latitude outside -90 to 90', () => {
+    assert.equal(validateCoordinates(90.1, 100).hasCoordinates, false);
+    assert.equal(validateCoordinates(-90.1, 100).hasCoordinates, false);
+    assert.equal(validateCoordinates(90, 100).hasCoordinates, true);
+    assert.equal(validateCoordinates(-90, 100).hasCoordinates, true);
+  });
+
+  test('rejects longitude outside -180 to 180', () => {
+    assert.equal(validateCoordinates(0.5, 180.1).hasCoordinates, false);
+    assert.equal(validateCoordinates(0.5, -180.1).hasCoordinates, false);
+    assert.equal(validateCoordinates(0.5, 180).hasCoordinates, true);
+    assert.equal(validateCoordinates(0.5, -180).hasCoordinates, true);
+  });
+
+  test('rejects invalid numeric strings', () => {
     assert.equal(validateCoordinates('NaN', 'undefined').hasCoordinates, false);
+    assert.equal(validateCoordinates('Infinity', '-Infinity').hasCoordinates, false);
   });
 });
+
 

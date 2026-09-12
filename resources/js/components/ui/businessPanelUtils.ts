@@ -62,6 +62,16 @@ export function validateCoordinates(
     };
   }
 
+  // Validate standard geographic coordinates: latitude in [-90, 90], longitude in [-180, 180]
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    return {
+      hasCoordinates: false,
+      latNum: null,
+      lngNum: null,
+      formattedString: null,
+    };
+  }
+
   return {
     hasCoordinates: true,
     latNum: lat,

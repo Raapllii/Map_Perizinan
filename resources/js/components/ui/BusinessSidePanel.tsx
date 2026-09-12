@@ -11,9 +11,7 @@ import {
   ShieldAlert, 
   ShieldCheck,
   AlertTriangle, 
-  Edit,
-  Layers,
-  Sparkles
+  Edit 
 } from 'lucide-react';
 import { Drawer } from 'vaul';
 import { motion, AnimatePresence } from 'motion/react';
@@ -55,13 +53,13 @@ export function BusinessSidePanel({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [business, onClose]);
 
-  // Coordinate validation
+  // Coordinate validation (strict -90..90 and -180..180, rejects 0,0)
   const { hasCoordinates, latNum, lngNum, formattedString } = useMemo(() => {
     if (!business) return { hasCoordinates: false, latNum: null, lngNum: null, formattedString: null };
     return validateCoordinates(business.latitude, business.longitude);
   }, [business]);
 
-  // Copy coordinates handler
+  // Copy coordinates handler with smooth inline feedback
   const handleCopyCoordinates = useCallback(async () => {
     if (!hasCoordinates || !formattedString) return;
     try {
@@ -96,33 +94,31 @@ export function BusinessSidePanel({
     business.nama_proyek.trim().toLowerCase() !== (business.nama_perusahaan || '').trim().toLowerCase()
   );
 
-  // RENDER MAIN BODY (7-Tier Architecture)
+  // RENDER MAIN BODY (Location Intelligence Profile - Less UI, More Hierarchy)
   const renderPanelBody = () => (
-    <div className="space-y-6">
-      {/* ========================================================================= */}
-      {/* TIER B: BUSINESS IDENTITY (Focal Point - NO PHOTO)                       */}
-      {/* ========================================================================= */}
+    <div className="space-y-5 lg:space-y-6">
+      {/* TIER B: BUSINESS IDENTITY (Focal Point - NO PHOTO) */}
       <div className="space-y-3">
-        <div className="flex items-start gap-3.5">
-          {/* Subtle GIS / Business Monogram Icon */}
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-xs">
-            <Building2 className="w-6 h-6" strokeWidth={2.2} />
+        <div className="flex items-start gap-3">
+          {/* Subtle GIS Monogram Container */}
+          <div className="w-10 h-10 rounded-xl bg-primary/8 text-primary border border-primary/15 flex items-center justify-center shrink-0 shadow-2xs">
+            <Building2 size={20} strokeWidth={2.2} />
           </div>
 
           <div className="min-w-0 flex-1">
-            {/* Nama Usaha (Desktop 20-22px, Mobile 18-20px, Bold, Break-Words) */}
-            <h3 className="text-xl lg:text-[22px] font-bold tracking-tight text-foreground leading-snug break-words">
+            {/* Nama Usaha (Desktop 20-22px, Mobile 18-20px, Font 700 Bold, Break-Words) */}
+            <h3 className="text-xl lg:text-[21px] font-bold tracking-tight text-foreground leading-snug break-words">
               {business.nama_perusahaan || 'Nama Usaha Belum Terdaftar'}
             </h3>
 
             {/* Kategori / Judul KBLI */}
-            <p className="text-xs text-muted-foreground font-medium mt-1 leading-relaxed break-words">
+            <p className="text-xs text-muted-foreground font-normal mt-1 leading-relaxed break-words">
               {business.judul_kbli || 'Kategori Usaha / KBLI Belum Ditentukan'}
             </p>
 
-            {/* Nama Proyek Tag (jika relevan & berbeda) */}
+            {/* Nama Proyek Tag (hanya jika ada dan unik) */}
             {hasDistinctProjectName && (
-              <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-lg bg-muted text-[11px] font-medium text-foreground/90 border border-border/70 max-w-full">
+              <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-0.5 rounded-md bg-muted/50 text-[11px] font-medium text-foreground/85 border border-border/40 max-w-full">
                 <span className="text-muted-foreground font-normal shrink-0">Proyek:</span>
                 <span className="font-semibold truncate">{business.nama_proyek}</span>
               </div>
@@ -130,10 +126,8 @@ export function BusinessSidePanel({
           </div>
         </div>
 
-        {/* ======================================================================= */}
-        {/* TIER C: STATUS & RISK BADGES                                           */}
-        {/* ======================================================================= */}
-        <div className="flex flex-wrap items-center gap-2 pt-1">
+        {/* TIER C: STATUS & RISK BADGES */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
           <StatusBadge status={business.status || 'Aktif'} />
 
           {business.uraian_risiko_proyek && (
@@ -154,73 +148,17 @@ export function BusinessSidePanel({
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* TIER D: INFORMASI UTAMA                                                  */}
-      {/* ========================================================================= */}
+      {/* TIER E: LOKASI USAHA (Prioritas GIS Location Intelligence) */}
       <div className="space-y-2.5">
-        <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-          <FileText size={13} className="text-primary/70" />
-          <span>Informasi Usaha</span>
-        </div>
-
-        <div className="bg-muted/40 rounded-2xl p-4 border border-border/60 divide-y divide-border/40">
-          {/* NIB */}
-          <div className="flex items-start justify-between gap-3 pb-2.5">
-            <span className="text-xs text-muted-foreground font-medium shrink-0">NIB</span>
-            <span className="text-xs font-mono font-semibold text-foreground tracking-wide text-right select-all">
-              {formatFallback(business.nib)}
-            </span>
-          </div>
-
-          {/* KBLI */}
-          <div className="flex items-start justify-between gap-3 py-2.5">
-            <span className="text-xs text-muted-foreground font-medium shrink-0">Kode KBLI</span>
-            <span className="text-xs font-mono font-medium text-foreground text-right select-all">
-              {formatFallback(business.kbli)}
-            </span>
-          </div>
-
-          {/* Bentuk Usaha / Jenis Perusahaan */}
-          <div className="flex items-start justify-between gap-3 py-2.5">
-            <span className="text-xs text-muted-foreground font-medium shrink-0">Bentuk Usaha</span>
-            <span className="text-xs font-medium text-foreground text-right break-words">
-              {formatFallback(business.uraian_jenis_perusahaan)}
-            </span>
-          </div>
-
-          {/* Skala Usaha */}
-          <div className="flex items-start justify-between gap-3 py-2.5">
-            <span className="text-xs text-muted-foreground font-medium shrink-0">Skala Usaha</span>
-            <span className="text-xs font-medium text-foreground text-right break-words">
-              {formatFallback(business.uraian_skala_usaha)}
-            </span>
-          </div>
-
-          {/* Status Penanaman Modal */}
-          {business.uraian_status_penanaman_modal && (
-            <div className="flex items-start justify-between gap-3 pt-2.5">
-              <span className="text-xs text-muted-foreground font-medium shrink-0">Penanaman Modal</span>
-              <span className="text-xs font-medium text-foreground text-right break-words">
-                {business.uraian_status_penanaman_modal}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* TIER E: LOKASI USAHA                                                     */}
-      {/* ========================================================================= */}
-      <div className="space-y-2.5">
-        <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-          <MapPin size={13} className="text-primary/70" />
+        <div className="flex items-center gap-1.5 text-[10.5px] font-bold text-muted-foreground uppercase tracking-wider">
+          <MapPin size={12} className="text-primary" />
           <span>Lokasi Usaha</span>
         </div>
 
-        <div className="bg-muted/40 rounded-2xl p-4 border border-border/60 space-y-3">
+        <div className="rounded-xl bg-muted/25 p-3.5 border border-border/40 space-y-3">
           {/* Alamat Lengkap */}
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/80 block">
               Alamat Lengkap
             </span>
             <p className="text-xs font-semibold text-foreground mt-0.5 leading-relaxed break-words">
@@ -228,10 +166,10 @@ export function BusinessSidePanel({
             </p>
           </div>
 
-          {/* Kecamatan & Kelurahan 2-Column Grid */}
-          <div className="grid grid-cols-2 gap-3 border-t border-border/40 pt-2.5">
+          {/* Kecamatan & Kelurahan 2-Column Grid (Whitespace-driven) */}
+          <div className="grid grid-cols-2 gap-3 pt-1">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+              <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/80 block">
                 Kecamatan
               </span>
               <p className="text-xs font-medium text-foreground mt-0.5 break-words">
@@ -239,7 +177,7 @@ export function BusinessSidePanel({
               </p>
             </div>
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+              <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/80 block">
                 Kelurahan
               </span>
               <p className="text-xs font-medium text-foreground mt-0.5 break-words">
@@ -248,32 +186,82 @@ export function BusinessSidePanel({
             </div>
           </div>
 
-          {/* Kabupaten / Kota */}
-          <div className="border-t border-border/40 pt-2.5 flex items-start justify-between gap-3">
-            <span className="text-xs text-muted-foreground font-medium shrink-0">Kabupaten / Kota</span>
+          {/* Kabupaten / Kota (Data Asli dari DB, Tanpa Hardcoded Fallback) */}
+          <div className="pt-1 flex items-baseline justify-between gap-3">
+            <span className="text-xs text-muted-foreground/80 font-normal">Kabupaten / Kota</span>
             <span className="text-xs font-medium text-foreground text-right break-words">
-              {business.kab_kota_usaha || 'Samarinda'}
+              {formatFallback(business.kab_kota_usaha)}
             </span>
           </div>
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* TIER F: TITIK KOORDINAT                                                  */}
-      {/* ========================================================================= */}
+      {/* TIER D: INFORMASI USAHA (Editorial Metadata Layout) */}
+      <div className="space-y-2.5">
+        <div className="flex items-center gap-1.5 text-[10.5px] font-bold text-muted-foreground uppercase tracking-wider">
+          <FileText size={12} className="text-primary/70" />
+          <span>Informasi Usaha</span>
+        </div>
+
+        <div className="rounded-xl bg-muted/25 p-3.5 border border-border/40 space-y-2.5">
+          {/* NIB */}
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-xs text-muted-foreground/80 font-normal shrink-0">NIB</span>
+            <span className="text-xs font-mono font-medium text-foreground tracking-wide text-right select-all">
+              {formatFallback(business.nib)}
+            </span>
+          </div>
+
+          {/* KBLI */}
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-xs text-muted-foreground/80 font-normal shrink-0">Kode KBLI</span>
+            <span className="text-xs font-mono font-medium text-foreground text-right select-all">
+              {formatFallback(business.kbli)}
+            </span>
+          </div>
+
+          {/* Bentuk Usaha */}
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-xs text-muted-foreground/80 font-normal shrink-0">Bentuk Usaha</span>
+            <span className="text-xs font-normal text-foreground text-right break-words">
+              {formatFallback(business.uraian_jenis_perusahaan)}
+            </span>
+          </div>
+
+          {/* Skala Usaha */}
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-xs text-muted-foreground/80 font-normal shrink-0">Skala Usaha</span>
+            <span className="text-xs font-normal text-foreground text-right break-words">
+              {formatFallback(business.uraian_skala_usaha)}
+            </span>
+          </div>
+
+          {/* Status Penanaman Modal */}
+          {business.uraian_status_penanaman_modal && (
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-xs text-muted-foreground/80 font-normal shrink-0">Penanaman Modal</span>
+              <span className="text-xs font-normal text-foreground text-right break-words">
+                {business.uraian_status_penanaman_modal}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* TIER F: TITIK KOORDINAT (Technical Elegance) */}
       <div className="space-y-2.5">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-            <Compass size={13} className="text-primary/70" />
+          <div className="flex items-center gap-1.5 text-[10.5px] font-bold text-muted-foreground uppercase tracking-wider">
+            <Compass size={12} className="text-primary/70" />
             <span>Titik Koordinat</span>
           </div>
 
-          {/* Tombol Copy dengan Inline Feedback */}
+          {/* Tombol Copy dengan Feedback Inline */}
           {hasCoordinates && (
             <button
               type="button"
               onClick={handleCopyCoordinates}
-              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded-md px-2.5 py-1 min-h-[32px] cursor-pointer active:scale-95"
+              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded-md px-2 py-0.5 min-h-[30px] cursor-pointer active:scale-95"
               aria-label="Salin titik koordinat"
             >
               {copied ? (
@@ -284,78 +272,77 @@ export function BusinessSidePanel({
               ) : (
                 <>
                   <Copy size={13} />
-                  <span>Salin Koordinat</span>
+                  <span>Salin</span>
                 </>
               )}
             </button>
           )}
         </div>
 
-        <div className="bg-muted/40 rounded-2xl p-3.5 border border-border/60">
-          {hasCoordinates ? (
-            <div className="grid grid-cols-2 gap-2.5">
-              <div className="bg-card/90 rounded-xl p-2.5 border border-border/50 shadow-2xs">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-                  Latitude
-                </span>
-                <span className="text-xs font-mono font-semibold text-foreground tracking-tight block mt-0.5 truncate select-all">
-                  {latNum?.toFixed(6)}
-                </span>
-              </div>
-              <div className="bg-card/90 rounded-xl p-2.5 border border-border/50 shadow-2xs">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-                  Longitude
-                </span>
-                <span className="text-xs font-mono font-semibold text-foreground tracking-tight block mt-0.5 truncate select-all">
-                  {lngNum?.toFixed(6)}
-                </span>
-              </div>
+        {hasCoordinates ? (
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-xl bg-muted/25 px-3 py-2.5 border border-border/40">
+              <span className="text-[10px] font-medium text-muted-foreground/80 uppercase tracking-wider block">
+                Latitude
+              </span>
+              <span className="text-xs font-mono font-semibold text-foreground tracking-tight block mt-0.5 select-all">
+                {latNum?.toFixed(6)}
+              </span>
             </div>
-          ) : (
-            <div className="flex items-start gap-2.5 py-1.5 px-1 text-warning">
-              <AlertTriangle size={17} className="shrink-0 mt-0.5 text-warning" />
-              <div>
-                <p className="text-xs font-bold text-foreground">Belum dipetakan</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                  Titik koordinat spasial belum tercatat di sistem GIS.
-                </p>
-              </div>
+            <div className="rounded-xl bg-muted/25 px-3 py-2.5 border border-border/40">
+              <span className="text-[10px] font-medium text-muted-foreground/80 uppercase tracking-wider block">
+                Longitude
+              </span>
+              <span className="text-xs font-mono font-semibold text-foreground tracking-tight block mt-0.5 select-all">
+                {lngNum?.toFixed(6)}
+              </span>
             </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="rounded-xl bg-muted/25 p-3 border border-border/40 flex items-start gap-2.5 text-warning">
+            <AlertTriangle size={15} className="shrink-0 mt-0.5 text-warning" />
+            <div>
+              <p className="text-xs font-semibold text-foreground">Belum dipetakan</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                Titik koordinat spasial belum tercatat di sistem GIS.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 
-  {/* ========================================================================= */}
-  {/* TIER G: PRIMARY ACTION (Lihat Rute - NO Redundant Detail Button)           */}
-  {/* ========================================================================= */}
+  // ===========================================================================
+  // TIER G: PRIMARY ACTION (Lihat Rute - Refined & Calm)
+  // ===========================================================================
   const renderPanelFooter = () => (
-    <div className="p-4 border-t border-border/70 bg-card/95 backdrop-blur-md mt-auto shrink-0 flex flex-col gap-2">
+    <div className="p-4 border-t border-border/60 bg-card shrink-0 flex flex-col gap-2">
       <button
         type="button"
         disabled={!hasCoordinates}
         onClick={onDirectionsClick}
         className={cn(
-          "w-full h-11 px-4 rounded-xl font-semibold text-sm inline-flex items-center justify-center gap-2 transition-all shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          "w-full h-11 px-4 rounded-xl font-semibold text-xs tracking-wide uppercase inline-flex items-center justify-center gap-2 transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
           hasCoordinates
             ? "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.99] cursor-pointer"
-            : "bg-muted text-muted-foreground/60 cursor-not-allowed border border-border/60"
+            : "bg-muted text-muted-foreground/60 cursor-not-allowed border border-border/50"
         )}
         aria-label={hasCoordinates ? `Petunjuk rute menuju ${business.nama_perusahaan}` : "Rute tidak tersedia karena koordinat belum ada"}
       >
-        <Navigation size={16} className={hasCoordinates ? "text-primary-foreground" : "text-muted-foreground/50"} />
+        <Navigation size={15} className={hasCoordinates ? "text-primary-foreground" : "text-muted-foreground/50"} />
         <span>{hasCoordinates ? "Lihat Rute" : "Belum Ada Koordinat Rute"}</span>
       </button>
 
+      {/* Secondary Edit Action (Hanya jika onEditClick di-provide oleh parent) */}
       {onEditClick && (
         <button
           type="button"
           onClick={onEditClick}
-          className="w-full h-9 px-3 rounded-xl font-medium text-xs inline-flex items-center justify-center gap-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors min-h-[36px] cursor-pointer"
+          className="w-full h-8 px-3 rounded-lg font-medium text-xs inline-flex items-center justify-center gap-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
           aria-label="Edit data usaha"
         >
-          <Edit size={14} />
+          <Edit size={13} />
           <span>Edit Data Usaha</span>
         </button>
       )}
@@ -370,19 +357,19 @@ export function BusinessSidePanel({
       <Drawer.Root open={!!business} onOpenChange={(open) => !open && onClose()} modal={false}>
         <Drawer.Portal>
           <Drawer.Content
-            className="bg-card flex flex-col rounded-t-[28px] fixed bottom-0 left-0 right-0 z-[1000] border-t border-border/80 shadow-[0_-12px_48px_rgba(0,0,0,0.16)] max-h-[85dvh] outline-none"
+            className="bg-card flex flex-col rounded-t-[28px] fixed bottom-0 left-0 right-0 z-[1000] border-t border-border/80 shadow-[0_-12px_48px_rgba(0,0,0,0.14)] max-h-[85dvh] outline-none"
             style={{ pointerEvents: 'auto' }}
           >
             {/* Visual Drag Handle */}
             <div className="w-full flex justify-center pt-3 pb-1 shrink-0">
-              <div className="w-12 h-1.5 bg-muted-foreground/25 rounded-full" />
+              <div className="w-10 h-1 bg-muted-foreground/20 rounded-full" />
             </div>
 
             {/* Header */}
             <div className="px-5 py-2.5 flex items-center justify-between border-b border-border/60 shrink-0">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-primary" />
-                <Drawer.Title className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                <Drawer.Title className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Detail Usaha
                 </Drawer.Title>
               </div>
@@ -392,15 +379,15 @@ export function BusinessSidePanel({
               <button
                 type="button"
                 onClick={onClose}
-                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                className="min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
                 aria-label="Tutup panel detail usaha"
               >
-                <X size={18} strokeWidth={2.2} />
+                <X size={17} strokeWidth={2} />
               </button>
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-5 pb-6 overscroll-contain">
+            <div className="flex-1 overflow-y-auto p-5 pb-6 overscroll-contain [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-border/60 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
               {renderPanelBody()}
             </div>
 
@@ -415,39 +402,39 @@ export function BusinessSidePanel({
   }
 
   // ===========================================================================
-  // DESKTOP: FLOATING SIDE PANEL OVERLAY
+  // DESKTOP: FLOATING SIDE PANEL OVERLAY (400-420px Optimal Width)
   // ===========================================================================
   return (
     <AnimatePresence>
       {business && (
         <motion.div
-          initial={{ x: -28, opacity: 0 }}
+          initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          exit={{ x: -28, opacity: 0 }}
-          transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-          className="absolute top-4 bottom-4 left-4 z-[1000] w-[390px] xl:w-[420px] max-w-[calc(100vw-2rem)] pointer-events-none"
+          exit={{ x: -20, opacity: 0 }}
+          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          className="absolute top-4 bottom-4 left-4 z-[1000] w-[400px] xl:w-[420px] max-w-[calc(100vw-2rem)] pointer-events-none"
         >
-          <div className="w-full h-full flex flex-col overflow-hidden pointer-events-auto shadow-[0_16px_48px_rgba(0,0,0,0.12)] border border-border/80 rounded-2xl bg-card">
+          <div className="w-full h-full flex flex-col overflow-hidden pointer-events-auto shadow-[0_12px_40px_-8px_rgba(0,0,0,0.08),0_4px_16px_-4px_rgba(0,0,0,0.04)] border border-border/70 rounded-2xl bg-card">
             {/* Header */}
-            <div className="px-5 py-3.5 border-b border-border/70 bg-card flex items-center justify-between shrink-0">
+            <div className="px-5 py-3 border-b border-border/60 bg-card flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-primary" />
-                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/90">
                   Detail Usaha
                 </span>
               </div>
               <button
                 type="button"
                 onClick={onClose}
-                className="min-w-[44px] min-h-[44px] -mr-2 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                className="w-8 h-8 -mr-1 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
                 aria-label="Tutup panel detail usaha"
               >
-                <X size={18} strokeWidth={2.2} />
+                <X size={16} strokeWidth={2} />
               </button>
             </div>
 
-            {/* Scrollable Body */}
-            <div className="flex-1 overflow-y-auto p-5 custom-scrollbar overscroll-contain">
+            {/* Scrollable Body with subtle thin scrollbar */}
+            <div className="flex-1 overflow-y-auto p-5 overscroll-contain [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-border/60 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
               {renderPanelBody()}
             </div>
 
