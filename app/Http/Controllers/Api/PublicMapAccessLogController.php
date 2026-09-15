@@ -49,7 +49,12 @@ class PublicMapAccessLogController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Akses Peta PB berhasil dicatat.',
-            'data' => $log,
+            'data' => [
+                'id' => $log->id,
+                'nama' => $log->nama,
+                'instansi' => $log->instansi,
+                'accessed_at' => $log->accessed_at,
+            ],
         ], 201);
     }
 
@@ -85,7 +90,7 @@ class PublicMapAccessLogController extends Controller
         // Aggregate statistics
         $today = Carbon::today();
         $totalAccess = PublicMapAccessLog::count();
-        $totalVisitors = PublicMapAccessLog::distinct('nama')->count('nama');
+        $totalVisitors = (int) PublicMapAccessLog::selectRaw("COUNT(DISTINCT CONCAT(LOWER(TRIM(nama)), ':::', LOWER(TRIM(instansi)))) as count")->value('count');
         $todayAccess = PublicMapAccessLog::whereDate('accessed_at', $today)->count();
         $totalAgencies = PublicMapAccessLog::distinct('instansi')->count('instansi');
 

@@ -99,4 +99,38 @@ class PublicMapAccessTest extends TestCase
         $response = $this->get('/api/admin/public-map-access-logs');
         $response->assertRedirect('/admin/login');
     }
+
+    public function test_unique_visitor_counts_distinct_nama_plus_instansi_combination()
+    {
+        $user = User::factory()->create(['role' => 'Administrator']);
+
+        // Andi in DPMPTSP
+        PublicMapAccessLog::create(['nama' => 'Andi', 'instansi' => 'DPMPTSP', 'accessed_at' => now()]);
+        // Andi in Dinas PU (different entity with same name)
+        PublicMapAccessLog::create(['nama' => 'Andi', 'instansi' => 'Dinas PU', 'accessed_at' => now()]);
+        // Repeat access by Andi DPMPTSP
+        PublicMapAccessLog::create(['nama' => 'Andi', 'instansi' => 'DPMPTSP', 'accessed_at' => now()]);
+
+        $response = $this->actingAs($user)->getJson('/api/admin/public-map-access-logs');
+
+        $response->assertStatus(200);
+        $this->assertEquals(3, $response->json('meta.total_access'));
+        $this->assertEquals(2, $response->json('meta.total_visitors'));
+    }
+
+    public function test_public_endpoint_does_not_expose_ip_or_user_agent()
+    {
+        $response = $this->postJson('/api/public-map-access', [
+            'nama' => 'Siti Rahma',
+            'instansi' => 'Universitas X',
+        ]);
+
+        $response->assertStatus(201);
+        $data = $response->json('data');
+        $this->assertArrayNotHasKey('ip_address', $data);
+        $this->assertArrayNotHasKey('user_agent', $data);
+        $this->assertEquals('Siti Rahma', $data['nama']);
+        $this->assertEquals('Universitas X', $data['instansi']);
+    }
 }
+

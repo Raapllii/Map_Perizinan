@@ -41,6 +41,8 @@ export interface Business {
   indicator_10?: string | null;
   created_at?: string;
   updated_at?: string;
+  [key: `indicator_${number}`]: string | null | undefined;
+  [key: string]: any;
 }
 
 export interface PublicMapAccessLog {

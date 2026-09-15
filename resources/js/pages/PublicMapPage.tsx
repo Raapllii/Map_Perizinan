@@ -20,7 +20,13 @@ export default function PublicMapPage() {
   const [visitor, setVisitor] = useState<any>(() => {
     try {
       const saved = sessionStorage.getItem('public_map_visitor');
-      return saved ? JSON.parse(saved) : null;
+      if (!saved) return null;
+      const parsed = JSON.parse(saved);
+      if (parsed && typeof parsed === 'object' && parsed.nama && parsed.instansi) {
+        return parsed;
+      }
+      sessionStorage.removeItem('public_map_visitor');
+      return null;
     } catch {
       return null;
     }
@@ -30,6 +36,15 @@ export default function PublicMapPage() {
   const handleAccessSuccess = (visitorData: any) => {
     setVisitor(visitorData);
     setIsAccessModalOpen(false);
+  };
+
+  const handleGantiIdentitas = () => {
+    sessionStorage.removeItem("public_map_visitor");
+    setVisitor(null);
+    setMarkers([]);
+    setSelectedBusiness(null);
+    setHoveredBusiness(null);
+    setIsAccessModalOpen(true);
   };
   
   const { 
@@ -160,12 +175,8 @@ export default function PublicMapPage() {
             <span className="text-muted-foreground text-[11px] truncate max-w-[130px]">{visitor.instansi}</span>
           </div>
           <button
-            onClick={() => {
-              sessionStorage.removeItem("public_map_visitor");
-              setVisitor(null);
-              setIsAccessModalOpen(true);
-            }}
-            className="ml-1 text-[11px] font-semibold text-primary hover:underline"
+            onClick={handleGantiIdentitas}
+            className="ml-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
             title="Ganti identitas pengunjung"
           >
             Ganti

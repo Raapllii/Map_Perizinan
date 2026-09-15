@@ -148,7 +148,7 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
                   <DetailItem
                     key={num}
                     label={`Indikator Tambahan ${num}`}
-                    value={(business as any)[key]}
+                    value={business[key]}
                   />
                 );
               })}
@@ -167,12 +167,16 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
 }
 
 // Helpers
-const DetailItem = ({ label, value, className = "" }: { label: string, value: any, className?: string }) => (
-  <div className={`min-w-0 ${className}`}>
-    <span className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{label}</span>
-    <span className="block text-sm font-medium text-foreground break-words">{value || '-'}</span>
-  </div>
-);
+const DetailItem = ({ label, value, className = "" }: { label: string, value: any, className?: string }) => {
+  const isInvalid = value === null || value === undefined || value === "" || Number.isNaN(value) || value === "null" || value === "undefined";
+  const displayVal = isInvalid ? '-' : value;
+  return (
+    <div className={`min-w-0 ${className}`}>
+      <span className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{label}</span>
+      <span className="block text-sm font-medium text-foreground break-words">{displayVal}</span>
+    </div>
+  );
+};
 
 const formatCurrency = (val: any) => {
   if (!val || isNaN(val)) return '-';

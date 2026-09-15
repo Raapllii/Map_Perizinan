@@ -14,6 +14,12 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  React.useEffect(() => {
+    if (isOpen) {
+      setErrorMessage("");
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
