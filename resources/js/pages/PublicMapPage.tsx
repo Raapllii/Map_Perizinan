@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import Navbar from "../components/ui/mini-navbar";
 import { BusinessDetailCard, BusinessSidePanel } from "../components/ui";
 import { useBusinessSearch } from "../hooks/useBusinessSearch";
+import PublicAccessModal from "../components/PublicAccessModal";
 
 const CityMapLeaflet = lazy(() => import('../components/CityMapLeaflet'));
 
@@ -14,6 +15,22 @@ export default function PublicMapPage() {
   const [markers, setMarkers] = useState<any[]>([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [flyTrigger, setFlyTrigger] = useState<any>(null);
+
+  // Visitor Access State
+  const [visitor, setVisitor] = useState<any>(() => {
+    try {
+      const saved = sessionStorage.getItem('public_map_visitor');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [isAccessModalOpen, setIsAccessModalOpen] = useState(!visitor);
+
+  const handleAccessSuccess = (visitorData: any) => {
+    setVisitor(visitorData);
+    setIsAccessModalOpen(false);
+  };
   
   const { 
     searchQuery, setSearchQuery, 
@@ -56,7 +73,7 @@ export default function PublicMapPage() {
 
   useEffect(() => {
     const minZoom = 8;
-    if (mapZoom < minZoom || !mapBounds) {
+    if (!visitor || mapZoom < minZoom || !mapBounds) {
       setMarkers([]);
       setIsFetchingMap(false);
       return;
@@ -91,7 +108,7 @@ export default function PublicMapPage() {
       });
 
     return () => controller.abort();
-  }, [mapBounds, mapZoom, activeFilters]);
+  }, [mapBounds, mapZoom, activeFilters, visitor]);
 
 
   const saveToHistory = (item: any) => {
@@ -127,6 +144,35 @@ export default function PublicMapPage() {
 
   return (
     <div className="w-screen h-screen overflow-hidden bg-background flex flex-col md:flex-row font-[Inter,sans-serif]">
+      {/* Public Visitor Identification Modal */}
+      <PublicAccessModal
+        isOpen={isAccessModalOpen}
+        onSuccess={handleAccessSuccess}
+      />
+
+      {/* Visitor Active Badge */}
+      {visitor && !isAccessModalOpen && (
+        <div className="fixed top-4 left-4 z-[70] hidden sm:flex items-center gap-2 bg-card/95 backdrop-blur-md border border-border shadow-md px-3.5 py-2 rounded-full text-xs animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+          <div className="flex items-center gap-1.5 leading-tight">
+            <span className="font-bold text-foreground truncate max-w-[130px]">{visitor.nama}</span>
+            <span className="text-muted-foreground/60">•</span>
+            <span className="text-muted-foreground text-[11px] truncate max-w-[130px]">{visitor.instansi}</span>
+          </div>
+          <button
+            onClick={() => {
+              sessionStorage.removeItem("public_map_visitor");
+              setVisitor(null);
+              setIsAccessModalOpen(true);
+            }}
+            className="ml-1 text-[11px] font-semibold text-primary hover:underline"
+            title="Ganti identitas pengunjung"
+          >
+            Ganti
+          </button>
+        </div>
+      )}
+
       <Navbar
         searchQuery={searchQuery}
         onSearch={setSearchQuery}

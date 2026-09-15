@@ -54,6 +54,18 @@ class StoreBusinessRequest extends FormRequest
             // System Internal
             'status' => 'nullable|string',
             'color' => 'nullable|string',
+
+            // 10 Indikator Fleksibel
+            'indicator_1' => 'nullable|string|max:2000',
+            'indicator_2' => 'nullable|string|max:2000',
+            'indicator_3' => 'nullable|string|max:2000',
+            'indicator_4' => 'nullable|string|max:2000',
+            'indicator_5' => 'nullable|string|max:2000',
+            'indicator_6' => 'nullable|string|max:2000',
+            'indicator_7' => 'nullable|string|max:2000',
+            'indicator_8' => 'nullable|string|max:2000',
+            'indicator_9' => 'nullable|string|max:2000',
+            'indicator_10' => 'nullable|string|max:2000',
         ];
     }
 }

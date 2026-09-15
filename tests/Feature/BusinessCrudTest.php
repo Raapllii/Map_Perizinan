@@ -95,4 +95,57 @@ class BusinessCrudTest extends TestCase
             'alamat_usaha' => 'Jl. Baru'
         ]);
     }
+
+    public function test_can_create_business_with_10_flexible_indicators()
+    {
+        $payload = [
+            'nib' => '9988776655443',
+            'nama_perusahaan' => 'PT Indikator Makmur',
+            'indicator_1' => 'Pajak Lunas 2026',
+            'indicator_2' => 'PBG-9988',
+            'indicator_3' => 'PBB-OK',
+            'indicator_4' => 'Izin Lingkungan Terverifikasi',
+            'indicator_5' => 'SLF Valid',
+            'indicator_6' => 'Sertifikat Standar Aktif',
+            'indicator_7' => 'Verifikasi Lokasi A',
+            'indicator_8' => 'Zona Komersial',
+            'indicator_9' => 'Kategori Khusus',
+            'indicator_10' => 'Catatan Tambahan',
+        ];
+
+        $response = $this->actingAs($this->user)->postJson('/api/admin/businesses', $payload);
+
+        $response->assertStatus(201);
+        $this->assertDatabaseHas('businesses', [
+            'nib' => '9988776655443',
+            'indicator_1' => 'Pajak Lunas 2026',
+            'indicator_2' => 'PBG-9988',
+            'indicator_10' => 'Catatan Tambahan',
+        ]);
+    }
+
+    public function test_can_update_and_clear_indicators()
+    {
+        $business = Business::create([
+            'nib' => '5544332211009',
+            'nama_perusahaan' => 'PT Indikator Edit',
+            'indicator_1' => 'Nilai Awal 1',
+            'indicator_2' => 'Nilai Awal 2',
+        ]);
+
+        $payload = [
+            'nama_perusahaan' => 'PT Indikator Edit',
+            'indicator_1' => 'Nilai Baru 1',
+            'indicator_2' => null, // clear indicator_2
+        ];
+
+        $response = $this->actingAs($this->user)->putJson("/api/admin/businesses/{$business->id}", $payload);
+
+        $response->assertStatus(200);
+        $this->assertDatabaseHas('businesses', [
+            'id' => $business->id,
+            'indicator_1' => 'Nilai Baru 1',
+            'indicator_2' => null,
+        ]);
+    }
 }

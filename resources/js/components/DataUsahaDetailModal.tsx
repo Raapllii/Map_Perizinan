@@ -134,6 +134,26 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
               </div>
             </div>
           </section>
+
+          {/* Indikator Tambahan Section */}
+          <section>
+            <div className="flex items-center gap-2 text-primary font-semibold mb-4 border-b border-border pb-2">
+              <FileText size={18} />
+              <h3>Indikator Tambahan</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
+                const key = `indicator_${num}`;
+                return (
+                  <DetailItem
+                    key={num}
+                    label={`Indikator Tambahan ${num}`}
+                    value={(business as any)[key]}
+                  />
+                );
+              })}
+            </div>
+          </section>
         </div>
 
         {/* Footer */}

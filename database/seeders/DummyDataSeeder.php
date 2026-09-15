@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Category;
 use App\Models\Business;
 use App\Models\ActivityLog;
+use App\Models\PublicMapAccessLog;
 
 class DummyDataSeeder extends Seeder
 {
@@ -15,7 +16,8 @@ class DummyDataSeeder extends Seeder
     {
         // 1. Users
         $users = [
-            ['name' => 'Dr. Andi Kurniawan', 'email' => 'andi.k@pemkab.go.id', 'role' => 'Super Admin', 'status' => 'Aktif', 'avatar' => 'AK', 'actions' => 342],            ['name' => 'Siti Rahayu, SE', 'email' => 'siti.r@pemkab.go.id', 'role' => 'Administrator', 'status' => 'Aktif', 'avatar' => 'SR', 'actions' => 218],
+            ['name' => 'Dr. Andi Kurniawan', 'email' => 'andi.k@pemkab.go.id', 'role' => 'Super Admin', 'status' => 'Aktif', 'avatar' => 'AK', 'actions' => 342],
+            ['name' => 'Siti Rahayu, SE', 'email' => 'siti.r@pemkab.go.id', 'role' => 'Administrator', 'status' => 'Aktif', 'avatar' => 'SR', 'actions' => 218],
             ['name' => 'Budi Hartono', 'email' => 'budi.h@pemkab.go.id', 'role' => 'Verifier', 'status' => 'Aktif', 'avatar' => 'BH', 'actions' => 156],
             ['name' => 'Fitriani Dewi', 'email' => 'fitri.d@pemkab.go.id', 'role' => 'Surveyor', 'status' => 'Aktif', 'avatar' => 'FD', 'actions' => 89],
             ['name' => 'Rahmat Hidayat', 'email' => 'rahmat.h@pemkab.go.id', 'role' => 'Surveyor', 'status' => 'Aktif', 'avatar' => 'RH', 'actions' => 74],
@@ -41,13 +43,46 @@ class DummyDataSeeder extends Seeder
             Category::create($category);
         }
 
-        // 4. Businesses (OSS structure)
+        // 4. Businesses (OSS structure + 10 Indicators)
         $businesses = [
-            ['id_proyek' => 'PRJ-001', 'nib' => '220512345678', 'nama_perusahaan' => 'Toko Maju Bersama', 'uraian_risiko_proyek' => 'Rendah', 'kbli' => '47111', 'judul_kbli' => 'Perdagangan Umum', 'alamat_usaha' => 'Jl. Merdeka No 1', 'kecamatan_usaha' => 'Kecamatan Pusat', 'kelurahan_usaha' => 'Desa A', 'uraian_status_penanaman_modal' => 'PMDN', 'status' => 'Aktif', 'tanggal_terbit_oss' => '2025-01-12', 'latitude' => -0.5020, 'longitude' => 117.1530, 'color' => '#2E7D32'],
-            ['id_proyek' => 'PRJ-002', 'nib' => '220598765432', 'nama_perusahaan' => 'CV. Sukses Jaya', 'uraian_risiko_proyek' => 'Menengah Rendah', 'kbli' => '96200', 'judul_kbli' => 'Jasa & Layanan', 'alamat_usaha' => 'Jl. Sudirman No 4', 'kecamatan_usaha' => 'Kecamatan Utara', 'kelurahan_usaha' => 'Desa B', 'uraian_status_penanaman_modal' => 'PMDN', 'status' => 'Aktif', 'tanggal_terbit_oss' => '2025-01-15', 'latitude' => -0.4950, 'longitude' => 117.1400, 'color' => '#2E7D32'],
-            ['id_proyek' => 'PRJ-003', 'nib' => '220534521098', 'nama_perusahaan' => 'Warung Makan Bu Sri', 'uraian_risiko_proyek' => 'Rendah', 'kbli' => '56101', 'judul_kbli' => 'Kuliner & F&B', 'alamat_usaha' => 'Jl. Thamrin No 9', 'kecamatan_usaha' => 'Kecamatan Barat', 'kelurahan_usaha' => 'Desa C', 'uraian_status_penanaman_modal' => 'PMDN', 'status' => 'Pending', 'tanggal_terbit_oss' => '2025-01-18', 'latitude' => -0.5100, 'longitude' => 117.1500, 'color' => '#F57F17'],
-            ['id_proyek' => 'PRJ-004', 'nib' => '220511223344', 'nama_perusahaan' => 'UD. Karya Mandiri', 'uraian_risiko_proyek' => 'Menengah Tinggi', 'kbli' => '10799', 'judul_kbli' => 'Industri Kecil', 'alamat_usaha' => 'Jl. Gatot Subroto', 'kecamatan_usaha' => 'Kecamatan Timur', 'kelurahan_usaha' => 'Desa D', 'uraian_status_penanaman_modal' => 'PMDN', 'status' => 'Kadaluarsa', 'tanggal_terbit_oss' => '2025-01-20', 'latitude' => -0.5050, 'longitude' => 117.1600, 'color' => '#E65100'],
-            ['id_proyek' => 'PRJ-005', 'nib' => '220555667788', 'nama_perusahaan' => 'PT. Mitra Sentosa', 'uraian_risiko_proyek' => 'Tinggi', 'kbli' => '46900', 'judul_kbli' => 'Perdagangan Umum', 'alamat_usaha' => 'Jl. Asia Afrika', 'kecamatan_usaha' => 'Kecamatan Selatan', 'kelurahan_usaha' => 'Desa E', 'uraian_status_penanaman_modal' => 'PMA', 'status' => 'Aktif', 'tanggal_terbit_oss' => '2025-01-22', 'latitude' => -0.4900, 'longitude' => 117.1650, 'color' => '#2E7D32'],
+            [
+                'id_proyek' => 'PRJ-001', 'nib' => '220512345678', 'nama_perusahaan' => 'Toko Maju Bersama', 
+                'uraian_risiko_proyek' => 'Rendah', 'kbli' => '47111', 'judul_kbli' => 'Perdagangan Umum', 
+                'alamat_usaha' => 'Jl. Merdeka No 1', 'kecamatan_usaha' => 'Kecamatan Pusat', 'kelurahan_usaha' => 'Desa A', 
+                'uraian_status_penanaman_modal' => 'PMDN', 'status' => 'Aktif', 'tanggal_terbit_oss' => '2025-01-12', 
+                'latitude' => -0.5020, 'longitude' => 117.1530, 'color' => '#2E7D32',
+                'indicator_1' => 'Pajak Terverifikasi', 'indicator_2' => 'PBG-2025-001', 'indicator_3' => 'PBB Lunas',
+            ],
+            [
+                'id_proyek' => 'PRJ-002', 'nib' => '220598765432', 'nama_perusahaan' => 'CV. Sukses Jaya', 
+                'uraian_risiko_proyek' => 'Menengah Rendah', 'kbli' => '96200', 'judul_kbli' => 'Jasa & Layanan', 
+                'alamat_usaha' => 'Jl. Sudirman No 4', 'kecamatan_usaha' => 'Kecamatan Utara', 'kelurahan_usaha' => 'Desa B', 
+                'uraian_status_penanaman_modal' => 'PMDN', 'status' => 'Aktif', 'tanggal_terbit_oss' => '2025-01-15', 
+                'latitude' => -0.4950, 'longitude' => 117.1400, 'color' => '#2E7D32',
+                'indicator_1' => 'Pajak Dalam Proses',
+            ],
+            [
+                'id_proyek' => 'PRJ-003', 'nib' => '220534521098', 'nama_perusahaan' => 'Warung Makan Bu Sri', 
+                'uraian_risiko_proyek' => 'Rendah', 'kbli' => '56101', 'judul_kbli' => 'Kuliner & F&B', 
+                'alamat_usaha' => 'Jl. Thamrin No 9', 'kecamatan_usaha' => 'Kecamatan Barat', 'kelurahan_usaha' => 'Desa C', 
+                'uraian_status_penanaman_modal' => 'PMDN', 'status' => 'Pending', 'tanggal_terbit_oss' => '2025-01-18', 
+                'latitude' => -0.5100, 'longitude' => 117.1500, 'color' => '#F57F17',
+            ],
+            [
+                'id_proyek' => 'PRJ-004', 'nib' => '220511223344', 'nama_perusahaan' => 'UD. Karya Mandiri', 
+                'uraian_risiko_proyek' => 'Menengah Tinggi', 'kbli' => '10799', 'judul_kbli' => 'Industri Kecil', 
+                'alamat_usaha' => 'Jl. Gatot Subroto', 'kecamatan_usaha' => 'Kecamatan Timur', 'kelurahan_usaha' => 'Desa D', 
+                'uraian_status_penanaman_modal' => 'PMDN', 'status' => 'Kadaluarsa', 'tanggal_terbit_oss' => '2025-01-20', 
+                'latitude' => -0.5050, 'longitude' => 117.1600, 'color' => '#E65100',
+            ],
+            [
+                'id_proyek' => 'PRJ-005', 'nib' => '220555667788', 'nama_perusahaan' => 'PT. Mitra Sentosa', 
+                'uraian_risiko_proyek' => 'Tinggi', 'kbli' => '46900', 'judul_kbli' => 'Perdagangan Umum', 
+                'alamat_usaha' => 'Jl. Asia Afrika', 'kecamatan_usaha' => 'Kecamatan Selatan', 'kelurahan_usaha' => 'Desa E', 
+                'uraian_status_penanaman_modal' => 'PMA', 'status' => 'Aktif', 'tanggal_terbit_oss' => '2025-01-22', 
+                'latitude' => -0.4900, 'longitude' => 117.1650, 'color' => '#2E7D32',
+                'indicator_1' => 'Pajak Daerah Aktif', 'indicator_2' => 'PBG-PMA-2024', 'indicator_4' => 'AMDAL Disetujui',
+            ],
         ];
 
         foreach ($businesses as $business) {
@@ -67,6 +102,20 @@ class DummyDataSeeder extends Seeder
 
         foreach ($activities as $activity) {
             ActivityLog::create($activity);
+        }
+
+        // 6. Public Map Access Logs (Rekapitulasi Akses Peta PB)
+        $accessLogs = [
+            ['nama' => 'Budi Santoso', 'instansi' => 'DPMPTSP', 'accessed_at' => now()->subMinutes(12), 'ip_address' => '127.0.0.1'],
+            ['nama' => 'Andi', 'instansi' => 'BAPENDA', 'accessed_at' => now()->subMinutes(25), 'ip_address' => '127.0.0.1'],
+            ['nama' => 'Siti Aminah', 'instansi' => 'Dinas PUPR', 'accessed_at' => now()->subHours(2), 'ip_address' => '192.168.1.15'],
+            ['nama' => 'Hendra Pratama', 'instansi' => 'Konsultan Perizinan', 'accessed_at' => now()->subHours(4), 'ip_address' => '192.168.1.20'],
+            ['nama' => 'Dewi Lestari', 'instansi' => 'Masyarakat Umum', 'accessed_at' => now()->subDay(), 'ip_address' => '114.125.45.10'],
+            ['nama' => 'Ahmad Fauzi', 'instansi' => 'BAPPEDA', 'accessed_at' => now()->subDays(2), 'ip_address' => '180.252.12.8'],
+        ];
+
+        foreach ($accessLogs as $log) {
+            PublicMapAccessLog::create($log);
         }
     }
 }

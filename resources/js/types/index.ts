@@ -29,6 +29,28 @@ export interface Business {
   tki: number | null;
   status: string;
   color: string | null;
+  indicator_1?: string | null;
+  indicator_2?: string | null;
+  indicator_3?: string | null;
+  indicator_4?: string | null;
+  indicator_5?: string | null;
+  indicator_6?: string | null;
+  indicator_7?: string | null;
+  indicator_8?: string | null;
+  indicator_9?: string | null;
+  indicator_10?: string | null;
   created_at?: string;
   updated_at?: string;
 }
+
+export interface PublicMapAccessLog {
+  id: number;
+  nama: string;
+  instansi: string;
+  accessed_at: string;
+  ip_address?: string | null;
+  user_agent?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+

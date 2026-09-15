@@ -43,6 +43,16 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
     email: "",
     nomor_telp: "",
     status: "Aktif",
+    indicator_1: "",
+    indicator_2: "",
+    indicator_3: "",
+    indicator_4: "",
+    indicator_5: "",
+    indicator_6: "",
+    indicator_7: "",
+    indicator_8: "",
+    indicator_9: "",
+    indicator_10: "",
   });
 
   useEffect(() => {
@@ -78,6 +88,16 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
           email: business.email ?? "",
           nomor_telp: business.nomor_telp ?? "",
           status: business.status ?? "Aktif",
+          indicator_1: business.indicator_1 ?? "",
+          indicator_2: business.indicator_2 ?? "",
+          indicator_3: business.indicator_3 ?? "",
+          indicator_4: business.indicator_4 ?? "",
+          indicator_5: business.indicator_5 ?? "",
+          indicator_6: business.indicator_6 ?? "",
+          indicator_7: business.indicator_7 ?? "",
+          indicator_8: business.indicator_8 ?? "",
+          indicator_9: business.indicator_9 ?? "",
+          indicator_10: business.indicator_10 ?? "",
         });
       } else {
         setFormData({
@@ -109,6 +129,16 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
           email: "",
           nomor_telp: "",
           status: "Aktif",
+          indicator_1: "",
+          indicator_2: "",
+          indicator_3: "",
+          indicator_4: "",
+          indicator_5: "",
+          indicator_6: "",
+          indicator_7: "",
+          indicator_8: "",
+          indicator_9: "",
+          indicator_10: "",
         });
       }
     } else {
@@ -148,7 +178,21 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
     const url = isEdit ? `/api/admin/businesses/${business.id}` : '/api/admin/businesses';
     const method = isEdit ? 'put' : 'post';
     
-    axios({ method, url, data: formData })
+    const payload = {
+      ...formData,
+      indicator_1: formData.indicator_1?.trim() || null,
+      indicator_2: formData.indicator_2?.trim() || null,
+      indicator_3: formData.indicator_3?.trim() || null,
+      indicator_4: formData.indicator_4?.trim() || null,
+      indicator_5: formData.indicator_5?.trim() || null,
+      indicator_6: formData.indicator_6?.trim() || null,
+      indicator_7: formData.indicator_7?.trim() || null,
+      indicator_8: formData.indicator_8?.trim() || null,
+      indicator_9: formData.indicator_9?.trim() || null,
+      indicator_10: formData.indicator_10?.trim() || null,
+    };
+
+    axios({ method, url, data: payload })
       .then((res) => {
         showToast(isEdit ? "✓ Perubahan data usaha berhasil disimpan." : "✓ Data usaha berhasil disimpan ke database.", "success");
         setLoading(false);
@@ -348,6 +392,34 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
                   <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Satuan Tanah</label>
                   <InputField name="satuan_tanah" value={formData.satuan_tanah} onChange={handleChange} placeholder="Contoh: m2, Ha" />
                 </div>
+              </div>
+            </section>
+
+            {/* F. Indikator Tambahan */}
+            <section>
+              <h3 className="text-sm font-bold text-primary mb-2 border-b border-border pb-2 uppercase tracking-wider">
+                F. Indikator Tambahan
+              </h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                10 slot indikator data fleksibel & opsional (dapat digunakan untuk data pajak, izin bangunan/PBG, atau kebutuhan perizinan teknis lainnya).
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 [&>div]:min-w-0">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
+                  const key = `indicator_${num}`;
+                  return (
+                    <div key={num}>
+                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                        Indikator Tambahan {num}
+                      </label>
+                      <InputField
+                        name={key}
+                        value={(formData as any)[key]}
+                        onChange={handleChange}
+                        placeholder={`Indikator Tambahan ${num} (Opsional)`}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             </section>
 

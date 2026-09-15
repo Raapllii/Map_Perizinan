@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VerificationController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\DatabaseController;
+use App\Http\Controllers\Api\PublicMapAccessLogController;
 
 // Public React App Route (WebGIS)
 Route::get('/', function () {
@@ -66,6 +67,7 @@ Route::prefix('api/admin')->group(function () {
         Route::put('/users/{id}/status', [UserController::class, 'updateStatus']);
         Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
         Route::get('/activity-logs', [UserController::class, 'getActivityLogs']);
+        Route::get('/public-map-access-logs', [PublicMapAccessLogController::class, 'index']);
         
         Route::get('/user', function (\Illuminate\Http\Request $request) {
             return response()->json(['user' => $request->user()]);

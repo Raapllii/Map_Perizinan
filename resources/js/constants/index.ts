@@ -6,6 +6,7 @@ export const MENU_ITEMS = [
   { id: "data-usaha", icon: Database, label: "Data Usaha", badge: null },
   { id: "monitoring", icon: Activity, label: "Monitoring", badge: null },
   { id: "laporan", icon: FileText, label: "Laporan", badge: null },
+  { id: "rekapitulasi-akses", icon: Users, label: "Rekapitulasi Akses", badge: null },
   { id: "pengaturan", icon: Settings, label: "Pengaturan", badge: null },
 ];
 
@@ -17,5 +18,6 @@ export const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = 
   "verifikasi-izin": { title: "Verifikasi Izin", subtitle: "Antrian pengajuan izin usaha" },
   "monitoring": { title: "Monitoring", subtitle: "Pemantauan real-time kondisi usaha" },
   "laporan": { title: "Laporan", subtitle: "Laporan statistik dan distribusi usaha" },
+  "rekapitulasi-akses": { title: "Rekapitulasi Akses", subtitle: "Rekapitulasi riwayat akses masyarakat/pengguna ke Peta PB" },
   "pengaturan": { title: "Pengaturan", subtitle: "Konfigurasi sistem dan preferensi" },
 };

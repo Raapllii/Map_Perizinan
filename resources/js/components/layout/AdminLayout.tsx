@@ -14,6 +14,7 @@ import VerifikasiIzinPage from "../../pages/VerifikasiIzinPage";
 import MonitoringPage from "../../pages/MonitoringPage";
 import LaporanPage from "../../pages/LaporanPage";
 import PengaturanPage from "../../pages/PengaturanPage";
+import RekapitulasiAksesPage from "../../pages/RekapitulasiAksesPage";
 
 export default function AdminLayout({ darkMode, setDarkMode, setUser }: any) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -30,6 +31,7 @@ export default function AdminLayout({ darkMode, setDarkMode, setUser }: any) {
       case "verifikasi-izin": return <VerifikasiIzinPage />;
       case "monitoring": return <MonitoringPage />;
       case "laporan": return <LaporanPage />;
+      case "rekapitulasi-akses": return <RekapitulasiAksesPage />;
       case "pengaturan": return <PengaturanPage darkMode={darkMode} setDarkMode={setDarkMode} />;
       default: return <Navigate to="/admin/dashboard" replace />;
     }
