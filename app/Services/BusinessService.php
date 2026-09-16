@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Repositories\BusinessRepository;
+use App\Models\BusinessIndicator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class BusinessService
 {
@@ -19,7 +21,11 @@ class BusinessService
     {
         $query = $this->repository->getFilteredQuery($request);
         $perPage = min((int) $request->get('per_page', 20), 100);
-        return $query->select('id', 'nama_perusahaan', 'nib', 'kecamatan_usaha', 'kelurahan_usaha', 'judul_kbli', 'status', 'latitude', 'longitude', 'color')->paginate($perPage);
+        return $query->with('indicators')->select(
+            'id', 'nama_perusahaan', 'nib', 'kecamatan_usaha', 'kelurahan_usaha', 'judul_kbli', 'status', 'latitude', 'longitude', 'color',
+            'indicator_1', 'indicator_2', 'indicator_3', 'indicator_4', 'indicator_5',
+            'indicator_6', 'indicator_7', 'indicator_8', 'indicator_9', 'indicator_10'
+        )->paginate($perPage);
     }
 
     public function getBusinessesForMap(Request $request)
@@ -82,9 +88,13 @@ class BusinessService
             ];
         }
 
-        $clonedQuery->selectRaw("
+        $clonedQuery->with('indicators')
+            ->selectRaw("
                 'individual' as type,
-                id, latitude, longitude, color, nama_perusahaan, nib, judul_kbli, status, kecamatan_usaha, kelurahan_usaha, uraian_risiko_proyek, uraian_skala_usaha
+                id, latitude, longitude, color, nama_perusahaan, nama_proyek, nib, kbli, judul_kbli, status,
+                alamat_usaha, kecamatan_usaha, kelurahan_usaha, kab_kota_usaha,
+                uraian_jenis_perusahaan, uraian_risiko_proyek, uraian_skala_usaha, uraian_status_penanaman_modal,
+                indicator_1, indicator_2, indicator_3, indicator_4, indicator_5, indicator_6, indicator_7, indicator_8, indicator_9, indicator_10
             ")
             ->whereNotNull('latitude')
             ->whereNotNull('longitude');
@@ -124,23 +134,106 @@ class BusinessService
 
     public function store(array $data)
     {
-        $data['status'] = $data['status'] ?? 'Aktif';
-        $data['tanggal_terbit_oss'] = $data['tanggal_terbit_oss'] ?? now()->toDateString();
+        return DB::transaction(function () use ($data) {
+            $data['status'] = $data['status'] ?? 'Aktif';
+            $data['tanggal_terbit_oss'] = $data['tanggal_terbit_oss'] ?? now()->toDateString();
 
-        $business = $this->repository->create($data);
+            $indicatorsData = $data['indicators'] ?? [];
+            unset($data['indicators']);
 
-        $this->clearCaches();
+            $business = $this->repository->create($data);
 
-        return $business;
+            if (!empty($indicatorsData) && is_array($indicatorsData)) {
+                $sort = 1;
+                foreach ($indicatorsData as $item) {
+                    $judul = trim($item['judul'] ?? '');
+                    if (empty($judul)) continue;
+
+                    $nilai = isset($item['nilai']) ? (string)$item['nilai'] : null;
+                    $sortOrder = isset($item['sort_order']) ? (int)$item['sort_order'] : $sort;
+
+                    BusinessIndicator::create([
+                        'business_id' => $business->id,
+                        'judul' => $judul,
+                        'nilai' => $nilai,
+                        'sort_order' => $sortOrder,
+                    ]);
+                    $sort++;
+                }
+            }
+
+            $this->clearCaches();
+
+            return $business->load('indicators');
+        });
     }
 
     public function update(int $id, array $data)
     {
-        $business = $this->repository->update($id, $data);
+        return DB::transaction(function () use ($id, $data) {
+            $indicatorsProvided = array_key_exists('indicators', $data);
+            $indicatorsData = $data['indicators'] ?? [];
+            unset($data['indicators']);
 
-        $this->clearCaches();
+            $business = $this->repository->update($id, $data);
 
-        return $business;
+            if ($indicatorsProvided && is_array($indicatorsData)) {
+                $incomingIds = [];
+                $sort = 1;
+
+                foreach ($indicatorsData as $item) {
+                    $judul = trim($item['judul'] ?? '');
+                    if (empty($judul)) continue;
+
+                    $nilai = isset($item['nilai']) ? (string)$item['nilai'] : null;
+                    $sortOrder = isset($item['sort_order']) ? (int)$item['sort_order'] : $sort;
+
+                    if (!empty($item['id'])) {
+                        // Strictly verify ownership: must belong to this business
+                        $existing = BusinessIndicator::where('id', $item['id'])
+                            ->where('business_id', $business->id)
+                            ->first();
+
+                        if ($existing) {
+                            $existing->update([
+                                'judul' => $judul,
+                                'nilai' => $nilai,
+                                'sort_order' => $sortOrder,
+                            ]);
+                            $incomingIds[] = $existing->id;
+                        } else {
+                            // If ID is not owned by this business, do not tamper! Create as new for this business instead.
+                            $newIndicator = BusinessIndicator::create([
+                                'business_id' => $business->id,
+                                'judul' => $judul,
+                                'nilai' => $nilai,
+                                'sort_order' => $sortOrder,
+                            ]);
+                            $incomingIds[] = $newIndicator->id;
+                        }
+                    } else {
+                        $newIndicator = BusinessIndicator::create([
+                            'business_id' => $business->id,
+                            'judul' => $judul,
+                            'nilai' => $nilai,
+                            'sort_order' => $sortOrder,
+                        ]);
+                        $incomingIds[] = $newIndicator->id;
+                    }
+
+                    $sort++;
+                }
+
+                // Delete any indicators belonging to this business that were removed
+                BusinessIndicator::where('business_id', $business->id)
+                    ->whereNotIn('id', $incomingIds)
+                    ->delete();
+            }
+
+            $this->clearCaches();
+
+            return $business->load('indicators');
+        });
     }
 
     public function destroy(int $id)

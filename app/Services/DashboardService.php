@@ -262,7 +262,8 @@ class DashboardService
 
     private function getMapMarkers($year)
     {
-        $markersQuery = Business::select('id', 'latitude', 'longitude', 'status', 'nama_perusahaan')
+        $markersQuery = Business::with('indicators')
+            ->select('id', 'latitude', 'longitude', 'status', 'nama_perusahaan')
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
             ->where('status', 'Aktif');

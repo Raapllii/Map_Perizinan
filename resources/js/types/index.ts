@@ -29,6 +29,7 @@ export interface Business {
   tki: number | null;
   status: string;
   color: string | null;
+  indicators?: BusinessIndicator[];
   indicator_1?: string | null;
   indicator_2?: string | null;
   indicator_3?: string | null;
@@ -55,4 +56,16 @@ export interface PublicMapAccessLog {
   created_at?: string;
   updated_at?: string;
 }
+
+export interface BusinessIndicator {
+  id?: number;
+  business_id?: number;
+  judul: string;
+  nilai?: string | null;
+  sort_order?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+
 

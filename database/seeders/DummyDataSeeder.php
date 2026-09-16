@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Models\Business;
 use App\Models\ActivityLog;
 use App\Models\PublicMapAccessLog;
+use App\Models\BusinessIndicator;
 
 class DummyDataSeeder extends Seeder
 {
@@ -26,7 +27,10 @@ class DummyDataSeeder extends Seeder
         ];  
 
         foreach ($users as $user) {
-            User::create(array_merge($user, ['password' => Hash::make('password')]));
+            User::updateOrCreate(
+                ['email' => $user['email']],
+                array_merge($user, ['password' => Hash::make('password')])
+            );
         }
 
 
@@ -40,7 +44,7 @@ class DummyDataSeeder extends Seeder
         ];
 
         foreach ($categories as $category) {
-            Category::create($category);
+            Category::updateOrCreate(['code' => $category['code']], $category);
         }
 
         // 4. Businesses (OSS structure + 10 Indicators)
@@ -86,7 +90,10 @@ class DummyDataSeeder extends Seeder
         ];
 
         foreach ($businesses as $business) {
-            Business::create($business);
+            Business::updateOrCreate(
+                ['nib' => $business['nib']],
+                $business
+            );
         }
 
         // 5. Activity Logs
@@ -116,6 +123,31 @@ class DummyDataSeeder extends Seeder
 
         foreach ($accessLogs as $log) {
             PublicMapAccessLog::create($log);
+        }
+
+        // 7. Business Indicators (Data Indikator Per Usaha)
+        $majuBersama = Business::where('nib', '220512345678')->first();
+        if ($majuBersama) {
+            BusinessIndicator::updateOrCreate(
+                ['business_id' => $majuBersama->id, 'judul' => 'NPWP'],
+                ['nilai' => '12.345.678.9-012.000', 'sort_order' => 1]
+            );
+            BusinessIndicator::updateOrCreate(
+                ['business_id' => $majuBersama->id, 'judul' => 'Status Pajak'],
+                ['nilai' => 'Aktif', 'sort_order' => 2]
+            );
+        }
+
+        $mitraSentosa = Business::where('nib', '220555667788')->first();
+        if ($mitraSentosa) {
+            BusinessIndicator::updateOrCreate(
+                ['business_id' => $mitraSentosa->id, 'judul' => 'Nomor PBG'],
+                ['nilai' => 'PBG-2026-001', 'sort_order' => 1]
+            );
+            BusinessIndicator::updateOrCreate(
+                ['business_id' => $mitraSentosa->id, 'judul' => 'Keterangan'],
+                ['nilai' => 'Sudah dilakukan verifikasi lapangan.', 'sort_order' => 2]
+            );
         }
     }
 }

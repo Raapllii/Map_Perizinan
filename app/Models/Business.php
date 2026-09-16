@@ -18,4 +18,9 @@ class Business extends Model
         'jumlah_investasi' => 'float',
         'tki' => 'integer'
     ];
+
+    public function indicators()
+    {
+        return $this->hasMany(BusinessIndicator::class, 'business_id')->orderBy('sort_order', 'asc');
+    }
 }

@@ -79,12 +79,20 @@ class PublicMapAccessLogController extends Controller
             $query->where('instansi', $request->instansi);
         }
 
-        // Filter by Date Range
-        if ($request->filled('start_date')) {
-            $query->whereDate('accessed_at', '>=', $request->start_date);
-        }
-        if ($request->filled('end_date')) {
-            $query->whereDate('accessed_at', '<=', $request->end_date);
+        // Filter by Date Range (with validation start_date <= end_date)
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
+
+        if (!empty($startDate) && !empty($endDate)) {
+            if ($startDate > $endDate) {
+                [$startDate, $endDate] = [$endDate, $startDate];
+            }
+            $query->whereDate('accessed_at', '>=', $startDate)
+                  ->whereDate('accessed_at', '<=', $endDate);
+        } elseif (!empty($startDate)) {
+            $query->whereDate('accessed_at', '>=', $startDate);
+        } elseif (!empty($endDate)) {
+            $query->whereDate('accessed_at', '<=', $endDate);
         }
 
         // Aggregate statistics

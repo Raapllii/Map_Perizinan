@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, Plus, Trash2 } from "lucide-react";
 import axios from "axios";
 import { Btn, InputField, SelectField } from "./ui";
 
@@ -11,9 +11,16 @@ interface DataUsahaFormModalProps {
   onSuccess: () => void;
 }
 
+interface FormIndicatorItem {
+  id?: number;
+  judul: string;
+  nilai: string;
+}
+
 export default function DataUsahaFormModal({ isOpen, onClose, business, onSuccess }: DataUsahaFormModalProps) {
   const isEdit = !!business;
   const [loading, setLoading] = useState(false);
+  const [indicators, setIndicators] = useState<FormIndicatorItem[]>([]);
   const [formData, setFormData] = useState({
     id_proyek: "",
     nib: "",
@@ -99,6 +106,16 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
           indicator_9: business.indicator_9 ?? "",
           indicator_10: business.indicator_10 ?? "",
         });
+
+        if (business.indicators && Array.isArray(business.indicators)) {
+          setIndicators(business.indicators.map((ind: any) => ({
+            id: ind.id,
+            judul: ind.judul || "",
+            nilai: ind.nilai || "",
+          })));
+        } else {
+          setIndicators([]);
+        }
       } else {
         setFormData({
           id_proyek: "",
@@ -140,6 +157,7 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
           indicator_9: "",
           indicator_10: "",
         });
+        setIndicators([]);
       }
     } else {
       document.body.style.overflow = '';
@@ -152,6 +170,22 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleAddIndicator = () => {
+    setIndicators(prev => [...prev, { judul: "", nilai: "" }]);
+  };
+
+  const handleRemoveIndicator = (index: number) => {
+    setIndicators(prev => prev.filter((_, idx) => idx !== index));
+  };
+
+  const handleIndicatorChange = (index: number, field: "judul" | "nilai", value: string) => {
+    setIndicators(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
   };
 
   const showToast = (message: string, type: 'success' | 'error') => {
@@ -177,6 +211,15 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
     
     const url = isEdit ? `/api/admin/businesses/${business.id}` : '/api/admin/businesses';
     const method = isEdit ? 'put' : 'post';
+
+    const validIndicators = indicators
+      .filter(ind => ind.judul.trim() !== "")
+      .map((ind, idx) => ({
+        ...(ind.id ? { id: ind.id } : {}),
+        judul: ind.judul.trim(),
+        nilai: ind.nilai ? ind.nilai.trim() : null,
+        sort_order: idx + 1,
+      }));
     
     const payload = {
       ...formData,
@@ -190,6 +233,7 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
       indicator_8: formData.indicator_8?.trim() || null,
       indicator_9: formData.indicator_9?.trim() || null,
       indicator_10: formData.indicator_10?.trim() || null,
+      indicators: validIndicators,
     };
 
     axios({ method, url, data: payload })
@@ -395,32 +439,107 @@ export default function DataUsahaFormModal({ isOpen, onClose, business, onSucces
               </div>
             </section>
 
-            {/* F. Indikator Tambahan */}
-            <section>
-              <h3 className="text-sm font-bold text-primary mb-2 border-b border-border pb-2 uppercase tracking-wider">
-                F. Indikator Tambahan
-              </h3>
-              <p className="text-xs text-muted-foreground mb-4">
-                10 slot indikator data fleksibel & opsional (dapat digunakan untuk data pajak, izin bangunan/PBG, atau kebutuhan perizinan teknis lainnya).
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 [&>div]:min-w-0">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
-                  const key = `indicator_${num}`;
-                  return (
-                    <div key={num}>
-                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-                        Indikator Tambahan {num}
-                      </label>
-                      <InputField
-                        name={key}
-                        value={(formData as any)[key]}
-                        onChange={handleChange}
-                        placeholder={`Indikator Tambahan ${num} (Opsional)`}
-                      />
-                    </div>
-                  );
-                })}
+            {/* F. Indikator Tambahan (Dinamis Per Data Usaha) */}
+            <section className="space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-2">
+                <div>
+                  <h3 className="text-sm font-bold text-primary uppercase tracking-wider">
+                    F. Indikator Tambahan
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Data tambahan spesifik untuk usaha ini (contoh: NPWP, nomor PBG, status pajak, catatan survey, dsb).
+                  </p>
+                </div>
+                <Btn
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  Icon={Plus}
+                  onClick={handleAddIndicator}
+                  className="self-start sm:self-auto shrink-0"
+                >
+                  Add Indikator
+                </Btn>
               </div>
+
+              {indicators.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-border/80 bg-muted/20 p-6 text-center">
+                  <p className="text-xs text-muted-foreground mb-3">Belum ada indikator tambahan.</p>
+                  <Btn
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    Icon={Plus}
+                    onClick={handleAddIndicator}
+                    className="mx-auto"
+                  >
+                    Add Indikator
+                  </Btn>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {indicators.map((item, index) => (
+                    <div
+                      key={index}
+                      className="rounded-lg border border-border bg-card p-4 space-y-3 shadow-xs transition-colors"
+                    >
+                      <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                        <span className="text-xs font-semibold text-foreground">
+                          Indikator Tambahan {index + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveIndicator(index)}
+                          className="text-xs text-destructive hover:text-destructive/80 flex items-center gap-1 font-medium transition-colors cursor-pointer p-1 rounded-sm hover:bg-destructive/10"
+                          title="Hapus indikator"
+                        >
+                          <Trash2 size={14} />
+                          <span>Hapus</span>
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                            Judul / Nama Indikator <span className="text-destructive">*</span>
+                          </label>
+                          <InputField
+                            value={item.judul}
+                            onChange={(e: any) => handleIndicatorChange(index, "judul", e.target.value)}
+                            placeholder="Contoh: NPWP, Status Pajak, Nomor PBG, Keterangan"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                            Nilai
+                          </label>
+                          <textarea
+                            value={item.nilai}
+                            onChange={(e) => handleIndicatorChange(index, "nilai", e.target.value)}
+                            placeholder="Masukkan nilai atau kalimat penjelasan (angka maupun teks bebas)"
+                            rows={2}
+                            className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-y min-h-[42px]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="pt-1">
+                    <Btn
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      Icon={Plus}
+                      onClick={handleAddIndicator}
+                    >
+                      Add Indikator Lagi
+                    </Btn>
+                  </div>
+                </div>
+              )}
             </section>
 
           </div>

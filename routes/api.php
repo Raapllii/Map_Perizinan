@@ -31,3 +31,4 @@ Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/locations/kecamatan', [App\Http\Controllers\Api\LocationController::class, 'getKecamatan']);
 Route::get('/locations/kelurahan', [App\Http\Controllers\Api\LocationController::class, 'getKelurahan']);
 
+

@@ -55,7 +55,7 @@ class StoreBusinessRequest extends FormRequest
             'status' => 'nullable|string',
             'color' => 'nullable|string',
 
-            // 10 Indikator Fleksibel
+            // 10 Indikator Fleksibel (Legacy Columns)
             'indicator_1' => 'nullable|string|max:2000',
             'indicator_2' => 'nullable|string|max:2000',
             'indicator_3' => 'nullable|string|max:2000',
@@ -66,6 +66,13 @@ class StoreBusinessRequest extends FormRequest
             'indicator_8' => 'nullable|string|max:2000',
             'indicator_9' => 'nullable|string|max:2000',
             'indicator_10' => 'nullable|string|max:2000',
+
+            // Indikator Per Usaha (Relasi business_indicators)
+            'indicators' => 'nullable|array',
+            'indicators.*.id' => 'nullable|integer',
+            'indicators.*.judul' => 'required|string|max:255',
+            'indicators.*.nilai' => 'nullable|string|max:5000',
+            'indicators.*.sort_order' => 'nullable|integer',
         ];
     }
 }

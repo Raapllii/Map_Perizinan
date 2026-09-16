@@ -115,11 +115,14 @@ class BusinessRepository
 
     public function searchByKeyword(string $keyword)
     {
-        $query = Business::select(
-            'id', 'nama_perusahaan', 'judul_kbli', 'nib', 
-            'kecamatan_usaha', 'kelurahan_usaha', 
+        $query = Business::query()->with('indicators')->select(
+            'id', 'nama_perusahaan', 'nama_proyek', 'nib', 'kbli', 'judul_kbli', 'alamat_usaha', 
+            'kecamatan_usaha', 'kelurahan_usaha', 'kab_kota_usaha',
+            'uraian_jenis_perusahaan', 'uraian_status_penanaman_modal', 'uraian_skala_usaha',
             'status', 'uraian_risiko_proyek', 
-            'latitude', 'longitude'
+            'latitude', 'longitude',
+            'indicator_1', 'indicator_2', 'indicator_3', 'indicator_4', 'indicator_5',
+            'indicator_6', 'indicator_7', 'indicator_8', 'indicator_9', 'indicator_10'
         );
 
         if (!empty($keyword)) {
@@ -143,7 +146,7 @@ class BusinessRepository
 
     public function findById(int $id)
     {
-        return Business::findOrFail($id);
+        return Business::with('indicators')->findOrFail($id);
     }
 
     public function create(array $data)

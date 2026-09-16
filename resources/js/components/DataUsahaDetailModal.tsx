@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, MapPin, Building2, Briefcase, FileText, CheckCircle2 } from "lucide-react";
 import { StatusBadge, Btn } from "./ui";
-
 import { Business } from "../types";
 
 interface DataUsahaDetailModalProps {
@@ -135,25 +134,29 @@ export default function DataUsahaDetailModal({ isOpen, onClose, business }: Data
             </div>
           </section>
 
-          {/* Indikator Tambahan Section */}
-          <section>
-            <div className="flex items-center gap-2 text-primary font-semibold mb-4 border-b border-border pb-2">
-              <FileText size={18} />
-              <h3>Indikator Tambahan</h3>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
-                const key = `indicator_${num}`;
-                return (
+          {/* Indikator Tambahan Section (Per Usaha) */}
+          {business.indicators && business.indicators.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between text-primary font-semibold mb-4 border-b border-border pb-2">
+                <div className="flex items-center gap-2">
+                  <FileText size={18} />
+                  <h3>Indikator Tambahan</h3>
+                </div>
+                <span className="text-[11px] font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                  {business.indicators.length} Indikator
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
+                {business.indicators.map((ind, idx) => (
                   <DetailItem
-                    key={num}
-                    label={`Indikator Tambahan ${num}`}
-                    value={business[key]}
+                    key={ind.id ?? idx}
+                    label={ind.judul}
+                    value={ind.nilai}
                   />
-                );
-              })}
-            </div>
-          </section>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
 
         {/* Footer */}

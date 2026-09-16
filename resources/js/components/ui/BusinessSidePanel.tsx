@@ -248,32 +248,41 @@ export function BusinessSidePanel({
         </div>
       </div>
 
-      {/* TIER E.2: INDIKATOR TAMBAHAN (Jika Ada) */}
-      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].some(n => Boolean(business[`indicator_${n}`])) && (
-        <div className="space-y-2.5 min-w-0">
-          <div className="flex items-center gap-1.5 text-[10.5px] font-bold text-muted-foreground uppercase tracking-wider">
-            <FileText size={12} className="text-primary/70 shrink-0" />
-            <span>Indikator Tambahan</span>
-          </div>
+      {/* TIER E.2: INDIKATOR TAMBAHAN (Per Data Usaha) */}
+      {(() => {
+        const hasRelational = Array.isArray(business.indicators) && business.indicators.length > 0;
+        const legacyItems = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+          .filter(n => Boolean(business[`indicator_${n}`]))
+          .map(n => ({ id: `legacy_${n}`, judul: `Indikator ${n}`, nilai: business[`indicator_${n}`] }));
 
-          <div className="rounded-xl bg-muted/25 p-3.5 border border-border/40 space-y-2 min-w-0">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => {
-              const val = business[`indicator_${num}`];
-              if (!val) return null;
-              return (
-                <div key={num} className="flex items-baseline justify-between gap-2.5 min-w-0">
-                  <span className="text-xs text-muted-foreground/80 font-normal shrink-0">
-                    Indikator {num}
-                  </span>
-                  <span className="text-xs font-medium text-foreground text-right break-words [overflow-wrap:anywhere] min-w-0">
-                    {val}
-                  </span>
-                </div>
-              );
-            })}
+        const items = hasRelational ? business.indicators : legacyItems;
+        if (!items || items.length === 0) return null;
+
+        return (
+          <div className="space-y-2.5 min-w-0">
+            <div className="flex items-center gap-1.5 text-[10.5px] font-bold text-muted-foreground uppercase tracking-wider">
+              <FileText size={12} className="text-primary/70 shrink-0" />
+              <span>Indikator Tambahan</span>
+            </div>
+
+            <div className="rounded-xl bg-muted/25 p-3.5 border border-border/40 space-y-2 min-w-0">
+              {items.map((ind: any, idx: number) => {
+                if (!ind.nilai) return null;
+                return (
+                  <div key={ind.id ?? idx} className="flex items-baseline justify-between gap-2.5 min-w-0">
+                    <span className="text-xs text-muted-foreground/80 font-normal shrink-0" title={ind.judul}>
+                      {ind.judul}
+                    </span>
+                    <span className="text-xs font-medium text-foreground text-right break-words [overflow-wrap:anywhere] min-w-0">
+                      {ind.nilai}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* TIER F: TITIK KOORDINAT (Technical Elegance) */}
       <div className="space-y-2.5 min-w-0">
