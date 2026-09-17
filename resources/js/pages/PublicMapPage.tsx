@@ -383,24 +383,13 @@ export default function PublicMapPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-[1050] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
-              onClick={(e) => {
-                if (e.target === e.currentTarget) {
-                  setIsFeedbackOpen(false);
-                }
-              }}
+              className="fixed inset-0 z-[1050] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs cursor-pointer"
+              onClick={() => setIsFeedbackOpen(false)}
             >
-              <div className="relative w-full max-w-[460px] mx-auto">
-                <button
-                  type="button"
-                  onClick={() => setIsFeedbackOpen(false)}
-                  className="absolute top-3.5 right-3.5 z-30 flex items-center justify-center w-7 h-7 rounded-full text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-                  aria-label="Tutup feedback"
-                  title="Tutup"
-                >
-                  <X size={16} />
-                </button>
-
+              <div
+                className="w-full max-w-[460px] mx-auto cursor-default"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <FeedbackWidget
                   onSubmit={handleFeedbackSubmit}
                   label="Bagaimana pengalaman peta Anda?"
