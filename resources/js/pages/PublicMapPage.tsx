@@ -390,20 +390,25 @@ export default function PublicMapPage() {
                 }
               }}
             >
-              <div className="relative flex flex-col items-center max-w-full">
+              <div className="relative w-full max-w-[460px] mx-auto">
                 <button
                   type="button"
                   onClick={() => setIsFeedbackOpen(false)}
-                  className="absolute -top-9 right-2 sm:right-0 flex items-center justify-center w-7 h-7 rounded-full bg-card text-muted-foreground hover:text-foreground border border-border shadow-md hover:bg-muted transition-all hover:scale-105 cursor-pointer z-20"
+                  className="absolute top-3.5 right-3.5 z-30 flex items-center justify-center w-7 h-7 rounded-full text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                   aria-label="Tutup feedback"
                   title="Tutup"
                 >
-                  <X size={15} />
+                  <X size={16} />
                 </button>
 
                 <FeedbackWidget
                   onSubmit={handleFeedbackSubmit}
-                  onClose={() => setIsFeedbackOpen(false)}
+                  className="w-full max-w-[460px] p-0
+                    [&>div]:w-full [&>div]:max-w-[460px] [&>div]:rounded-[28px] [&>div]:shadow-2xl
+                    [&>div>div]:px-6 [&>div>div]:py-6
+                    [&>div>div>div:first-child]:flex-col [&>div>div>div:first-child]:items-center [&>div>div>div:first-child]:gap-3.5
+                    [&>div>div>div:first-child>span]:whitespace-normal [&>div>div>div:first-child>span]:text-center [&>div>div>div:first-child>span]:ml-0 [&>div>div>div:first-child>span]:text-base [&>div>div>div:first-child>span]:font-semibold [&>div>div>div:first-child>span]:text-foreground [&>div>div>div:first-child>span]:pt-1
+                    [&>div>div>div:first-child>[role=group]]:justify-center [&>div>div>div:first-child>[role=group]]:gap-3.5"
                   label="Bagaimana pengalaman peta Anda?"
                   placeholder="Tuliskan masukan atau saran Anda mengenai data peta..."
                 />
