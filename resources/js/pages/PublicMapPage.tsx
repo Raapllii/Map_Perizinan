@@ -378,50 +378,37 @@ export default function PublicMapPage() {
         {/* Centered Feedback Modal Popup */}
         <AnimatePresence>
           {isFeedbackOpen && !feedbackSubmitted && (
-            <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-              {/* Backdrop click dismiss */}
-              <div
-                className="absolute inset-0 -z-10"
-                onClick={() => setIsFeedbackOpen(false)}
-              />
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-[1050] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  setIsFeedbackOpen(false);
+                }
+              }}
+            >
+              <div className="relative flex flex-col items-center max-w-full">
+                <button
+                  type="button"
+                  onClick={() => setIsFeedbackOpen(false)}
+                  className="absolute -top-9 right-2 sm:right-0 flex items-center justify-center w-7 h-7 rounded-full bg-card text-muted-foreground hover:text-foreground border border-border shadow-md hover:bg-muted transition-all hover:scale-105 cursor-pointer z-20"
+                  aria-label="Tutup feedback"
+                  title="Tutup"
+                >
+                  <X size={15} />
+                </button>
 
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 15 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 15 }}
-                transition={{ type: "spring", stiffness: 350, damping: 28 }}
-                className="relative w-full max-w-[440px] bg-card text-card-foreground border border-border shadow-2xl rounded-[28px] overflow-hidden flex flex-col pointer-events-auto"
-              >
-                {/* Top Accent Gradient Bar & Header */}
-                <div className="h-1.5 w-full bg-gradient-to-r from-primary via-primary/80 to-primary/60" />
-                <div className="flex items-center justify-between px-5 pt-3.5 pb-1">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Masukan Pengunjung Peta
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsFeedbackOpen(false)}
-                    className="w-7 h-7 -mr-1 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors cursor-pointer"
-                    aria-label="Tutup popup feedback"
-                  >
-                    <X size={15} />
-                  </button>
-                </div>
-
-                {/* Unmodified FeedbackWidget */}
-                <div className="p-2 sm:p-3">
-                  <FeedbackWidget
-                    onSubmit={handleFeedbackSubmit}
-                    onClose={() => setIsFeedbackOpen(false)}
-                    label="Bagaimana pengalaman peta Anda?"
-                    placeholder="Tuliskan pengalaman atau saran Anda mengenai data peta..."
-                  />
-                </div>
-              </motion.div>
-            </div>
+                <FeedbackWidget
+                  onSubmit={handleFeedbackSubmit}
+                  onClose={() => setIsFeedbackOpen(false)}
+                  label="Bagaimana pengalaman peta Anda?"
+                  placeholder="Tuliskan masukan atau saran Anda mengenai data peta..."
+                />
+              </div>
+            </motion.div>
           )}
         </AnimatePresence>
 
