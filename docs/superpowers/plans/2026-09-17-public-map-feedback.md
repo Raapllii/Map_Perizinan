@@ -13,7 +13,8 @@
 - Feedback MUST be saved into Laravel database and linked to `public_map_access_logs.id` via `access_log_id`.
 - Zero disruption to existing map markers, hover popups, or `BusinessSidePanel`.
 - No feedback shown on initial map entry or generic map panning/zooming.
-- Triggered by map data interaction: panel close OR 7-second usage timeout.
+- Delay is configurable: default 2 minutes (120,000 ms) for actual usage, 7 seconds (7,000 ms) for testing (or overridable via `VITE_FEEDBACK_DELAY_MS`).
+- Triggered by map data interaction: panel close OR usage timeout.
 - Admin Rekapitulasi Akses displays visitor feedback alongside access logs.
 
 ---
@@ -361,10 +362,14 @@ git commit -m "feat: add feedback column and preview to admin rekapitulasi akses
 - Modify: `resources/js/pages/PublicMapPage.tsx`
 
 **Interfaces:**
+- Delay Configuration:
+  - `FEEDBACK_DELAY_PRODUCTION_MS = 120_000` (2 menit)
+  - `FEEDBACK_DELAY_TEST_MS = 7_000` (7 detik untuk testing)
+  - `getFeedbackDelayMs(options)` reads `VITE_FEEDBACK_DELAY_MS` or uses production/test constants
 - Dual Trigger logic:
   1. User interacts with marker / detail (`selectedBusiness !== null`).
-  2. Timer runs (7000ms).
-  3. Panel closed (`prevSelected && !currentSelected`) OR timer finishes -> activates `isFeedbackAvailable = true`.
+  2. Timer runs with configured delay.
+  3. Panel closed (`prevSelected && !currentSelected`) OR delay finishes -> activates `isFeedbackAvailable = true`.
 - Submission:
   - Calls `axios.post('/api/public-map-feedback', { access_log_id: visitor.id, rating, feedback, business_id })`
   - On success: saves session flag, shows toast, closes widget.
