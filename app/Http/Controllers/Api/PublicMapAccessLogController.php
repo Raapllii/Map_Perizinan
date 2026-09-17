@@ -51,6 +51,7 @@ class PublicMapAccessLogController extends Controller
             'message' => 'Akses Peta PB berhasil dicatat.',
             'data' => [
                 'id' => $log->id,
+                'access_log_id' => $log->id,
                 'nama' => $log->nama,
                 'instansi' => $log->instansi,
                 'accessed_at' => $log->accessed_at,
@@ -63,7 +64,7 @@ class PublicMapAccessLogController extends Controller
      */
     public function index(Request $request)
     {
-        $query = PublicMapAccessLog::query();
+        $query = PublicMapAccessLog::with(['feedback.business:id,nama_perusahaan']);
 
         // Search by Nama or Instansi
         if ($request->filled('search')) {
@@ -101,6 +102,7 @@ class PublicMapAccessLogController extends Controller
         $totalVisitors = (int) PublicMapAccessLog::selectRaw("COUNT(DISTINCT CONCAT(LOWER(TRIM(nama)), ':::', LOWER(TRIM(instansi)))) as count")->value('count');
         $todayAccess = PublicMapAccessLog::whereDate('accessed_at', $today)->count();
         $totalAgencies = PublicMapAccessLog::distinct('instansi')->count('instansi');
+        $totalFeedbacks = \App\Models\PublicMapFeedback::count();
 
         $perPage = min((int) $request->get('per_page', 15), 100);
         $logs = $query->orderBy('accessed_at', 'desc')->paginate($perPage);
@@ -118,6 +120,7 @@ class PublicMapAccessLogController extends Controller
                 'total_visitors' => $totalVisitors,
                 'today_access' => $todayAccess,
                 'total_agencies' => $totalAgencies,
+                'total_feedbacks' => $totalFeedbacks,
                 'agencies_list' => $agenciesList,
             ],
             'data' => $logs,
