@@ -1,11 +1,18 @@
 import React, { useState, useEffect, lazy, Suspense, useRef, useCallback } from "react";
 import axios from 'axios';
-import { Search, X } from "lucide-react";
+import { Search, X, MessageSquareHeart } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import Navbar from "../components/ui/mini-navbar";
 import { BusinessDetailCard, BusinessSidePanel } from "../components/ui";
+import { FeedbackWidget } from "../components/ui/feedback";
 import { useBusinessSearch } from "../hooks/useBusinessSearch";
 import PublicAccessModal from "../components/PublicAccessModal";
+import {
+  getFeedbackDelayMs,
+  isFeedbackAlreadySubmitted,
+  markFeedbackAsSubmitted,
+  createFeedbackPayload
+} from "../lib/feedbackTriggerUtils";
 
 const CityMapLeaflet = lazy(() => import('../components/CityMapLeaflet'));
 
@@ -40,11 +47,96 @@ export default function PublicMapPage() {
 
   const handleGantiIdentitas = () => {
     sessionStorage.removeItem("public_map_visitor");
+    sessionStorage.removeItem("public_map_feedback_submitted");
     setVisitor(null);
     setMarkers([]);
     setSelectedBusiness(null);
     setHoveredBusiness(null);
+    setHasInteractedWithBusiness(false);
+    setIsFeedbackAvailable(false);
+    setIsFeedbackOpen(false);
+    setFeedbackSubmitted(false);
+    if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
     setIsAccessModalOpen(true);
+  };
+
+  // Feedback States & Trigger Management
+  const [hasInteractedWithBusiness, setHasInteractedWithBusiness] = useState(false);
+  const [isFeedbackAvailable, setIsFeedbackAvailable] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(() => isFeedbackAlreadySubmitted());
+
+  // Refs for tracking previous selected business and timer lifecycle
+  const prevSelectedBusinessRef = useRef<any>(null);
+  const feedbackTimerRef = useRef<any>(null);
+
+  // Dual Trigger Effect:
+  // 1. When user opens business detail for the first time, start the timer (configurable e.g. 2 min / 7s).
+  // 2. If user closes the detail panel before timer expires, immediately offer feedback.
+  useEffect(() => {
+    if (feedbackSubmitted) return;
+
+    const hadSelected = Boolean(prevSelectedBusinessRef.current);
+    const hasSelected = Boolean(selectedBusiness);
+
+    // Interaction Start: user clicked marker and opened details
+    if (hasSelected && !hasInteractedWithBusiness) {
+      setHasInteractedWithBusiness(true);
+
+      const delay = getFeedbackDelayMs();
+      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+      feedbackTimerRef.current = setTimeout(() => {
+        setIsFeedbackAvailable(true);
+      }, delay);
+    }
+
+    // Panel Closed: user closed the detail panel after inspecting details
+    if (hadSelected && !hasSelected && hasInteractedWithBusiness) {
+      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+      setIsFeedbackAvailable(true);
+    }
+
+    prevSelectedBusinessRef.current = selectedBusiness;
+  }, [selectedBusiness, hasInteractedWithBusiness, feedbackSubmitted]);
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+    };
+  }, []);
+
+  const handleFeedbackSubmit = async (data: { rating: string; feedback: string }) => {
+    const accessLogId = visitor?.access_log_id || visitor?.id;
+    if (!accessLogId) {
+      setToastMsg("Gagal mencatat feedback: Identitas pengunjung tidak ditemukan.");
+      setTimeout(() => setToastMsg(""), 5000);
+      return;
+    }
+
+    try {
+      const payload = createFeedbackPayload(
+        accessLogId,
+        data.rating,
+        data.feedback,
+        selectedBusiness?.id
+      );
+
+      await axios.post('/api/public-map-feedback', payload);
+
+      markFeedbackAsSubmitted();
+      setFeedbackSubmitted(true);
+      setIsFeedbackOpen(false);
+      setIsFeedbackAvailable(false);
+      setToastMsg("Terima kasih atas masukan dan penilaian Anda!");
+      setTimeout(() => setToastMsg(""), 6000);
+    } catch (err: any) {
+      console.error("Gagal mengirim feedback:", err);
+      const msg = err.response?.data?.message || "Gagal mengirimkan masukan. Silakan coba kembali.";
+      setToastMsg(msg);
+      setTimeout(() => setToastMsg(""), 5000);
+      throw err;
+    }
   };
   
   const { 
@@ -285,6 +377,64 @@ export default function PublicMapPage() {
             </button>
           </div>
         </div>
+
+        {/* Floating Feedback Button & Overlaid FeedbackWidget */}
+        <AnimatePresence>
+          {isFeedbackAvailable && !feedbackSubmitted && (
+            <div className="fixed bottom-5 right-4 md:bottom-6 md:right-6 z-30 flex flex-col items-end pointer-events-auto">
+              {/* Overlaid Feedback Card */}
+              <AnimatePresence>
+                {isFeedbackOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 15, scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                    className="mb-3 max-w-[calc(100vw-2rem)] w-[360px] sm:w-[420px] shadow-2xl rounded-[28px] overflow-hidden border border-border/80 bg-card"
+                  >
+                    <div className="p-1">
+                      <FeedbackWidget
+                        onSubmit={handleFeedbackSubmit}
+                        onClose={() => setIsFeedbackOpen(false)}
+                        label="Beri Masukan Peta"
+                        placeholder="Tuliskan pengalaman atau saran Anda mengenai data peta..."
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Floating Trigger Button */}
+              <motion.button
+                type="button"
+                onClick={() => setIsFeedbackOpen((prev) => !prev)}
+                initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.8, y: 10 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-full shadow-lg border transition-all text-xs font-semibold cursor-pointer ${
+                  isFeedbackOpen
+                    ? "bg-foreground text-background border-foreground shadow-xl"
+                    : "bg-card text-foreground hover:bg-muted border-border/90 hover:border-primary/50 shadow-md"
+                }`}
+                aria-label="Beri masukan tentang peta"
+              >
+                <MessageSquareHeart
+                  size={16}
+                  className={isFeedbackOpen ? "text-background" : "text-primary animate-pulse"}
+                />
+                <span>Feedback</span>
+                {!isFeedbackOpen && (
+                  <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+                  </span>
+                )}
+              </motion.button>
+            </div>
+          )}
+        </AnimatePresence>
 
         {/* Mobile Search Overlay (only when searching on mobile) */}
       </div>
