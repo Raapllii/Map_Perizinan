@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Models\Business;
 use App\Models\ActivityLog;
 use App\Models\PublicMapAccessLog;
+use App\Models\PublicMapFeedback;
 use App\Models\BusinessIndicator;
 
 class DummyDataSeeder extends Seeder
@@ -122,7 +123,28 @@ class DummyDataSeeder extends Seeder
         ];
 
         foreach ($accessLogs as $log) {
-            PublicMapAccessLog::create($log);
+            $createdLog = PublicMapAccessLog::create($log);
+
+            // Seed feedback for selected logs to demonstrate admin preview
+            if ($createdLog->nama === 'Budi Santoso') {
+                PublicMapFeedback::create([
+                    'public_map_access_log_id' => $createdLog->id,
+                    'rating' => 'happy',
+                    'feedback' => 'Peta WebGIS sangat interaktif, filter kecamatan dan status risiko sangat membantu percepatan perizinan.',
+                ]);
+            } elseif ($createdLog->nama === 'Siti Aminah') {
+                PublicMapFeedback::create([
+                    'public_map_access_log_id' => $createdLog->id,
+                    'rating' => 'neutral',
+                    'feedback' => 'Data koordinat beberapa titik sudah tepat, namun mohon diperbanyak layer batas kelurahan.',
+                ]);
+            } elseif ($createdLog->nama === 'Hendra Pratama') {
+                PublicMapFeedback::create([
+                    'public_map_access_log_id' => $createdLog->id,
+                    'rating' => 'sad',
+                    'feedback' => 'Informasi kontak pelaku usaha beberapa belum lengkap di popup.',
+                ]);
+            }
         }
 
         // 7. Business Indicators (Data Indikator Per Usaha)

@@ -15,6 +15,11 @@ import {
   Filter,
   Inbox,
   Loader2,
+  MessageSquareHeart,
+  Smile,
+  Meh,
+  Frown,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { PublicMapAccessLog } from "../types";
@@ -111,6 +116,7 @@ export default function RekapitulasiAksesPage() {
     total_visitors: 0,
     today_access: 0,
     total_agencies: 0,
+    total_feedbacks: 0,
     agencies_list: [] as string[],
   });
 
@@ -240,10 +246,49 @@ export default function RekapitulasiAksesPage() {
     }
   };
 
+  const getRatingBadge = (rating: string) => {
+    switch (rating) {
+      case "happy":
+        return (
+          <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-2 py-0.5 rounded-full text-[11px] font-semibold">
+            <Sparkles size={12} className="shrink-0 text-emerald-500" />
+            <span>Amazing</span>
+          </span>
+        );
+      case "neutral":
+        return (
+          <span className="inline-flex items-center gap-1 text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/60 px-2 py-0.5 rounded-full text-[11px] font-semibold">
+            <Smile size={12} className="shrink-0 text-sky-500" />
+            <span>Okay</span>
+          </span>
+        );
+      case "sad":
+        return (
+          <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 px-2 py-0.5 rounded-full text-[11px] font-semibold">
+            <Meh size={12} className="shrink-0 text-amber-500" />
+            <span>Bad</span>
+          </span>
+        );
+      case "very-sad":
+        return (
+          <span className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 px-2 py-0.5 rounded-full text-[11px] font-semibold">
+            <Frown size={12} className="shrink-0 text-rose-500" />
+            <span>Terrible</span>
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1 text-muted-foreground bg-muted border border-border px-2 py-0.5 rounded-full text-[11px] font-medium">
+            <span>{rating || "Feedback"}</span>
+          </span>
+        );
+    }
+  };
+
   return (
     <div className="space-y-4 max-w-7xl mx-auto min-w-0">
       {/* 1. KPI Statistic Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 mb-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4 mb-2">
         <StatCard
           label="Total Akses Peta"
           value={meta.total_access.toLocaleString("id-ID")}
@@ -266,11 +311,18 @@ export default function RekapitulasiAksesPage() {
           bgClass="bg-info/10"
         />
         <StatCard
-          label="Total Instansi Terdaftar"
+          label="Total Instansi"
           value={meta.total_agencies.toLocaleString("id-ID")}
           icon={Building2}
           colorClass="text-secondary"
           bgClass="bg-secondary/10"
+        />
+        <StatCard
+          label="Feedback Masuk"
+          value={(meta.total_feedbacks || 0).toLocaleString("id-ID")}
+          icon={MessageSquareHeart}
+          colorClass="text-purple-600 dark:text-purple-400"
+          bgClass="bg-purple-500/10"
         />
       </div>
 
@@ -425,13 +477,14 @@ export default function RekapitulasiAksesPage() {
       {/* 3. Table Section matching DataUsahaPage exact styling */}
       <div className="w-full min-w-0 rounded-lg border border-border bg-background overflow-hidden relative transition-opacity duration-200">
         <div className="w-full overflow-x-auto">
-          <Table className="table-fixed min-w-[700px]">
+          <Table className="table-fixed min-w-[860px]">
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="h-11 w-[70px] text-center">No</TableHead>
-                <TableHead className="h-11 w-[260px]">Nama Pengguna</TableHead>
-                <TableHead className="h-11 w-[240px]">Instansi / Asal</TableHead>
-                <TableHead className="h-11 w-[200px]">Waktu Akses</TableHead>
+                <TableHead className="h-11 w-[60px] text-center">No</TableHead>
+                <TableHead className="h-11 w-[220px]">Nama Pengguna</TableHead>
+                <TableHead className="h-11 w-[200px]">Instansi / Asal</TableHead>
+                <TableHead className="h-11 w-[180px]">Waktu Akses</TableHead>
+                <TableHead className="h-11 w-[220px]">Feedback & Rating</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className={loading && logs.length > 0 ? "opacity-75 pointer-events-none transition-opacity" : ""}>
@@ -450,11 +503,14 @@ export default function RekapitulasiAksesPage() {
                     <TableCell className="px-4 py-4 align-middle">
                       <div className="h-4 w-1/2 bg-muted/60 rounded animate-pulse" />
                     </TableCell>
+                    <TableCell className="px-4 py-4 align-middle">
+                      <div className="h-4 w-1/2 bg-muted/60 rounded animate-pulse" />
+                    </TableCell>
                   </TableRow>
                 ))
               ) : logs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center align-middle">
+                  <TableCell colSpan={5} className="h-24 text-center align-middle">
                     <div className="flex flex-col items-center justify-center gap-2 py-6">
                       <div className="w-10 h-10 bg-muted/50 rounded-full flex items-center justify-center text-muted-foreground mb-1">
                         <Inbox size={20} strokeWidth={1.5} />
@@ -482,7 +538,7 @@ export default function RekapitulasiAksesPage() {
                       </TableCell>
                       <TableCell>
                         <div
-                          className="text-sm font-medium text-foreground truncate max-w-[260px]"
+                          className="text-sm font-medium text-foreground truncate max-w-[220px]"
                           title={log.nama || "-"}
                         >
                           {log.nama || "-"}
@@ -490,7 +546,7 @@ export default function RekapitulasiAksesPage() {
                       </TableCell>
                       <TableCell>
                         <div
-                          className="text-sm font-normal text-muted-foreground truncate max-w-[240px]"
+                          className="text-sm font-normal text-muted-foreground truncate max-w-[200px]"
                           title={log.instansi || "-"}
                         >
                           {log.instansi || "-"}
@@ -500,6 +556,42 @@ export default function RekapitulasiAksesPage() {
                         <div className="text-sm font-normal text-muted-foreground whitespace-nowrap">
                           {formatDateTime(log.accessed_at)}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {log.feedback ? (
+                          <Popover>
+                            <PopoverTrigger
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-border/80 hover:bg-muted/70 transition-colors cursor-pointer group"
+                              title="Klik untuk melihat detail masukan"
+                            >
+                              {getRatingBadge(log.feedback.rating)}
+                              <span className="text-[11px] text-muted-foreground group-hover:text-foreground underline decoration-dotted">
+                                Detail
+                              </span>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80 p-3.5 space-y-2.5 text-xs shadow-xl border-border bg-card" align="end">
+                              <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                                <div className="flex items-center gap-1.5">
+                                  {getRatingBadge(log.feedback.rating)}
+                                </div>
+                                <span className="text-[11px] text-muted-foreground">
+                                  {formatDateTime(log.feedback.created_at)}
+                                </span>
+                              </div>
+                              <div className="bg-muted/40 p-2.5 rounded-lg text-foreground/90 whitespace-pre-wrap leading-relaxed border border-border/40 font-normal text-xs">
+                                "{log.feedback.feedback}"
+                              </div>
+                              {log.feedback.business && (
+                                <div className="text-[11px] text-muted-foreground pt-1 flex items-center gap-1.5 border-t border-border/50">
+                                  <Building2 size={13} className="shrink-0 text-primary/70" />
+                                  <span className="truncate">Terkait: <strong className="text-foreground">{log.feedback.business.nama_perusahaan}</strong></span>
+                                </div>
+                              )}
+                            </PopoverContent>
+                          </Popover>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/60 italic font-mono">- Belum ada -</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   );

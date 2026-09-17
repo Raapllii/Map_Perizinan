@@ -46,6 +46,20 @@ export interface Business {
   [key: string]: any;
 }
 
+export interface PublicMapFeedback {
+  id: number;
+  public_map_access_log_id: number;
+  business_id?: number | null;
+  rating: 'very-sad' | 'sad' | 'neutral' | 'happy' | string;
+  feedback: string;
+  business?: {
+    id: number;
+    nama_perusahaan?: string;
+  } | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface PublicMapAccessLog {
   id: number;
   nama: string;
@@ -55,6 +69,7 @@ export interface PublicMapAccessLog {
   user_agent?: string | null;
   created_at?: string;
   updated_at?: string;
+  feedback?: PublicMapFeedback | null;
 }
 
 export interface BusinessIndicator {
