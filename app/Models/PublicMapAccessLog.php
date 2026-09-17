@@ -14,4 +14,9 @@ class PublicMapAccessLog extends Model
     protected $casts = [
         'accessed_at' => 'datetime',
     ];
+
+    public function feedback()
+    {
+        return $this->hasOne(PublicMapFeedback::class, 'public_map_access_log_id');
+    }
 }
