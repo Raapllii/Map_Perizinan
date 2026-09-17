@@ -139,7 +139,6 @@ export function FeedbackWidget({
     if (val === "" || val === value) {
       setValue("");
       setIsPreview(false);
-      onClose?.();
     } else {
       setValue(val);
       // Auto-focus the textarea after expansion
@@ -164,7 +163,7 @@ export function FeedbackWidget({
   };
 
   return (
-    <div className={cn("flex items-center justify-center p-4", className)}>
+    <div className={cn("flex items-center justify-center w-full", className)}>
       <motion.div
         ref={containerRef}
         layout
@@ -172,19 +171,19 @@ export function FeedbackWidget({
         initial={false}
         className={cn(
           "overflow-hidden border border-zinc-200 bg-white text-zinc-900 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.15)] dark:border-white/10 dark:bg-zinc-950 dark:text-white dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.8)]",
-          isExpanded ? "w-full max-w-[420px] rounded-[28px]" : "rounded-full",
+          "w-full max-w-[460px] rounded-[28px]",
         )}
       >
         <motion.div
           layout="position"
-          className="px-4 py-2 md:px-5 md:py-2.5"
+          className="px-6 py-6"
           transition={springTransition}
         >
-          <div className="flex items-center justify-between gap-6">
+          <div className="flex flex-col items-center gap-3.5">
             <motion.span
               layout="position"
               transition={springTransition}
-              className="ml-2 cursor-default select-none whitespace-nowrap font-medium text-[14px] text-zinc-600 dark:text-zinc-400"
+              className="text-center font-semibold text-[15px] sm:text-base text-zinc-800 dark:text-zinc-200 cursor-default select-none pt-0.5"
             >
               {label}
             </motion.span>
@@ -193,7 +192,7 @@ export function FeedbackWidget({
               type="single"
               value={value}
               onValueChange={handleValueChange}
-              className="flex items-center gap-1.5"
+              className="flex items-center justify-center gap-3"
             >
               {EMOJIS.map((emoji) => (
                 <ToggleGroup.Item key={emoji.id} value={emoji.id} asChild>

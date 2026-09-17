@@ -403,12 +403,6 @@ export default function PublicMapPage() {
 
                 <FeedbackWidget
                   onSubmit={handleFeedbackSubmit}
-                  className="w-full max-w-[460px] p-0
-                    [&>div]:w-full [&>div]:max-w-[460px] [&>div]:rounded-[28px] [&>div]:shadow-2xl
-                    [&>div>div]:px-6 [&>div>div]:py-6
-                    [&>div>div>div:first-child]:flex-col [&>div>div>div:first-child]:items-center [&>div>div>div:first-child]:gap-3.5
-                    [&>div>div>div:first-child>span]:whitespace-normal [&>div>div>div:first-child>span]:text-center [&>div>div>div:first-child>span]:ml-0 [&>div>div>div:first-child>span]:text-base [&>div>div>div:first-child>span]:font-semibold [&>div>div>div:first-child>span]:text-foreground [&>div>div>div:first-child>span]:pt-1
-                    [&>div>div>div:first-child>[role=group]]:justify-center [&>div>div>div:first-child>[role=group]]:gap-3.5"
                   label="Bagaimana pengalaman peta Anda?"
                   placeholder="Tuliskan masukan atau saran Anda mengenai data peta..."
                 />
