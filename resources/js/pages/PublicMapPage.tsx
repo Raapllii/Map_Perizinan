@@ -11,6 +11,8 @@ import {
   getFeedbackDelayMs,
   isFeedbackAlreadySubmitted,
   markFeedbackAsSubmitted,
+  isFeedbackAlreadyPrompted,
+  markFeedbackAsPrompted,
   createFeedbackPayload
 } from "../lib/feedbackTriggerUtils";
 
@@ -48,61 +50,69 @@ export default function PublicMapPage() {
   const handleGantiIdentitas = () => {
     sessionStorage.removeItem("public_map_visitor");
     sessionStorage.removeItem("public_map_feedback_submitted");
+    sessionStorage.removeItem("public_map_feedback_prompted");
     setVisitor(null);
     setMarkers([]);
     setSelectedBusiness(null);
     setHoveredBusiness(null);
-    setHasInteractedWithBusiness(false);
+    setHasInteracted(false);
     setIsFeedbackOpen(false);
     setFeedbackSubmitted(false);
-    if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+    setHasPromptedFeedback(false);
+    if (feedbackTimerRef.current) {
+      clearTimeout(feedbackTimerRef.current);
+      feedbackTimerRef.current = null;
+    }
     setIsAccessModalOpen(true);
   };
 
-  // Feedback States & Trigger Management (Direct Centered Popup)
-  const [hasInteractedWithBusiness, setHasInteractedWithBusiness] = useState(false);
+  // Feedback States & Trigger Management (Centered Popup)
+  const [hasInteracted, setHasInteracted] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(() => isFeedbackAlreadySubmitted());
+  const [hasPromptedFeedback, setHasPromptedFeedback] = useState(() => isFeedbackAlreadyPrompted());
 
-  // Refs for tracking previous selected business and timer lifecycle
-  const prevSelectedBusinessRef = useRef<any>(null);
+  // Ref for timer lifecycle
   const feedbackTimerRef = useRef<any>(null);
 
-  // Dual Trigger Effect:
-  // 1. When user opens business detail for the first time, start the timer (configurable e.g. 2 min / 7s).
-  // 2. If user closes the detail panel before timer expires, immediately open feedback modal.
+  // Interaction-based single trigger timer:
+  // Starts only when visitor has interacted with the map.
+  // Closing, opening, or browsing business details never interrupts or prematurely triggers feedback.
   useEffect(() => {
-    if (feedbackSubmitted) return;
+    if (!visitor || feedbackSubmitted || hasPromptedFeedback) {
+      if (feedbackTimerRef.current) {
+        clearTimeout(feedbackTimerRef.current);
+        feedbackTimerRef.current = null;
+      }
+      return;
+    }
 
-    const hadSelected = Boolean(prevSelectedBusinessRef.current);
-    const hasSelected = Boolean(selectedBusiness);
-
-    // Interaction Start: user clicked marker and opened details
-    if (hasSelected && !hasInteractedWithBusiness) {
-      setHasInteractedWithBusiness(true);
-
+    if (hasInteracted && !feedbackTimerRef.current) {
       const delay = getFeedbackDelayMs();
-      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
       feedbackTimerRef.current = setTimeout(() => {
         setIsFeedbackOpen(true);
+        markFeedbackAsPrompted();
+        setHasPromptedFeedback(true);
+        feedbackTimerRef.current = null;
       }, delay);
     }
-
-    // Panel Closed: user closed the detail panel after inspecting details -> immediately open feedback modal
-    if (hadSelected && !hasSelected && hasInteractedWithBusiness) {
-      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
-      setIsFeedbackOpen(true);
-    }
-
-    prevSelectedBusinessRef.current = selectedBusiness;
-  }, [selectedBusiness, hasInteractedWithBusiness, feedbackSubmitted]);
+  }, [visitor, hasInteracted, feedbackSubmitted, hasPromptedFeedback]);
 
   // Clean up timer on unmount
   useEffect(() => {
     return () => {
-      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+      if (feedbackTimerRef.current) {
+        clearTimeout(feedbackTimerRef.current);
+        feedbackTimerRef.current = null;
+      }
     };
   }, []);
+
+  const handleCloseFeedback = () => {
+    setIsFeedbackOpen(false);
+    markFeedbackAsPrompted();
+    setHasPromptedFeedback(true);
+  };
 
   const handleFeedbackSubmit = async (data: { rating: string; feedback: string }) => {
     const accessLogId = visitor?.access_log_id || visitor?.id;
@@ -123,7 +133,9 @@ export default function PublicMapPage() {
       await axios.post('/api/public-map-feedback', payload);
 
       markFeedbackAsSubmitted();
+      markFeedbackAsPrompted();
       setFeedbackSubmitted(true);
+      setHasPromptedFeedback(true);
       setIsFeedbackOpen(false);
       setToastMsg("Terima kasih atas masukan dan penilaian Anda!");
       setTimeout(() => setToastMsg(""), 6000);
@@ -162,6 +174,7 @@ export default function PublicMapPage() {
   const debounceTimer = useRef<any>(null);
 
   const handleBoundsChange = useCallback((bounds: string, zoom: number) => {
+    setHasInteracted(true);
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(() => {
       setMapBounds(bounds);
@@ -225,6 +238,7 @@ export default function PublicMapPage() {
   };
 
   const handleSelectBusiness = (b: any, fromSearch: boolean = false) => {
+    setHasInteracted(true);
     setSelectedBusiness(b);
     setSearchQuery("");
     setSearchResults([]);
@@ -309,7 +323,10 @@ export default function PublicMapPage() {
         <BusinessSidePanel 
           business={selectedBusiness}
           isMobile={isMobile}
-          onClose={() => setSelectedBusiness(null)}
+          onClose={() => {
+            setSelectedBusiness(null);
+            setHasInteracted(true);
+          }}
           onDirectionsClick={() => {
             if (selectedBusiness) {
               window.open(`https://www.google.com/maps/dir/?api=1&destination=${selectedBusiness.latitude},${selectedBusiness.longitude}`, '_blank');
@@ -333,7 +350,10 @@ export default function PublicMapPage() {
               renderPopup={(marker) => (
                 <BusinessDetailCard
                   business={marker}
-                  onClose={() => setSelectedBusiness(null)}
+                  onClose={() => {
+                    setSelectedBusiness(null);
+                    setHasInteracted(true);
+                  }}
                   onDirectionsClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${marker.latitude},${marker.longitude}`, '_blank')}
                 />
               )}
@@ -384,16 +404,20 @@ export default function PublicMapPage() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               className="fixed inset-0 z-[1050] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs cursor-pointer"
-              onClick={() => setIsFeedbackOpen(false)}
+              onClick={handleCloseFeedback}
             >
               <div
-                className="w-full max-w-[350px] mx-auto cursor-default"
+                className="w-full max-w-[420px] mx-auto cursor-default flex items-center justify-center"
                 onClick={(e) => e.stopPropagation()}
               >
                 <FeedbackWidget
+                  alwaysExpanded
+                  onClose={handleCloseFeedback}
                   onSubmit={handleFeedbackSubmit}
-                  label="Apa kah membantu?"
-                  placeholder="Tuliskan masukan atau saran Anda mengenai data peta..."
+                  label="Bagaimana pengalaman peta Anda?"
+                  placeholder="Tulis pengalaman Anda..."
+                  submitButtonText="Kirim Feedback"
+                  footerText="Kami menghargai masukan Anda."
                 />
               </div>
             </motion.div>

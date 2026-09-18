@@ -6,6 +6,7 @@ import * as ToggleGroup from "@radix-ui/react-toggle-group";
 import { AnimatePresence, motion } from "motion/react";
 import * as React from "react";
 import ReactMarkdown from "react-markdown";
+import { X } from "lucide-react";
 
 const EMOJIS = [
   {
@@ -105,27 +106,36 @@ const EMOJIS = [
 ];
 
 interface FeedbackWidgetProps {
-  onSubmit?: (data: { rating: string; feedback: string }) => void;
+  onSubmit?: (data: { rating: string; feedback: string }) => void | Promise<void>;
   onClose?: () => void;
   className?: string;
-  /** Text shown in the collapsed state */
+  /** Text shown in the collapsed state / header */
   label?: string;
   /** Placeholder for the textarea */
   placeholder?: string;
+  /** Keeps widget in expanded modal state regardless of rating value */
+  alwaysExpanded?: boolean;
+  /** Custom label for the submit button */
+  submitButtonText?: string;
+  /** Custom label for footer text */
+  footerText?: string;
 }
 
 export function FeedbackWidget({
   onSubmit,
   onClose,
   className,
-  label = "Was this helpful?",
-  placeholder = "Your feedback...",
+  label = "Bagaimana pengalaman peta Anda?",
+  placeholder = "Tulis pengalaman Anda...",
+  alwaysExpanded = false,
+  submitButtonText = "Kirim Feedback",
+  footerText = "Kami menghargai masukan Anda.",
 }: FeedbackWidgetProps) {
   const [value, setValue] = React.useState<string>("");
   const [feedback, setFeedback] = React.useState("");
   const [isPreview, setIsPreview] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const isExpanded = value !== "";
+  const isExpanded = alwaysExpanded || value !== "";
   const containerRef = React.useRef<HTMLDivElement>(null);
 
   const springTransition = {
@@ -139,17 +149,18 @@ export function FeedbackWidget({
     if (val === "" || val === value) {
       setValue("");
       setIsPreview(false);
-    } else {
-      setValue(val);
-      // Auto-focus the textarea after expansion
-      setTimeout(() => {
-        containerRef.current?.querySelector("textarea")?.focus();
-      }, 100);
+      return;
     }
+
+    setValue(val);
+    // Auto-focus the textarea after selection
+    setTimeout(() => {
+      containerRef.current?.querySelector("textarea")?.focus();
+    }, 100);
   };
 
   const handleSend = async () => {
-    if (!feedback.trim()) return;
+    if (!feedback.trim() || !value || isSubmitting) return;
 
     setIsSubmitting(true);
     try {
@@ -170,33 +181,46 @@ export function FeedbackWidget({
         transition={springTransition}
         initial={false}
         className={cn(
-          "overflow-hidden border border-zinc-200 bg-white text-zinc-900 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.15)] dark:border-white/10 dark:bg-zinc-950 dark:text-white dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.8)]",
-          "w-full max-w-[460px] rounded-[28px]",
+          "overflow-hidden border border-zinc-200/90 bg-white text-zinc-900 shadow-xl dark:border-white/10 dark:bg-zinc-950 dark:text-white dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.7)]",
+          "w-full max-w-[420px] rounded-2xl",
         )}
       >
         <motion.div
           layout="position"
-          className="px-6 py-6"
+          className="px-5 py-4 sm:px-6 sm:py-5"
           transition={springTransition}
         >
-          <div className="flex flex-col items-center gap-3.5">
-            <motion.span
-              layout="position"
-              transition={springTransition}
-              className="text-center font-semibold text-[15px] sm:text-base text-zinc-800 dark:text-zinc-200 cursor-default select-none pt-0.5"
-            >
-              {label}
-            </motion.span>
+          <div className="flex flex-col items-center">
+            <div className="relative flex items-center justify-center w-full">
+              <motion.span
+                layout="position"
+                transition={springTransition}
+                className="text-center font-semibold text-[14px] sm:text-[15px] text-zinc-800 dark:text-zinc-200 cursor-default select-none px-6"
+              >
+                {label}
+              </motion.span>
+              {onClose && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Tutup"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-500 dark:hover:bg-white/10 dark:hover:text-zinc-200 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
 
             <ToggleGroup.Root
               type="single"
               value={value}
               onValueChange={handleValueChange}
-              className="flex items-center justify-center gap-3"
+              className="mt-3 flex items-center justify-center gap-2.5 sm:gap-3"
             >
               {EMOJIS.map((emoji) => (
                 <ToggleGroup.Item key={emoji.id} value={emoji.id} asChild>
                   <button
+                    type="button"
                     title={emoji.label}
                     className={cn(
                       "relative rounded-full p-2 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-blue-500",
@@ -260,16 +284,17 @@ export function FeedbackWidget({
                 }}
                 className="overflow-hidden"
               >
-                <div className="px-1 pt-6 pb-2">
-                  <div className="mb-2.5 flex items-center justify-between">
-                    <span className="select-none font-bold text-[10px] text-zinc-500 uppercase tracking-[0.1em] dark:text-zinc-500">
+                <div className="pt-3.5 pb-1">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="select-none font-bold text-[10px] text-zinc-400 uppercase tracking-[0.08em] dark:text-zinc-500">
                       {isPreview ? "Preview" : "Feedback"}
                     </span>
                     <button
+                      type="button"
                       onClick={() => setIsPreview(!isPreview)}
-                      className="rounded-md bg-zinc-100 px-2 py-0.5 font-semibold text-[11px] text-zinc-600 transition-colors hover:bg-zinc-200 hover:text-zinc-900 dark:bg-white/5 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white"
+                      className="rounded px-2 py-0.5 font-medium text-[11px] text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 dark:bg-white/5 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white"
                     >
-                      {isPreview ? "Edit" : "Preview"}
+                      {isPreview ? "Tulis" : "Preview"}
                     </button>
                   </div>
 
@@ -281,10 +306,10 @@ export function FeedbackWidget({
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -5 }}
-                          className="prose prose-sm scrollbar-none h-[140px] w-full max-w-none overflow-y-auto rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-[14px] text-zinc-700 leading-relaxed dark:prose-invert dark:border-white/5 dark:bg-zinc-900/50 dark:text-zinc-300"
+                          className="prose prose-sm scrollbar-none h-[92px] w-full max-w-none overflow-y-auto rounded-xl border border-zinc-200 bg-zinc-50/70 p-3 text-[13px] text-zinc-700 leading-relaxed dark:prose-invert dark:border-white/5 dark:bg-zinc-900/50 dark:text-zinc-300"
                         >
                           <ReactMarkdown>
-                            {feedback || "*Nothing to preview...*"}
+                            {feedback || "*Belum ada teks preview...*"}
                           </ReactMarkdown>
                         </motion.div>
                       ) : (
@@ -293,17 +318,16 @@ export function FeedbackWidget({
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -5 }}
-                          autoFocus
                           placeholder={placeholder}
                           value={feedback}
                           onChange={(e) => setFeedback(e.target.value)}
-                          className="scrollbar-none h-[140px] w-full resize-none rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-[14px] text-zinc-800 leading-relaxed transition-all placeholder:text-zinc-400 focus:border-zinc-300 focus:outline-none dark:border-white/5 dark:bg-zinc-900/50 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-white/20"
+                          className="scrollbar-none h-[92px] w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50/70 p-3 text-[13px] sm:text-[14px] text-zinc-800 leading-relaxed transition-all placeholder:text-zinc-400 focus:border-zinc-300 focus:bg-white focus:outline-none dark:border-white/5 dark:bg-zinc-900/50 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-white/20"
                         />
                       )}
                     </AnimatePresence>
 
                     {!isPreview && (
-                      <div className="pointer-events-none absolute right-4 bottom-3 flex select-none items-center gap-1.5 opacity-40 transition-opacity group-focus-within/textarea:opacity-80">
+                      <div className="pointer-events-none absolute right-3 bottom-2.5 flex select-none items-center gap-1.5 opacity-40 transition-opacity group-focus-within/textarea:opacity-80">
                         <span className="font-bold text-[10px] text-zinc-400 tracking-tight dark:text-zinc-500">
                           M↓
                         </span>
@@ -316,32 +340,36 @@ export function FeedbackWidget({
                 </div>
 
                 <motion.div
-                  initial={{ y: 20, opacity: 0 }}
+                  initial={{ y: 15, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: 20, opacity: 0 }}
-                  transition={{ delay: 0.1, ...springTransition }}
-                  className="mt-3 flex items-center justify-between border-zinc-200 border-t pt-4 dark:border-white/5"
+                  exit={{ y: 15, opacity: 0 }}
+                  transition={{ delay: 0.05, ...springTransition }}
+                  className="mt-2.5 flex items-center justify-between border-t border-zinc-200/80 pt-3 dark:border-white/10"
                 >
-                  <p className="font-medium text-[11px] text-zinc-500 dark:text-zinc-500">
-                    We appreciate your input.
+                  <p className="font-medium text-[11px] text-zinc-500 select-none dark:text-zinc-400">
+                    {footerText}
                   </p>
                   <button
+                    type="button"
                     onClick={handleSend}
-                    disabled={!feedback.trim() || isSubmitting}
-                    className="relative rounded-xl bg-zinc-900 px-6 py-2 font-bold text-[13px] text-white transition-all hover:bg-zinc-800 active:scale-95 disabled:pointer-events-none disabled:opacity-30 disabled:grayscale dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+                    disabled={!feedback.trim() || !value || isSubmitting}
+                    className="relative rounded-lg bg-zinc-900 px-4 py-1.5 font-semibold text-[12px] sm:text-[13px] text-white transition-all hover:bg-zinc-800 active:scale-95 disabled:pointer-events-none disabled:opacity-40 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
                   >
                     {isSubmitting ? (
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{
-                          repeat: Number.POSITIVE_INFINITY,
-                          duration: 1,
-                          ease: "linear",
-                        }}
-                        className="h-4 w-4 rounded-full border-2 border-white/20 border-t-white dark:border-black/20 dark:border-t-black"
-                      />
+                      <div className="flex items-center gap-1.5">
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{
+                            repeat: Number.POSITIVE_INFINITY,
+                            duration: 1,
+                            ease: "linear",
+                          }}
+                          className="h-3.5 w-3.5 rounded-full border-2 border-white/20 border-t-white dark:border-black/20 dark:border-t-black"
+                        />
+                        <span>Mengirim...</span>
+                      </div>
                     ) : (
-                      "Send Feedback"
+                      submitButtonText
                     )}
                   </button>
                 </motion.div>

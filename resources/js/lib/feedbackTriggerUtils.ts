@@ -9,6 +9,7 @@ export const FEEDBACK_DELAY_PRODUCTION_MS = 2 * 60 * 1000;
 export const FEEDBACK_DELAY_TEST_MS = 7 * 1000;
 
 export const FEEDBACK_SUBMITTED_SESSION_KEY = 'public_map_feedback_submitted';
+export const FEEDBACK_PROMPTED_SESSION_KEY = 'public_map_feedback_prompted';
 
 /**
  * Returns configurable delay duration in milliseconds:
@@ -32,8 +33,8 @@ export function getFeedbackDelayMs(isTesting: boolean = false): number {
   return isTesting ? FEEDBACK_DELAY_TEST_MS : FEEDBACK_DELAY_PRODUCTION_MS;
 }
 
-export function isFeedbackEligible(hasInteracted: boolean, isSubmitted: boolean): boolean {
-  return hasInteracted && !isSubmitted;
+export function isFeedbackEligible(hasInteracted: boolean, isSubmitted: boolean, isPrompted: boolean = false): boolean {
+  return hasInteracted && !isSubmitted && !isPrompted;
 }
 
 export function isFeedbackAlreadySubmitted(storage?: Storage): boolean {
@@ -51,6 +52,24 @@ export function markFeedbackAsSubmitted(storage?: Storage): void {
     s?.setItem(FEEDBACK_SUBMITTED_SESSION_KEY, 'true');
   } catch (err) {
     console.warn('Unable to write feedback submitted flag to session storage:', err);
+  }
+}
+
+export function isFeedbackAlreadyPrompted(storage?: Storage): boolean {
+  try {
+    const s = storage || (typeof window !== 'undefined' ? window.sessionStorage : null);
+    return s?.getItem(FEEDBACK_PROMPTED_SESSION_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function markFeedbackAsPrompted(storage?: Storage): void {
+  try {
+    const s = storage || (typeof window !== 'undefined' ? window.sessionStorage : null);
+    s?.setItem(FEEDBACK_PROMPTED_SESSION_KEY, 'true');
+  } catch (err) {
+    console.warn('Unable to write feedback prompted flag to session storage:', err);
   }
 }
 
