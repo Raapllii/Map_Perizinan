@@ -387,12 +387,12 @@ export default function PublicMapPage() {
               onClick={() => setIsFeedbackOpen(false)}
             >
               <div
-                className="w-full max-w-[460px] mx-auto cursor-default"
+                className="w-full max-w-[350px] mx-auto cursor-default"
                 onClick={(e) => e.stopPropagation()}
               >
                 <FeedbackWidget
                   onSubmit={handleFeedbackSubmit}
-                  label="Bagaimana pengalaman peta Anda?"
+                  label="Apa kah membantu?"
                   placeholder="Tuliskan masukan atau saran Anda mengenai data peta..."
                 />
               </div>
