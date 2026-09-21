@@ -13,7 +13,7 @@ class PublicMapFeedbackController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'access_log_id' => 'required|integer|exists:public_map_access_logs,id',
             'rating' => 'required|string|in:very-sad,sad,neutral,happy',
             'feedback' => 'required|string|min:2|max:3000',
@@ -29,6 +29,16 @@ class PublicMapFeedbackController extends Controller
             'feedback.max' => 'Pesan masukan maksimal 3000 karakter.',
             'business_id.exists' => 'Data usaha tidak ditemukan.',
         ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
 
         $feedbackText = trim($validated['feedback']);
         if (strlen($feedbackText) < 2) {

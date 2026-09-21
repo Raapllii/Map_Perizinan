@@ -74,15 +74,24 @@ export function markFeedbackAsPrompted(storage?: Storage): void {
 }
 
 export function createFeedbackPayload(
-  accessLogId: number,
+  accessLogId: number | string,
   rating: string,
   feedback: string,
-  businessId?: number | null
+  businessId?: number | string | null
 ) {
+  const parsedBusinessId =
+    businessId !== null && businessId !== undefined && businessId !== ""
+      ? Number(businessId)
+      : null;
+
   return {
-    access_log_id: accessLogId,
-    rating,
-    feedback: feedback.trim(),
-    business_id: businessId ?? null,
+    access_log_id: Number(accessLogId),
+    rating: rating ? String(rating).trim() : "",
+    feedback: feedback ? feedback.trim() : "",
+    business_id:
+      parsedBusinessId && !isNaN(parsedBusinessId) && parsedBusinessId > 0
+        ? parsedBusinessId
+        : null,
   };
 }
+

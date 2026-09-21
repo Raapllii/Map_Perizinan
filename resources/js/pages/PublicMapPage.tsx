@@ -117,9 +117,10 @@ export default function PublicMapPage() {
   const handleFeedbackSubmit = async (data: { rating: string; feedback: string }) => {
     const accessLogId = visitor?.access_log_id || visitor?.id;
     if (!accessLogId) {
-      setToastMsg("Gagal mencatat feedback: Identitas pengunjung tidak ditemukan.");
+      const msg = "Sesi akses tidak valid. Silakan muat ulang halaman.";
+      setToastMsg(msg);
       setTimeout(() => setToastMsg(""), 5000);
-      return;
+      throw new Error(msg);
     }
 
     try {
@@ -141,10 +142,38 @@ export default function PublicMapPage() {
       setTimeout(() => setToastMsg(""), 6000);
     } catch (err: any) {
       console.error("Gagal mengirim feedback:", err);
-      const msg = err.response?.data?.message || "Gagal mengirimkan masukan. Silakan coba kembali.";
-      setToastMsg(msg);
+      const errResponse = err.response?.data;
+      const isAccessLogExpired =
+        err.response?.status === 422 &&
+        (errResponse?.errors?.access_log_id ||
+          errResponse?.message?.toLowerCase().includes("log akses") ||
+          errResponse?.message?.toLowerCase().includes("sesi"));
+
+      if (isAccessLogExpired) {
+        sessionStorage.removeItem("public_map_visitor");
+        sessionStorage.removeItem("public_map_feedback_submitted");
+        sessionStorage.removeItem("public_map_feedback_prompted");
+        setVisitor(null);
+        setIsFeedbackOpen(false);
+        setIsAccessModalOpen(true);
+        const expiredMsg = "Sesi akses Anda telah berakhir atau tidak valid. Silakan masukkan kembali identitas Anda.";
+        setToastMsg(expiredMsg);
+        setTimeout(() => setToastMsg(""), 6000);
+        throw new Error(expiredMsg);
+      }
+
+      const firstValidationErr = errResponse?.errors
+        ? (Object.values(errResponse.errors).flat()[0] as string | undefined)
+        : undefined;
+
+      const userFriendlyMsg =
+        firstValidationErr ||
+        errResponse?.message ||
+        "Gagal mengirimkan masukan. Silakan coba kembali.";
+
+      setToastMsg(userFriendlyMsg);
       setTimeout(() => setToastMsg(""), 5000);
-      throw err;
+      throw new Error(userFriendlyMsg);
     }
   };
   

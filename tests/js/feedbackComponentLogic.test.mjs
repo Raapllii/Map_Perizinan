@@ -45,15 +45,67 @@ test('FeedbackWidget toggle logic - clicking same rating toggles to empty withou
   assert.equal(currentValue, "", "Empty toggle should clear rating");
 });
 
-test('FeedbackWidget submit button disabled conditions prevent invalid API calls', () => {
-  const isButtonDisabled = (feedback, value, isSubmitting) => {
-    return Boolean(!feedback.trim() || !value || isSubmitting);
+test('FeedbackWidget form validation logic matches requirements A, B, C, D', () => {
+  const validateForm = (value, feedback) => {
+    if (!value) {
+      return { valid: false, error: "Penilaian rating wajib dipilih." };
+    }
+    const trimmed = (feedback || "").trim();
+    if (!trimmed) {
+      return { valid: false, error: "Pesan masukan wajib diisi." };
+    }
+    if (trimmed.length < 2) {
+      return { valid: false, error: "Pesan masukan minimal 2 karakter." };
+    }
+    return { valid: true, error: null, data: { rating: value, feedback: trimmed } };
   };
 
-  // Both feedback and rating are required for submission
-  assert.equal(isButtonDisabled("", "happy", false), true, "Disabled when feedback text is empty");
-  assert.equal(isButtonDisabled("   ", "happy", false), true, "Disabled when feedback is whitespace");
-  assert.equal(isButtonDisabled("Bagus sekali", "", false), true, "Disabled when rating is not selected");
-  assert.equal(isButtonDisabled("Bagus sekali", "happy", true), true, "Disabled while submitting");
-  assert.equal(isButtonDisabled("Bagus sekali", "happy", false), false, "Enabled when feedback text and rating exist and not submitting");
+  // Skenario A: Rating + Feedback valid
+  const resultA = validateForm("happy", "Aplikasi sangat membantu dan cepat.");
+  assert.equal(resultA.valid, true);
+  assert.equal(resultA.error, null);
+  assert.deepEqual(resultA.data, { rating: "happy", feedback: "Aplikasi sangat membantu dan cepat." });
+
+  // Skenario B: Rating ada, Feedback kosong
+  const resultB = validateForm("happy", "");
+  assert.equal(resultB.valid, false);
+  assert.equal(resultB.error, "Pesan masukan wajib diisi.");
+
+  const resultBWhitespace = validateForm("happy", "   ");
+  assert.equal(resultBWhitespace.valid, false);
+  assert.equal(resultBWhitespace.error, "Pesan masukan wajib diisi.");
+
+  // Skenario C: Rating kosong, Feedback ada
+  const resultC = validateForm("", "Peta ini sangat bagus.");
+  assert.equal(resultC.valid, false);
+  assert.equal(resultC.error, "Penilaian rating wajib dipilih.");
+
+  // Skenario D: Rating dideselect (kosong) lalu submit
+  let ratingVal = "sad";
+  // User deselects
+  ratingVal = "";
+  const resultD = validateForm(ratingVal, "Ada kendala navigasi");
+  assert.equal(resultD.valid, false);
+  assert.equal(resultD.error, "Penilaian rating wajib dipilih.");
+
+  // Feedback text minimal 2 karakter
+  const resultTooShort = validateForm("happy", "a");
+  assert.equal(resultTooShort.valid, false);
+  assert.equal(resultTooShort.error, "Pesan masukan minimal 2 karakter.");
+});
+
+test('Stale Access Log detection logic in PublicMapPage', () => {
+  const isStaleAccessLog = (errorStatus, errorData) => {
+    return Boolean(
+      errorStatus === 422 &&
+      (errorData?.errors?.access_log_id ||
+       errorData?.message?.toLowerCase().includes("log akses") ||
+       errorData?.message?.toLowerCase().includes("sesi"))
+    );
+  };
+
+  assert.equal(isStaleAccessLog(422, { errors: { access_log_id: ["Data log akses tidak ditemukan."] } }), true);
+  assert.equal(isStaleAccessLog(422, { message: "Data log akses tidak ditemukan atau sesi telah berakhir." }), true);
+  assert.equal(isStaleAccessLog(422, { message: "Penilaian rating wajib dipilih." }), false);
+  assert.equal(isStaleAccessLog(500, { message: "Server error" }), false);
 });

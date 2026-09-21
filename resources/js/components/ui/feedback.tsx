@@ -6,7 +6,7 @@ import * as ToggleGroup from "@radix-ui/react-toggle-group";
 import { AnimatePresence, motion } from "motion/react";
 import * as React from "react";
 import ReactMarkdown from "react-markdown";
-import { X } from "lucide-react";
+import { X, AlertCircle } from "lucide-react";
 
 const EMOJIS = [
   {
@@ -133,6 +133,7 @@ export function FeedbackWidget({
 }: FeedbackWidgetProps) {
   const [value, setValue] = React.useState<string>("");
   const [feedback, setFeedback] = React.useState("");
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [isPreview, setIsPreview] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const isExpanded = alwaysExpanded || value !== "";
@@ -146,6 +147,7 @@ export function FeedbackWidget({
   } as const;
 
   const handleValueChange = (val: string) => {
+    setErrorMessage(null);
     if (val === "" || val === value) {
       setValue("");
       setIsPreview(false);
@@ -160,14 +162,37 @@ export function FeedbackWidget({
   };
 
   const handleSend = async () => {
-    if (!feedback.trim() || !value || isSubmitting) return;
+    if (isSubmitting) return;
 
+    if (!value) {
+      setErrorMessage("Penilaian rating wajib dipilih.");
+      return;
+    }
+
+    const trimmed = feedback.trim();
+    if (!trimmed) {
+      setErrorMessage("Pesan masukan wajib diisi.");
+      return;
+    }
+
+    if (trimmed.length < 2) {
+      setErrorMessage("Pesan masukan minimal 2 karakter.");
+      return;
+    }
+
+    setErrorMessage(null);
     setIsSubmitting(true);
     try {
-      await onSubmit?.({ rating: value, feedback });
+      await onSubmit?.({ rating: value, feedback: trimmed });
       setValue("");
       setFeedback("");
       setIsPreview(false);
+    } catch (err: any) {
+      const serverMsg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Gagal mengirimkan masukan. Silakan coba kembali.";
+      setErrorMessage(serverMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -320,7 +345,10 @@ export function FeedbackWidget({
                           exit={{ opacity: 0, y: -5 }}
                           placeholder={placeholder}
                           value={feedback}
-                          onChange={(e) => setFeedback(e.target.value)}
+                          onChange={(e) => {
+                            setFeedback(e.target.value);
+                            if (errorMessage) setErrorMessage(null);
+                          }}
                           className="scrollbar-none h-[92px] w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50/70 p-3 text-[13px] sm:text-[14px] text-zinc-800 leading-relaxed transition-all placeholder:text-zinc-400 focus:border-zinc-300 focus:bg-white focus:outline-none dark:border-white/5 dark:bg-zinc-900/50 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-white/20"
                         />
                       )}
@@ -337,6 +365,20 @@ export function FeedbackWidget({
                       </div>
                     )}
                   </div>
+
+                  <AnimatePresence>
+                    {errorMessage && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        className="mt-2 text-xs text-rose-600 dark:text-rose-400 font-medium flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-lg px-2.5 py-1.5"
+                      >
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>{errorMessage}</span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 <motion.div
@@ -352,7 +394,7 @@ export function FeedbackWidget({
                   <button
                     type="button"
                     onClick={handleSend}
-                    disabled={!feedback.trim() || !value || isSubmitting}
+                    disabled={isSubmitting}
                     className="relative rounded-lg bg-zinc-900 px-4 py-1.5 font-semibold text-[12px] sm:text-[13px] text-white transition-all hover:bg-zinc-800 active:scale-95 disabled:pointer-events-none disabled:opacity-40 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
                   >
                     {isSubmitting ? (

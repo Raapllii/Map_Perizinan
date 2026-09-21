@@ -18,6 +18,11 @@ class PublicMapFeedback extends Model
         return $this->belongsTo(PublicMapAccessLog::class, 'public_map_access_log_id');
     }
 
+    public function accessLog()
+    {
+        return $this->publicMapAccessLog();
+    }
+
     public function business()
     {
         return $this->belongsTo(Business::class, 'business_id');

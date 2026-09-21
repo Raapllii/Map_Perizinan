@@ -63,12 +63,19 @@ describe('feedbackTriggerUtils', () => {
       business_id: 105,
     });
 
-    const payloadNoBusiness = createFeedbackPayload(99, 'neutral', 'Cukup', undefined);
+    const payloadNoBusiness = createFeedbackPayload('99', 'neutral', 'Cukup', undefined);
     assert.deepEqual(payloadNoBusiness, {
       access_log_id: 99,
       rating: 'neutral',
       feedback: 'Cukup',
       business_id: null,
     });
+
+    // Skenario F: Feedback tanpa business detail aktif (0 or null or empty string)
+    const payloadZeroBusiness = createFeedbackPayload(100, 'sad', 'Kurang detail', 0);
+    assert.equal(payloadZeroBusiness.business_id, null);
+
+    const payloadEmptyBusiness = createFeedbackPayload(100, 'sad', 'Kurang detail', '');
+    assert.equal(payloadEmptyBusiness.business_id, null);
   });
 });
