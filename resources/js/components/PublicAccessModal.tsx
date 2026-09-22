@@ -3,6 +3,8 @@ import axios from "axios";
 import { MapPin, Globe, ArrowRight, Loader2, ShieldCheck } from "lucide-react";
 import { Btn, InputField } from "./ui";
 
+import { setVisitorSession } from "../lib/visitorSession";
+
 interface PublicAccessModalProps {
   isOpen: boolean;
   onSuccess: (visitor: { nama: string; instansi: string; id?: number }) => void;
@@ -54,10 +56,9 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
 
       const visitorData = response.data?.data || { nama: trimmedNama, instansi: trimmedInstansi };
       
-      // Store in sessionStorage so user doesn't need to re-enter during same session
-      sessionStorage.setItem("public_map_visitor", JSON.stringify(visitorData));
+      const savedVisitor = setVisitorSession(visitorData);
       
-      onSuccess(visitorData);
+      onSuccess(savedVisitor);
     } catch (err: any) {
       console.error("Gagal mencatat akses publik:", err);
       const msg = err.response?.data?.message || "Terjadi kesalahan saat memproses akses. Silakan coba lagi.";
