@@ -7,6 +7,7 @@ import { BusinessDetailCard, BusinessSidePanel } from "../components/ui";
 import { FeedbackWidget } from "../components/ui/feedback";
 import { useBusinessSearch } from "../hooks/useBusinessSearch";
 import PublicAccessModal from "../components/PublicAccessModal";
+import MapRiskLegend from "../components/ui/MapRiskLegend";
 import {
   getFeedbackDelayMs,
   isFeedbackAlreadySubmitted,
@@ -229,7 +230,10 @@ export default function PublicMapPage() {
     if (mapBounds) url += `&bounds=${mapBounds}`;
     
     activeFilters.forEach((f: any) => {
-      const key = f.type.toLowerCase();
+      let key = f.type.toLowerCase();
+      if (key === 'risiko') {
+        key = 'uraian_risiko_proyek';
+      }
       if (f.value && f.value.length > 0) {
         url += `&${key}=${encodeURIComponent(f.value.join(','))}`;
       }
@@ -423,6 +427,9 @@ export default function PublicMapPage() {
             </button>
           </div>
         </div>
+
+        {/* Risk Legend */}
+        <MapRiskLegend />
 
         {/* Centered Feedback Modal Popup */}
         <AnimatePresence>

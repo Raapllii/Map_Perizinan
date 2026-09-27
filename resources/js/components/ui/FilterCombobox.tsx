@@ -8,6 +8,8 @@ import * as PopoverPrimitive from "@radix-ui/react-popover";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { Command } from "cmdk";
 
+import { getRiskConfig } from "../../lib/riskUtils.ts";
+
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
 /* -------------------------------------------------------------------------- */
@@ -25,7 +27,7 @@ export enum FilterOperator {
 }
 
 export const kategoriOptions = ["PB-UMKU", "Non PB-UMKU", "Proyek Baru"];
-export const risikoOptions = ["Sangat Rendah", "Rendah", "Menengah Rendah", "Menengah Tinggi", "Tinggi", "Sangat Tinggi"];
+export const risikoOptions = ["Rendah", "Menengah Rendah", "Menengah Tinggi", "Tinggi"];
 export const statusOptions = ["Aktif", "Non-Aktif", "Dalam Proses"];
 
 export type FilterOption = {
@@ -309,6 +311,9 @@ export function FilterCombobox({ onChange }: { onChange?: (filters: Filter[]) =>
                         }}
                         className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm cursor-pointer aria-selected:bg-muted/50 group text-muted-foreground"
                       >
+                        {selectedView === FilterType.RISIKO && (
+                          <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', getRiskConfig(filter.name).dotClass)} />
+                        )}
                         <span className="text-foreground">{filter.name}</span>
                       </Command.Item>
                     ))}

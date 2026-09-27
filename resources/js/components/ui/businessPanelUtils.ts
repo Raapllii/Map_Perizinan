@@ -80,49 +80,22 @@ export function validateCoordinates(
   };
 }
 
+import { getRiskConfig } from '../../lib/riskUtils.ts';
+
 /**
  * Returns semantic badge classes and level based on risk profile
  */
 export function getSemanticRiskBadge(risk: string | null | undefined): SemanticRiskResult {
-  if (!risk || typeof risk !== 'string' || !risk.trim()) {
-    return {
-      label: 'Tidak Ditentukan',
-      colorClass: 'bg-muted text-muted-foreground border-border/80',
-      level: 'neutral',
-    };
-  }
-
-  const clean = risk.trim();
-  const lower = clean.toLowerCase();
-
-  if (lower.includes('rendah') && !lower.includes('menengah')) {
-    return {
-      label: clean,
-      colorClass: 'bg-success/10 text-success border-success/20',
-      level: 'low',
-    };
-  }
-
-  if (lower.includes('menengah')) {
-    return {
-      label: clean,
-      colorClass: 'bg-warning/10 text-warning border-warning/20',
-      level: 'medium',
-    };
-  }
-
-  if (lower.includes('tinggi')) {
-    return {
-      label: clean,
-      colorClass: 'bg-danger/10 text-danger border-danger/20',
-      level: 'high',
-    };
-  }
+  const config = getRiskConfig(risk);
+  let level: 'low' | 'medium' | 'high' | 'neutral' = 'neutral';
+  if (config.key === 'rendah') level = 'low';
+  else if (config.key === 'menengah-rendah' || config.key === 'menengah-tinggi') level = 'medium';
+  else if (config.key === 'tinggi') level = 'high';
 
   return {
-    label: clean,
-    colorClass: 'bg-primary/10 text-primary border-primary/20',
-    level: 'neutral',
+    label: config.category,
+    colorClass: config.badgeClass,
+    level,
   };
 }
 

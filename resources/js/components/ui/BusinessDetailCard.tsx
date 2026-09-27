@@ -5,6 +5,8 @@ import { cn } from '../../lib/utils';
 import { Button } from './button';
 import { StatusBadge } from './StatusBadge';
 
+import { getRiskConfig } from '../../lib/riskUtils';
+
 interface BusinessDetailCardProps extends Omit<HTMLMotionProps<'div'>, 'ref'> {
   business: any;
   onClose?: () => void;
@@ -14,6 +16,8 @@ interface BusinessDetailCardProps extends Omit<HTMLMotionProps<'div'>, 'ref'> {
 const BusinessDetailCard = React.forwardRef<HTMLDivElement, BusinessDetailCardProps>(
   ({ className, business, onClose, onDirectionsClick, ...props }, ref) => {
     if (!business) return null;
+
+    const riskConfig = getRiskConfig(business.uraian_risiko_proyek);
 
     const hasCoords = Boolean(
       business.latitude !== null &&
@@ -62,9 +66,14 @@ const BusinessDetailCard = React.forwardRef<HTMLDivElement, BusinessDetailCardPr
 
         {/* Content Body */}
         <div className="p-4 space-y-3">
-          {/* Status & NIB */}
-          <div className="flex items-center justify-between gap-2">
-            <StatusBadge status={business.status || 'Aktif'} />
+          {/* Status & Risk Badges */}
+          <div className="flex flex-wrap items-center justify-between gap-1.5">
+            <div className="flex items-center gap-1.5">
+              <StatusBadge status={business.status || 'Aktif'} />
+              <span className={cn('px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border', riskConfig.badgeClass)}>
+                {riskConfig.category}
+              </span>
+            </div>
             <span className="text-[11px] font-mono text-muted-foreground shrink-0">
               NIB: {business.nib || '-'}
             </span>

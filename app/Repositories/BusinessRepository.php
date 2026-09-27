@@ -15,6 +15,7 @@ class BusinessRepository
             'kecamatan_usaha' => 'kecamatan_usaha',
             'kelurahan_usaha' => 'kelurahan_usaha',
             'uraian_risiko_proyek' => 'uraian_risiko_proyek',
+            'risiko' => 'uraian_risiko_proyek',
             'status' => 'status',
             'judul_kbli' => 'judul_kbli'
         ];
@@ -26,15 +27,26 @@ class BusinessRepository
                 
                 $values = is_array($val) ? $val : explode(',', $val);
                 $values = array_map('trim', $values);
+                if (empty($values)) continue;
 
-                if ($operator === 'bukan') {
-                    $query->whereNotIn($dbColumn, $values);
-                } else {
-                    // untuk 'adalah' atau 'salah satu dari'
-                    if (count($values) > 1) {
-                        $query->whereIn($dbColumn, $values);
+                if ($dbColumn === 'uraian_risiko_proyek') {
+                    $lowerValues = array_map('strtolower', $values);
+                    $placeholders = implode(',', array_fill(0, count($lowerValues), '?'));
+
+                    if ($operator === 'bukan') {
+                        $query->whereRaw("LOWER(TRIM(COALESCE(uraian_risiko_proyek, ''))) NOT IN ({$placeholders})", $lowerValues);
                     } else {
-                        $query->where($dbColumn, $values[0]);
+                        $query->whereRaw("LOWER(TRIM(COALESCE(uraian_risiko_proyek, ''))) IN ({$placeholders})", $lowerValues);
+                    }
+                } else {
+                    if ($operator === 'bukan') {
+                        $query->whereNotIn($dbColumn, $values);
+                    } else {
+                        if (count($values) > 1) {
+                            $query->whereIn($dbColumn, $values);
+                        } else {
+                            $query->where($dbColumn, $values[0]);
+                        }
                     }
                 }
             }
