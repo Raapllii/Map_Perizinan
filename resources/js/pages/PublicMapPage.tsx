@@ -1,6 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense, useRef, useCallback } from "react";
 import axios from 'axios';
-import { Search, X } from "lucide-react";
+import { Search, X, MessageSquare, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import Navbar from "../components/ui/mini-navbar";
 import { BusinessDetailCard, BusinessSidePanel } from "../components/ui";
@@ -9,11 +9,8 @@ import { useBusinessSearch } from "../hooks/useBusinessSearch";
 import PublicAccessModal from "../components/PublicAccessModal";
 import MapRiskLegend from "../components/ui/MapRiskLegend";
 import {
-  getFeedbackDelayMs,
   isFeedbackAlreadySubmitted,
   markFeedbackAsSubmitted,
-  isFeedbackAlreadyPrompted,
-  markFeedbackAsPrompted,
   createFeedbackPayload
 } from "../lib/feedbackTriggerUtils";
 
@@ -51,68 +48,21 @@ export default function PublicMapPage() {
   const handleGantiIdentitas = () => {
     sessionStorage.removeItem("public_map_visitor");
     sessionStorage.removeItem("public_map_feedback_submitted");
-    sessionStorage.removeItem("public_map_feedback_prompted");
     setVisitor(null);
     setMarkers([]);
     setSelectedBusiness(null);
     setHoveredBusiness(null);
-    setHasInteracted(false);
     setIsFeedbackOpen(false);
     setFeedbackSubmitted(false);
-    setHasPromptedFeedback(false);
-    if (feedbackTimerRef.current) {
-      clearTimeout(feedbackTimerRef.current);
-      feedbackTimerRef.current = null;
-    }
     setIsAccessModalOpen(true);
   };
 
-  // Feedback States & Trigger Management (Centered Popup)
-  const [hasInteracted, setHasInteracted] = useState(false);
+  // Feedback States (User-Initiated via Floating Button)
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(() => isFeedbackAlreadySubmitted());
-  const [hasPromptedFeedback, setHasPromptedFeedback] = useState(() => isFeedbackAlreadyPrompted());
-
-  // Ref for timer lifecycle
-  const feedbackTimerRef = useRef<any>(null);
-
-  // Interaction-based single trigger timer:
-  // Starts only when visitor has interacted with the map.
-  // Closing, opening, or browsing business details never interrupts or prematurely triggers feedback.
-  useEffect(() => {
-    if (!visitor || feedbackSubmitted || hasPromptedFeedback) {
-      if (feedbackTimerRef.current) {
-        clearTimeout(feedbackTimerRef.current);
-        feedbackTimerRef.current = null;
-      }
-      return;
-    }
-
-    if (hasInteracted && !feedbackTimerRef.current) {
-      const delay = getFeedbackDelayMs();
-      feedbackTimerRef.current = setTimeout(() => {
-        setIsFeedbackOpen(true);
-        markFeedbackAsPrompted();
-        setHasPromptedFeedback(true);
-        feedbackTimerRef.current = null;
-      }, delay);
-    }
-  }, [visitor, hasInteracted, feedbackSubmitted, hasPromptedFeedback]);
-
-  // Clean up timer on unmount
-  useEffect(() => {
-    return () => {
-      if (feedbackTimerRef.current) {
-        clearTimeout(feedbackTimerRef.current);
-        feedbackTimerRef.current = null;
-      }
-    };
-  }, []);
 
   const handleCloseFeedback = () => {
     setIsFeedbackOpen(false);
-    markFeedbackAsPrompted();
-    setHasPromptedFeedback(true);
   };
 
   const handleFeedbackSubmit = async (data: { rating: string; feedback: string }) => {
@@ -135,9 +85,7 @@ export default function PublicMapPage() {
       await axios.post('/api/public-map-feedback', payload);
 
       markFeedbackAsSubmitted();
-      markFeedbackAsPrompted();
       setFeedbackSubmitted(true);
-      setHasPromptedFeedback(true);
       setIsFeedbackOpen(false);
       setToastMsg("Terima kasih atas masukan dan penilaian Anda!");
       setTimeout(() => setToastMsg(""), 6000);
@@ -153,7 +101,6 @@ export default function PublicMapPage() {
       if (isAccessLogExpired) {
         sessionStorage.removeItem("public_map_visitor");
         sessionStorage.removeItem("public_map_feedback_submitted");
-        sessionStorage.removeItem("public_map_feedback_prompted");
         setVisitor(null);
         setIsFeedbackOpen(false);
         setIsAccessModalOpen(true);
@@ -204,7 +151,6 @@ export default function PublicMapPage() {
   const debounceTimer = useRef<any>(null);
 
   const handleBoundsChange = useCallback((bounds: string, zoom: number) => {
-    setHasInteracted(true);
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(() => {
       setMapBounds(bounds);
@@ -271,7 +217,6 @@ export default function PublicMapPage() {
   };
 
   const handleSelectBusiness = (b: any, fromSearch: boolean = false) => {
-    setHasInteracted(true);
     setSelectedBusiness(b);
     setSearchQuery("");
     setSearchResults([]);
@@ -358,7 +303,6 @@ export default function PublicMapPage() {
           isMobile={isMobile}
           onClose={() => {
             setSelectedBusiness(null);
-            setHasInteracted(true);
           }}
           onDirectionsClick={() => {
             if (selectedBusiness) {
@@ -385,7 +329,6 @@ export default function PublicMapPage() {
                   business={marker}
                   onClose={() => {
                     setSelectedBusiness(null);
-                    setHasInteracted(true);
                   }}
                   onDirectionsClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${marker.latitude},${marker.longitude}`, '_blank')}
                 />
@@ -431,6 +374,36 @@ export default function PublicMapPage() {
         {/* Risk Legend */}
         <MapRiskLegend />
 
+        {/* Floating Feedback Button */}
+        <button
+          type="button"
+          onClick={() => {
+            if (!feedbackSubmitted) {
+              setIsFeedbackOpen(true);
+            }
+          }}
+          disabled={feedbackSubmitted}
+          title={feedbackSubmitted ? "Feedback telah terkirim" : "Beri Feedback"}
+          className={`fixed z-[50] bottom-20 right-4 md:bottom-6 md:right-16 flex items-center gap-2 border shadow-lg px-3.5 py-2.5 rounded-full text-xs font-semibold backdrop-blur-md transition-all active:scale-95 cursor-pointer ${
+            feedbackSubmitted
+              ? "bg-card/80 text-muted-foreground border-border cursor-not-allowed opacity-90"
+              : "bg-card/95 hover:bg-card text-foreground border-border shadow-md hover:shadow-xl"
+          }`}
+        >
+          {feedbackSubmitted ? (
+            <>
+              <Check size={16} className="text-emerald-500 shrink-0" />
+              <span className="hidden sm:inline">Feedback Terkirim</span>
+              <span className="sm:hidden">Terkirim</span>
+            </>
+          ) : (
+            <>
+              <MessageSquare size={16} className="text-primary shrink-0" />
+              <span>Feedback</span>
+            </>
+          )}
+        </button>
+
         {/* Centered Feedback Modal Popup */}
         <AnimatePresence>
           {isFeedbackOpen && !feedbackSubmitted && (
@@ -439,21 +412,20 @@ export default function PublicMapPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-[1050] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs cursor-pointer"
+              className="fixed inset-0 z-[1050] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs cursor-pointer overflow-y-auto"
               onClick={handleCloseFeedback}
             >
               <div
-                className="w-full max-w-[420px] mx-auto cursor-default flex items-center justify-center"
+                className="relative w-full max-w-[420px] mx-auto cursor-default flex flex-col items-center justify-center"
                 onClick={(e) => e.stopPropagation()}
               >
+                {/* Explicit Close Button */}
+
                 <FeedbackWidget
-                  alwaysExpanded
                   onClose={handleCloseFeedback}
                   onSubmit={handleFeedbackSubmit}
                   label="Bagaimana pengalaman peta Anda?"
-                  placeholder="Tulis pengalaman Anda..."
-                  submitButtonText="Kirim Feedback"
-                  footerText="Kami menghargai masukan Anda."
+                  placeholder="Tulis masukan atau pengalaman Anda..."
                 />
               </div>
             </motion.div>
@@ -465,3 +437,4 @@ export default function PublicMapPage() {
     </div>
   );
 }
+
