@@ -1,101 +1,77 @@
-# Public Map Feedback Button Revision Implementation Plan
+# Public Map Feedback Popover Layout Fix Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Change Public Map Feedback behavior from an automatic popup/timer to a user-initiated button trigger while using the existing `feedback.tsx` component and maintaining Access Log & Business ID integration.
+**Goal:** Fix Feedback Popover layout issue by making `FeedbackWidget` a self-contained, responsive popover card with internal header (title + X button), centered emoji rating row, compact textarea, and smooth button-anchored position without clipping or outer double card wrappers.
 
-**Architecture:** Remove the interaction-based automatic timer and auto-popup triggers from `PublicMapPage.tsx`. Add a prominent, responsive floating "Feedback" button on the Public Map with Lucide icon (`MessageSquare` / `Check`). Clicking the button opens the existing `FeedbackWidget` inside a modal overlay with an explicit close control. Session state (`feedbackSubmitted`, `access_log_id`, `selectedBusiness?.id`) remains intact.
+**Architecture:** Update `resources/js/components/ui/feedback.tsx` header to include `onClose` X button, responsive title flex row, and compact padding. In `PublicMapPage.tsx`, render `FeedbackWidget` directly inside the anchored `bottom-full right-0 mb-3` popover motion div with width `min(380px, calc(100vw - 32px))`.
 
-**Tech Stack:** React, TypeScript, TailwindCSS, Lucide Icons (`MessageSquare`, `Check`, `X`), Motion (Framer Motion), Axios, Laravel API.
+**Tech Stack:** React, TypeScript, TailwindCSS, Radix UI ToggleGroup, Framer Motion (`motion/react`), Lucide Icons.
 
 ## Global Constraints
 
-- **No New Feedback Component:** Must use existing `resources/js/components/ui/feedback.tsx`.
-- **No Auto Popup:** Feedback must NOT open automatically on timer, map pan/zoom, search, marker click, or detail card close.
-- **Access Log Integration:** Submission must use active `access_log_id` from visitor session.
-- **Responsive Positioning:** Floating button must not obstruct Zoom control, Scale control, MapRiskLegend, Search, Filter, or map attribution on desktop or mobile.
+- **No New Components:** Must refine existing `resources/js/components/ui/feedback.tsx`.
+- **No Outer Double Wrappers:** `FeedbackWidget` is rendered directly as the popover card.
+- **Header Layout:** Title on left (`flex-1 min-w-0 font-bold truncate`), Close X on right (`shrink-0 p-1`).
+- **No Backdrop:** No modal backdrop screen cover.
+- **Access Log Integration:** Active `access_log_id` and submission logic 100% preserved.
 
 ---
 
-### Task 1: Clean Up Auto-Popup Timer Logic in PublicMapPage.tsx & Utilities
+### Task 1: Refine `feedback.tsx` Component Header & Compact Layout
 
 **Files:**
-- Modify: `resources/js/Pages/PublicMapPage.tsx`
-- Modify: `resources/js/lib/feedbackTriggerUtils.ts`
-- Modify: `tests/js/feedbackTriggerLogic.test.mjs`
-
-**Interfaces:**
-- Consumes: `visitor` session, `isFeedbackAlreadySubmitted`
-- Produces: Clean state in `PublicMapPage.tsx` without timer ref, `hasInteracted` auto-trigger, or `setTimeout`
-
-- [ ] **Step 1: Update `feedbackTriggerUtils.ts` and test file to deprecate/clean unused timer helpers**
-
-Ensure `isFeedbackAlreadySubmitted`, `markFeedbackAsSubmitted`, and `createFeedbackPayload` are preserved, while keeping tests green.
-
-- [ ] **Step 2: Run unit tests to verify utilities**
-
-Run: `cmd /c node --test tests/js/feedbackTriggerLogic.test.mjs tests/js/feedbackComponentLogic.test.mjs`
-Expected: PASS
-
-- [ ] **Step 3: Remove automatic timer & auto-prompting logic from `PublicMapPage.tsx`**
-
-Remove `feedbackTimerRef`, `getFeedbackDelayMs`, `hasPromptedFeedback`, `markFeedbackAsPrompted`, and the auto-popup `useEffect` block. Remove `setHasInteracted(true)` calls that were only used to kick off the feedback timer.
-
----
-
-### Task 2: Implement Floating Feedback Button & Modal Integration in PublicMapPage.tsx
-
-**Files:**
-- Modify: `resources/js/Pages/PublicMapPage.tsx`
+- Modify: `resources/js/components/ui/feedback.tsx`
 - Test: `tests/js/feedbackComponentLogic.test.mjs`
 
 **Interfaces:**
-- Consumes: `isFeedbackOpen`, `feedbackSubmitted`, `visitor`, `selectedBusiness`, `FeedbackWidget`
-- Produces: Floating Feedback button on map + modal pop-up on button click
+- Consumes: `onClose`, `onSubmit`, `label`, `placeholder`, `alwaysExpanded`, `submitButtonText`, `footerText`
+- Produces: Compact, self-contained `FeedbackWidget` card component with internal header X button and clean emoji layout.
 
-- [ ] **Step 1: Add Lucide Icons and Floating Feedback Button UI**
+- [ ] **Step 1: Update `FeedbackWidgetProps` interface in `feedback.tsx`**
 
-Import `MessageSquare`, `Check`, `X` from `lucide-react`.
-Add floating Feedback button in `PublicMapPage.tsx`:
-- Desktop: `bottom-6 right-16 md:bottom-6 md:right-16` (positioned safely to the left of Leaflet zoom control or in safe map control area).
-- Mobile: `bottom-20 right-4` (safely clear of bottom legend, zoom control, and attribution).
-- Button shows `MessageSquare` icon + text ("Feedback" or "Feedback Terkirim" when `feedbackSubmitted` is true).
-- Disabled state / visual indication when `feedbackSubmitted` is true.
+Add `alwaysExpanded?: boolean; submitButtonText?: string; footerText?: string;` to `FeedbackWidgetProps`.
 
-- [ ] **Step 2: Connect Button Click to Modal & Wire Close Control**
+- [ ] **Step 2: Update `FeedbackWidget` layout and header in `feedback.tsx`**
 
-Clicking [Feedback] sets `isFeedbackOpen(true)`.
-Render modal overlay with `FeedbackWidget`.
-Add a close `(X)` button in the top-right corner of the modal overlay so users can close without submitting.
-On close: `setIsFeedbackOpen(false)` without auto-reopening.
+- In header: Render flex row with `label` (`flex-1 min-w-0 font-bold truncate`) and `onClose` button (`shrink-0 p-1 rounded-full`).
+- Center emoji toggle group row with `w-full max-w-[260px]`.
+- Keep textarea compact (`h-[110px]`) and send button aligned in footer.
+- Set container class to `w-full overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-2xl dark:border-white/10 dark:bg-zinc-950`.
 
-- [ ] **Step 3: Test submission and Access Log payload**
-
-Verify `handleFeedbackSubmit` correctly passes `visitor?.access_log_id || visitor?.id`, `rating`, `feedback`, and `selectedBusiness?.id`.
-
-- [ ] **Step 4: Run unit tests**
+- [ ] **Step 3: Run JS Unit Tests**
 
 Run: `cmd /c node --test tests/js/feedbackTriggerLogic.test.mjs tests/js/feedbackComponentLogic.test.mjs`
 Expected: PASS
 
 ---
 
-### Task 3: Complete Build & End-to-End Verification
+### Task 2: Update `PublicMapPage.tsx` Popover Anchor & Layout
 
 **Files:**
-- Build output check
-- Feature tests check
+- Modify: `resources/js/Pages/PublicMapPage.tsx`
 
-- [ ] **Step 1: Run JS Unit Tests**
+**Interfaces:**
+- Consumes: `FeedbackWidget`, `isFeedbackOpen`, `feedbackSubmitted`, `handleCloseFeedback`, `handleFeedbackSubmit`
+- Produces: Clean, unclipped Popover panel anchored to floating Feedback button.
+
+- [ ] **Step 1: Simplify `PublicMapPage.tsx` Popover JSX**
+
+Position Popover container as `fixed z-[1050] bottom-20 right-4 md:bottom-6 md:right-16 flex flex-col items-end`.
+Render Popover panel with `w-[min(380px,calc(100vw-32px))] mb-3`.
+Pass `onClose`, `onSubmit`, `label`, `placeholder`, `submitButtonText`, `footerText` to `FeedbackWidget`.
+
+- [ ] **Step 2: Run JS Unit Tests**
 
 Run: `cmd /c node --test tests/js/feedbackTriggerLogic.test.mjs tests/js/feedbackComponentLogic.test.mjs`
-Expected: All tests pass.
+Expected: PASS
 
-- [ ] **Step 2: Run Production Build**
+- [ ] **Step 3: Run Production Build**
 
 Run: `cmd /c npm run build`
-Expected: Build succeeds with 0 TypeScript / Vite compilation errors.
+Expected: Build succeeds with 0 TypeScript/Vite errors.
 
-- [ ] **Step 3: Verify all 10 scenario requirements**
+- [ ] **Step 4: Run PHP Artisan Tests**
 
-Confirm Test 1 through Test 10 conditions are satisfied.
+Run: `php artisan test --filter=PublicMapFeedbackTest`
+Expected: 7 passed.

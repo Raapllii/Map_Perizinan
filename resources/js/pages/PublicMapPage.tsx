@@ -419,7 +419,6 @@ export default function PublicMapPage() {
                 className="relative w-full max-w-[420px] mx-auto cursor-default flex flex-col items-center justify-center"
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* Explicit Close Button */}
 
                 <FeedbackWidget
                   onClose={handleCloseFeedback}
