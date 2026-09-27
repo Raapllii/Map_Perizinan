@@ -60,6 +60,25 @@ export default function PublicMapPage() {
   // Feedback States (User-Initiated via Floating Button)
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(() => isFeedbackAlreadySubmitted());
+  const feedbackPopoverRef = useRef<HTMLDivElement>(null);
+
+  // Close Popover on Outside Click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isFeedbackOpen &&
+        feedbackPopoverRef.current &&
+        !feedbackPopoverRef.current.contains(event.target as Node)
+      ) {
+        setIsFeedbackOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isFeedbackOpen]);
 
   const handleCloseFeedback = () => {
     setIsFeedbackOpen(false);
@@ -374,62 +393,59 @@ export default function PublicMapPage() {
         {/* Risk Legend */}
         <MapRiskLegend />
 
-        {/* Floating Feedback Button */}
-        <button
-          type="button"
-          onClick={() => {
-            if (!feedbackSubmitted) {
-              setIsFeedbackOpen(true);
-            }
-          }}
-          disabled={feedbackSubmitted}
-          title={feedbackSubmitted ? "Feedback telah terkirim" : "Beri Feedback"}
-          className={`fixed z-[50] bottom-20 right-4 md:bottom-6 md:right-16 flex items-center gap-2 border shadow-lg px-3.5 py-2.5 rounded-full text-xs font-semibold backdrop-blur-md transition-all active:scale-95 cursor-pointer ${
-            feedbackSubmitted
-              ? "bg-card/80 text-muted-foreground border-border cursor-not-allowed opacity-90"
-              : "bg-card/95 hover:bg-card text-foreground border-border shadow-md hover:shadow-xl"
-          }`}
+        {/* Floating Feedback Anchor Container & Popover Panel */}
+        <div
+          ref={feedbackPopoverRef}
+          className="fixed z-[1050] bottom-20 right-4 md:bottom-6 md:right-16 flex flex-col items-end pointer-events-auto"
         >
-          {feedbackSubmitted ? (
-            <>
-              <Check size={16} className="text-emerald-500 shrink-0" />
-              <span className="hidden sm:inline">Feedback Terkirim</span>
-              <span className="sm:hidden">Terkirim</span>
-            </>
-          ) : (
-            <>
-              <MessageSquare size={16} className="text-primary shrink-0" />
-              <span>Feedback</span>
-            </>
-          )}
-        </button>
-
-        {/* Centered Feedback Modal Popup */}
-        <AnimatePresence>
-          {isFeedbackOpen && !feedbackSubmitted && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-[1050] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs cursor-pointer overflow-y-auto"
-              onClick={handleCloseFeedback}
-            >
-              <div
-                className="relative w-full max-w-[420px] mx-auto cursor-default flex flex-col items-center justify-center"
-                onClick={(e) => e.stopPropagation()}
+          <AnimatePresence>
+            {isFeedbackOpen && !feedbackSubmitted && (
+              <motion.div
+                initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="mb-3 w-[min(380px,calc(100vw-24px))] z-[1060]"
               >
-
                 <FeedbackWidget
-                  onClose={handleCloseFeedback}
                   onSubmit={handleFeedbackSubmit}
                   label="Bagaimana pengalaman peta Anda?"
                   placeholder="Tulis masukan atau pengalaman Anda..."
                 />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Floating Feedback Button */}
+          <button
+            type="button"
+            onClick={() => {
+              if (!feedbackSubmitted) {
+                setIsFeedbackOpen((prev) => !prev);
+              }
+            }}
+            disabled={feedbackSubmitted}
+            title={feedbackSubmitted ? "Feedback telah terkirim" : "Beri Feedback"}
+            className={`flex items-center gap-2 border shadow-lg px-3.5 py-2.5 rounded-full text-xs font-semibold backdrop-blur-md transition-all active:scale-95 cursor-pointer ${
+              feedbackSubmitted
+                ? "bg-card/80 text-muted-foreground border-border cursor-not-allowed opacity-90"
+                : "bg-card/95 hover:bg-card text-foreground border-border shadow-md hover:shadow-xl"
+            }`}
+          >
+            {feedbackSubmitted ? (
+              <>
+                <Check size={16} className="text-emerald-500 shrink-0" />
+                <span className="hidden sm:inline">Feedback Terkirim</span>
+                <span className="sm:hidden">Terkirim</span>
+              </>
+            ) : (
+              <>
+                <MessageSquare size={16} className="text-primary shrink-0" />
+                <span>Feedback</span>
+              </>
+            )}
+          </button>
+        </div>
 
         {/* Mobile Search Overlay (only when searching on mobile) */}
       </div>

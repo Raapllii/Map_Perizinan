@@ -144,7 +144,6 @@ export function FeedbackWidget({
     if (val === "" || val === value) {
       setValue("");
       setIsPreview(false);
-      onClose?.();
     } else {
       setValue(val);
       // Auto-focus the textarea after expansion
