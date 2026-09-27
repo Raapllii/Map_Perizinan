@@ -105,7 +105,6 @@ const EMOJIS = [
 
 interface FeedbackWidgetProps {
   onSubmit?: (data: { rating: string; feedback: string }) => void;
-  onClose?: () => void;
   className?: string;
   /** Text shown in the header */
   label?: string;
@@ -118,7 +117,6 @@ interface FeedbackWidgetProps {
 
 export function FeedbackWidget({
   onSubmit,
-  onClose,
   className,
   label = "Was this helpful?",
   placeholder = "Your feedback...",
