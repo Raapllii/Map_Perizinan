@@ -7,7 +7,7 @@ export type NavbarProps = {
   onSearch?: (query: string) => void;
   searchQuery?: string;
   onFocus?: () => void;
-  onFilterChange?: (filters: any[]) => void;
+  onFilterChange?: (filters: any) => void;
   searchResults?: any[];
   isSearching?: boolean;
   searchError?: string;

@@ -13,6 +13,11 @@ import {
   markFeedbackAsSubmitted,
   createFeedbackPayload
 } from "../lib/feedbackTriggerUtils";
+import {
+  PublicMapFilterState,
+  DEFAULT_FILTER_STATE,
+  computeActiveFilterCount
+} from "../components/ui/FilterCombobox";
 
 const CityMapLeaflet = lazy(() => import('../components/CityMapLeaflet'));
 
@@ -161,7 +166,7 @@ export default function PublicMapPage() {
   });
   const [mapType, setMapType] = useState<'peta' | 'satelit'>('peta');
 
-  const [activeFilters, setActiveFilters] = useState<any[]>([]);
+  const [activeFilters, setActiveFilters] = useState<PublicMapFilterState>(DEFAULT_FILTER_STATE);
   const [isFetchingMap, setIsFetchingMap] = useState(false);
 
   // Debounced Bounds & Zoom
@@ -193,19 +198,20 @@ export default function PublicMapPage() {
 
     let url = `/api/businesses?map=true&zoom=${mapZoom}`;
     if (mapBounds) url += `&bounds=${mapBounds}`;
+    if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
     
-    activeFilters.forEach((f: any) => {
-      let key = f.type.toLowerCase();
-      if (key === 'risiko') {
-        key = 'uraian_risiko_proyek';
-      }
-      if (f.value && f.value.length > 0) {
-        url += `&${key}=${encodeURIComponent(f.value.join(','))}`;
-      }
-      if (f.operator === 'bukan') {
-        url += `&${key}_operator=bukan`;
-      }
-    });
+    if (activeFilters.risiko && activeFilters.risiko !== 'Semua') {
+      url += `&uraian_risiko_proyek=${encodeURIComponent(activeFilters.risiko)}`;
+    }
+    if (activeFilters.kecamatan && activeFilters.kecamatan !== 'Semua') {
+      url += `&kecamatan_usaha=${encodeURIComponent(activeFilters.kecamatan)}`;
+    }
+    if (activeFilters.kelurahan && activeFilters.kelurahan !== 'Semua') {
+      url += `&kelurahan_usaha=${encodeURIComponent(activeFilters.kelurahan)}`;
+    }
+    if (activeFilters.kategori && activeFilters.kategori !== 'Semua') {
+      url += `&judul_kbli=${encodeURIComponent(activeFilters.kategori)}`;
+    }
 
     const controller = new AbortController();
 
@@ -223,7 +229,7 @@ export default function PublicMapPage() {
       });
 
     return () => controller.abort();
-  }, [mapBounds, mapZoom, activeFilters, visitor]);
+  }, [mapBounds, mapZoom, activeFilters, searchQuery, visitor]);
 
 
   const saveToHistory = (item: any) => {
@@ -252,7 +258,7 @@ export default function PublicMapPage() {
   };
 
   const resetFilters = () => {
-    setActiveFilters([]);
+    setActiveFilters(DEFAULT_FILTER_STATE);
   };
 
   const selected = selectedBusiness || {};
@@ -367,11 +373,21 @@ export default function PublicMapPage() {
         )}
 
         {/* Empty State Overlay */}
-        {mapZoom >= 8 && markers.length === 0 && activeFilters.length > 0 && !isFetchingMap && (
+        {mapZoom >= 8 && markers.length === 0 && computeActiveFilterCount(activeFilters) > 0 && !isFetchingMap && (
           <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
-            <div className="bg-background/90 backdrop-blur-md px-6 py-4 rounded-xl shadow-lg border border-border text-sm font-semibold text-foreground flex flex-col items-center gap-2">
-              <Search size={24} className="text-muted-foreground" />
-              Tidak ada data yang sesuai dengan filter.
+            <div className="pointer-events-auto bg-card/95 backdrop-blur-md px-6 py-5 rounded-2xl shadow-xl border border-border text-sm font-semibold text-foreground flex flex-col items-center gap-3 max-w-xs text-center">
+              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+                <Search size={20} />
+              </div>
+              <p className="text-sm font-bold text-foreground">Data tidak ditemukan</p>
+              <p className="text-xs text-muted-foreground font-normal">Tidak ada lokasi usaha yang cocok dengan filter yang dipilih.</p>
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="mt-1 px-4 py-2 bg-primary text-primary-foreground font-semibold text-xs rounded-lg shadow-sm hover:bg-primary/90 transition-all cursor-pointer"
+              >
+                Reset Filter
+              </button>
             </div>
           </div>
         )}

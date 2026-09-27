@@ -1,343 +1,295 @@
 "use client";
 
-import * as React from "react";
-import { useEffect, useState } from "react";
-import { ListFilter, X, Check, Tag, AlertTriangle, ShieldCheck } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { ListFilter, RotateCcw, ChevronDown } from "lucide-react";
 import { cn } from "../../lib/utils";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
-import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
-import { Command } from "cmdk";
-
-import { getRiskConfig } from "../../lib/riskUtils.ts";
+import { getRiskConfig } from "../../lib/riskUtils";
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
 /* -------------------------------------------------------------------------- */
 
-export enum FilterType {
-  KATEGORI = "Kategori",
-  RISIKO = "Risiko",
-  STATUS = "Status",
+export interface PublicMapFilterState {
+  risiko: string;    // 'Semua' | 'Rendah' | 'Menengah Rendah' | 'Menengah Tinggi' | 'Tinggi'
+  kecamatan: string; // 'Semua' | string
+  kelurahan: string; // 'Semua' | string
+  kategori: string;  // 'Semua' | string
 }
 
-export enum FilterOperator {
-  IS = "adalah",
-  IS_NOT = "bukan",
-  IS_ANY_OF = "salah satu dari",
-}
-
-export const kategoriOptions = ["PB-UMKU", "Non PB-UMKU", "Proyek Baru"];
-export const risikoOptions = ["Rendah", "Menengah Rendah", "Menengah Tinggi", "Tinggi"];
-export const statusOptions = ["Aktif", "Non-Aktif", "Dalam Proses"];
-
-export type FilterOption = {
-  name: string;
-  icon?: React.ReactNode;
+export const DEFAULT_FILTER_STATE: PublicMapFilterState = {
+  risiko: "Semua",
+  kecamatan: "Semua",
+  kelurahan: "Semua",
+  kategori: "Semua",
 };
 
-export type Filter = {
-  id: string;
-  type: FilterType;
-  operator: FilterOperator;
-  value: string[];
-};
-
-export const filterViewOptions: FilterOption[] = [
-  { name: FilterType.KATEGORI, icon: <Tag className="size-3.5" /> },
-  { name: FilterType.RISIKO, icon: <AlertTriangle className="size-3.5" /> },
-  { name: FilterType.STATUS, icon: <ShieldCheck className="size-3.5" /> },
+export const RISIKO_OPTIONS = [
+  { value: "Semua", label: "Semua Risiko" },
+  { value: "Rendah", label: "Risiko Rendah" },
+  { value: "Menengah Rendah", label: "Risiko Menengah Rendah" },
+  { value: "Menengah Tinggi", label: "Risiko Menengah Tinggi" },
+  { value: "Tinggi", label: "Risiko Tinggi" },
 ];
 
-export const filterViewToFilterOptions: Record<FilterType, FilterOption[]> = {
-  [FilterType.KATEGORI]: kategoriOptions.map(name => ({ name })),
-  [FilterType.RISIKO]: risikoOptions.map(name => ({ name })),
-  [FilterType.STATUS]: statusOptions.map(name => ({ name })),
-};
+export function computeActiveFilterCount(state: PublicMapFilterState): number {
+  let count = 0;
+  if (state.risiko && state.risiko !== "Semua") count++;
+  if (state.kecamatan && state.kecamatan !== "Semua") count++;
+  if (state.kelurahan && state.kelurahan !== "Semua") count++;
+  if (state.kategori && state.kategori !== "Semua") count++;
+  return count;
+}
 
-/* -------------------------------------------------------------------------- */
-/* Filter Operator Dropdown                                                   */
-/* -------------------------------------------------------------------------- */
-
-const FilterOperatorDropdown = ({ filterType, operator, filterValues, setOperator }: any) => {
-  const operators = filterValues.length > 1 
-    ? [FilterOperator.IS_ANY_OF, FilterOperator.IS_NOT]
-    : [FilterOperator.IS, FilterOperator.IS_NOT];
-
-  return (
-    <DropdownMenuPrimitive.Root>
-      <DropdownMenuPrimitive.Trigger className="shrink-0 bg-background border border-border px-2 py-1.5 text-foreground transition hover:bg-muted outline-none text-xs font-medium flex items-center rounded-md">
-        {operator}
-      </DropdownMenuPrimitive.Trigger>
-      <DropdownMenuPrimitive.Portal>
-        <DropdownMenuPrimitive.Content align="start" className="z-[70] w-32 min-w-fit bg-card border border-border rounded-md shadow-md p-1 outline-none text-sm font-medium">
-          {operators.map((item) => (
-            <DropdownMenuPrimitive.Item
-              key={item}
-              onClick={() => setOperator(item)}
-              className="px-2 py-1.5 rounded-sm outline-none cursor-pointer hover:bg-muted/50 focus:bg-muted/50 text-foreground"
-            >
-              {item}
-            </DropdownMenuPrimitive.Item>
-          ))}
-        </DropdownMenuPrimitive.Content>
-      </DropdownMenuPrimitive.Portal>
-    </DropdownMenuPrimitive.Root>
-  );
-};
-
-/* -------------------------------------------------------------------------- */
-/* Filter Value Combobox                                                      */
-/* -------------------------------------------------------------------------- */
-
-const FilterValueCombobox = ({ filterType, filterValues, setFilterValues }: any) => {
+export function FilterCombobox({ onChange }: { onChange?: (filters: PublicMapFilterState) => void }) {
   const [open, setOpen] = useState(false);
-  const [commandInput, setCommandInput] = useState("");
-  const nonSelected = filterViewToFilterOptions[filterType as FilterType]?.filter((f: any) => !filterValues.includes(f.name)) || [];
+  
+  // Applied filter state (synchronized with parent)
+  const [appliedFilters, setAppliedFilters] = useState<PublicMapFilterState>(DEFAULT_FILTER_STATE);
 
-  return (
-    <PopoverPrimitive.Root open={open} onOpenChange={(next) => { setOpen(next); if (!next) setTimeout(() => setCommandInput(""), 200); }}>
-      <PopoverPrimitive.Trigger className="shrink-0 rounded-md bg-background border border-border px-2 py-1.5 text-foreground transition hover:bg-muted outline-none text-xs font-medium flex items-center">
-        {filterValues.length === 1 ? filterValues[0] : `${filterValues.length} dipilih`}
-      </PopoverPrimitive.Trigger>
-      <PopoverPrimitive.Portal>
-        <PopoverPrimitive.Content className="z-[70] w-[200px] p-0 bg-card border border-border rounded-md shadow-md overflow-hidden">
-          <Command className="w-full flex flex-col bg-transparent">
-            <Command.Input
-              placeholder={filterType}
-              value={commandInput}
-              onValueChange={setCommandInput}
-              className="h-9 px-3 border-b border-border bg-transparent outline-none text-sm w-full"
-            />
-            <Command.List className="max-h-[200px] overflow-y-auto p-1">
-              <Command.Empty className="py-2 text-center text-xs text-muted-foreground">Tidak ditemukan.</Command.Empty>
-              
-              {filterValues.length > 0 && (
-                <Command.Group>
-                  {filterValues.map((value: string) => (
-                    <Command.Item
-                      key={value}
-                      value={value}
-                      onSelect={() => {
-                        setFilterValues(filterValues.filter((item: string) => item !== value));
-                        setOpen(false);
-                      }}
-                      className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm cursor-pointer aria-selected:bg-muted/50 group"
-                    >
-                      <div className="w-4 h-4 rounded-sm border border-primary bg-primary text-primary-foreground flex items-center justify-center">
-                        <Check className="size-3" />
-                      </div>
-                      <span className="text-foreground">{value}</span>
-                    </Command.Item>
-                  ))}
-                </Command.Group>
-              )}
-              
-              {nonSelected.length > 0 && (
-                <>
-                  {filterValues.length > 0 && <div className="h-px bg-border my-1" />}
-                  <Command.Group>
-                    {nonSelected.map((filter: any) => (
-                      <Command.Item
-                        key={filter.name}
-                        value={filter.name}
-                        onSelect={() => {
-                          setFilterValues([...filterValues, filter.name]);
-                          setOpen(false);
-                        }}
-                        className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm cursor-pointer aria-selected:bg-muted/50 group"
-                      >
-                        <div className="w-4 h-4 rounded-sm border border-border group-aria-selected:border-primary flex items-center justify-center" />
-                        <span className="text-foreground">{filter.name}</span>
-                      </Command.Item>
-                    ))}
-                  </Command.Group>
-                </>
-              )}
-            </Command.List>
-          </Command>
-        </PopoverPrimitive.Content>
-      </PopoverPrimitive.Portal>
-    </PopoverPrimitive.Root>
-  );
-};
+  // Draft filter state (editing inside popover before clicking Terapkan)
+  const [draftFilters, setDraftFilters] = useState<PublicMapFilterState>(DEFAULT_FILTER_STATE);
 
-/* -------------------------------------------------------------------------- */
-/* Active Filters Container                                                   */
-/* -------------------------------------------------------------------------- */
+  // Dynamic Options from API
+  const [kecamatanList, setKecamatanList] = useState<string[]>([]);
+  const [kelurahanList, setKelurahanList] = useState<string[]>([]);
+  const [kategoriList, setKategoriList] = useState<string[]>([]);
 
-const ActiveFilters = ({ filters, setFilters }: any) => {
-  return (
-    <div className="flex flex-col gap-4">
-      {filters.filter((f: any) => f.value?.length > 0).map((filter: any) => {
-        const icon = filterViewOptions.find(o => o.name === filter.type)?.icon;
-        return (
-          <div key={filter.id} className="flex flex-col gap-2">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-              {icon} {filter.type}
-            </div>
-            
-            <div className="flex flex-wrap items-center gap-2">
-              <FilterOperatorDropdown
-                filterType={filter.type}
-                operator={filter.operator}
-                filterValues={filter.value}
-                setOperator={(operator: any) => {
-                  setFilters((prev: any) => prev.map((item: any) => item.id === filter.id ? { ...item, operator } : item));
-                }}
-              />
-              
-              <FilterValueCombobox
-                filterType={filter.type}
-                filterValues={filter.value}
-                setFilterValues={(val: any) => {
-                  setFilters((prev: any) => prev.map((item: any) => item.id === filter.id ? { ...item, value: val } : item));
-                }}
-              />
-              
-              <button
-                onClick={() => setFilters((prev: any) => prev.filter((item: any) => item.id !== filter.id))}
-                className="flex items-center justify-center h-7 w-7 shrink-0 rounded-md bg-muted text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
-                title="Hapus Filter"
-              >
-                <X className="size-3.5" />
-              </button>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
-/* -------------------------------------------------------------------------- */
-/* Main Combobox Demo                                                         */
-/* -------------------------------------------------------------------------- */
-
-export function FilterCombobox({ onChange }: { onChange?: (filters: Filter[]) => void }) {
-  const [open, setOpen] = useState(false);
-  const [selectedView, setSelectedView] = useState<FilterType | null>(null);
-  const [commandInput, setCommandInput] = useState("");
-  const [filters, setFilters] = useState<Filter[]>([]);
-
+  // 1. Fetch initial Kecamatan & Category options
   useEffect(() => {
-    if (onChange) {
-      onChange(filters);
-    }
-  }, [filters, onChange]);
+    let isMounted = true;
 
-  const activeFilters = filters.filter((f) => f.value?.length > 0);
+    axios.get<string[]>("/api/locations/kecamatan")
+      .then((res) => {
+        if (isMounted && Array.isArray(res.data)) {
+          setKecamatanList(res.data);
+        }
+      })
+      .catch((err) => console.error("Gagal mengambil data kecamatan:", err));
+
+    axios.get<any[]>("/api/categories")
+      .then((res) => {
+        if (isMounted && Array.isArray(res.data)) {
+          const names = res.data.map((cat: any) => typeof cat === 'string' ? cat : (cat.name || cat.judul_kbli || '')).filter(Boolean);
+          setKategoriList(Array.from(new Set(names)));
+        }
+      })
+      .catch((err) => console.error("Gagal mengambil data kategori:", err));
+
+    return () => { isMounted = false; };
+  }, []);
+
+  // 2. Fetch Kelurahan options based on selected draft Kecamatan (Cascading)
+  useEffect(() => {
+    let isMounted = true;
+
+    let url = "/api/locations/kelurahan";
+    if (draftFilters.kecamatan && draftFilters.kecamatan !== "Semua") {
+      url += `?kecamatan_usaha=${encodeURIComponent(draftFilters.kecamatan)}`;
+    }
+
+    axios.get<string[]>(url)
+      .then((res) => {
+        if (isMounted && Array.isArray(res.data)) {
+          setKelurahanList(res.data);
+        }
+      })
+      .catch((err) => console.error("Gagal mengambil data kelurahan:", err));
+
+    return () => { isMounted = false; };
+  }, [draftFilters.kecamatan]);
+
+  // When popover opens, sync draft with currently applied filters
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      setDraftFilters(appliedFilters);
+    }
+    setOpen(nextOpen);
+  };
+
+  const handleKecamatanChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setDraftFilters((prev) => ({
+      ...prev,
+      kecamatan: val,
+      kelurahan: "Semua", // Cascading reset
+    }));
+  };
+
+  const handleApply = () => {
+    setAppliedFilters(draftFilters);
+    if (onChange) {
+      onChange(draftFilters);
+    }
+    setOpen(false);
+  };
+
+  const handleReset = () => {
+    setDraftFilters(DEFAULT_FILTER_STATE);
+    setAppliedFilters(DEFAULT_FILTER_STATE);
+    if (onChange) {
+      onChange(DEFAULT_FILTER_STATE);
+    }
+    setOpen(false);
+  };
+
+  const activeCount = computeActiveFilterCount(appliedFilters);
 
   return (
     <div className="relative inline-flex">
-      <PopoverPrimitive.Root open={open} onOpenChange={(next) => { setOpen(next); if (!next) setTimeout(() => { setSelectedView(null); setCommandInput(""); }, 200); }}>
-        <PopoverPrimitive.Trigger className={cn("group inline-flex h-9 items-center justify-center gap-2 rounded-full text-sm font-medium transition px-4 relative flex-shrink-0 whitespace-nowrap outline-none", activeFilters.length > 0 ? "bg-primary/10 text-primary hover:bg-primary/20" : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground")}>
+      <PopoverPrimitive.Root open={open} onOpenChange={handleOpenChange}>
+        <PopoverPrimitive.Trigger
+          type="button"
+          className={cn(
+            "group inline-flex h-9 items-center justify-center gap-2 rounded-full text-sm font-medium transition px-4 relative flex-shrink-0 whitespace-nowrap outline-none border cursor-pointer",
+            activeCount > 0
+              ? "bg-primary/10 text-primary border-primary/30 hover:bg-primary/20 shadow-sm"
+              : "bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground shadow-sm"
+          )}
+        >
           <ListFilter className="size-4 shrink-0 transition-all" />
           <span>Filter</span>
-          {activeFilters.length > 0 && (
+          {activeCount > 0 && (
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-              {activeFilters.length}
+              {activeCount}
             </span>
           )}
         </PopoverPrimitive.Trigger>
 
         <PopoverPrimitive.Portal>
-          <PopoverPrimitive.Content 
-            align="center" 
-            side="bottom" 
+          <PopoverPrimitive.Content
+            align="center"
+            side="bottom"
             sideOffset={8}
             collisionPadding={12}
             avoidCollisions
-            className="z-[70] w-[calc(100vw-24px)] md:w-[340px] max-w-[360px] p-0 bg-card border border-border rounded-xl shadow-xl overflow-hidden flex flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2"
+            className="z-[70] w-[calc(100vw-24px)] sm:w-[340px] max-w-[360px] p-0 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/20">
-              <span className="font-semibold text-sm text-foreground flex items-center gap-2">
-                Filter
-                {activeFilters.length > 0 && (
+              <span className="font-bold text-sm text-foreground flex items-center gap-2">
+                Filter Data
+                {activeCount > 0 && (
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                    {activeFilters.length}
+                    {activeCount}
                   </span>
                 )}
               </span>
-              {activeFilters.length > 0 && (
-                <button onClick={() => setFilters([])} className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
-                  Reset Semua
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={handleReset}
+                className="text-xs font-semibold text-muted-foreground hover:text-destructive flex items-center gap-1 transition-colors cursor-pointer"
+              >
+                <RotateCcw className="size-3" />
+                Reset
+              </button>
             </div>
 
-            {/* Active Filters list */}
-            {activeFilters.length > 0 && (
-              <div className="p-4 border-b border-border max-h-[40vh] overflow-y-auto bg-card">
-                <ActiveFilters filters={filters} setFilters={setFilters} />
-              </div>
-            )}
-
-            <Command className="w-full flex flex-col bg-transparent">
-              <Command.Input
-                placeholder={selectedView ? selectedView : "Tambah filter..."}
-                value={commandInput}
-                onValueChange={setCommandInput}
-                className="h-11 px-4 border-b border-border bg-transparent outline-none text-sm w-full"
-              />
-              <Command.List className="max-h-[250px] overflow-y-auto p-1.5">
-                <Command.Empty className="py-3 text-center text-xs text-muted-foreground">Tidak ditemukan.</Command.Empty>
-
-                {selectedView ? (
-                  <Command.Group>
-                    {filterViewToFilterOptions[selectedView].map((filter) => (
-                      <Command.Item
-                        key={filter.name}
-                        value={filter.name}
-                        onSelect={() => {
-                          setFilters(prev => {
-                            // Cek jika filter dengan tipe yang sama sudah ada
-                            const existing = prev.find(f => f.type === selectedView);
-                            if (existing) {
-                              if (existing.value.includes(filter.name)) return prev;
-                              return prev.map(f => f.type === selectedView ? { ...f, value: [...f.value, filter.name] } : f);
-                            }
-                            return [
-                              ...prev,
-                              {
-                                id: crypto.randomUUID(),
-                                type: selectedView,
-                                operator: FilterOperator.IS,
-                                value: [filter.name],
-                              }
-                            ];
-                          });
-                          setOpen(false);
-                        }}
-                        className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm cursor-pointer aria-selected:bg-muted/50 group text-muted-foreground"
-                      >
-                        {selectedView === FilterType.RISIKO && (
-                          <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', getRiskConfig(filter.name).dotClass)} />
-                        )}
-                        <span className="text-foreground">{filter.name}</span>
-                      </Command.Item>
+            {/* Form Fields */}
+            <div className="p-4 flex flex-col gap-3.5 max-h-[70vh] overflow-y-auto">
+              {/* 1. Tingkat Risiko */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-foreground">Tingkat Risiko</label>
+                <div className="relative">
+                  <select
+                    value={draftFilters.risiko}
+                    onChange={(e) => setDraftFilters((prev) => ({ ...prev, risiko: e.target.value }))}
+                    className="w-full h-9 pl-3 pr-8 bg-background border border-border rounded-lg text-xs font-medium text-foreground appearance-none outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer"
+                  >
+                    {RISIKO_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
                     ))}
-                  </Command.Group>
-                ) : (
-                  <Command.Group>
-                    {filterViewOptions.map((filter) => (
-                      <Command.Item
-                        key={filter.name}
-                        value={filter.name}
-                        onSelect={() => {
-                          setSelectedView(filter.name as FilterType);
-                          setCommandInput("");
-                        }}
-                        className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm cursor-pointer aria-selected:bg-muted/50 group text-muted-foreground"
-                      >
-                        {filter.icon}
-                        <span className="text-foreground font-medium">{filter.name}</span>
-                      </Command.Item>
-                    ))}
-                  </Command.Group>
+                  </select>
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                </div>
+                {/* Visual Risk Indicator Dot */}
+                {draftFilters.risiko !== "Semua" && (
+                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground pl-0.5 mt-0.5">
+                    <span className={cn("size-2 rounded-full inline-block", getRiskConfig(draftFilters.risiko).dotClass)} />
+                    <span className="font-semibold text-foreground">{draftFilters.risiko}</span>
+                  </div>
                 )}
-              </Command.List>
-            </Command>
+              </div>
+
+              {/* 2. Kecamatan */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-foreground">Kecamatan</label>
+                <div className="relative">
+                  <select
+                    value={draftFilters.kecamatan}
+                    onChange={handleKecamatanChange}
+                    className="w-full h-9 pl-3 pr-8 bg-background border border-border rounded-lg text-xs font-medium text-foreground appearance-none outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer"
+                  >
+                    <option value="Semua">Semua Kecamatan</option>
+                    {kecamatanList.map((kec) => (
+                      <option key={kec} value={kec}>
+                        {kec}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                </div>
+              </div>
+
+              {/* 3. Kelurahan/Desa (Cascading) */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-foreground">Kelurahan/Desa</label>
+                <div className="relative">
+                  <select
+                    value={draftFilters.kelurahan}
+                    onChange={(e) => setDraftFilters((prev) => ({ ...prev, kelurahan: e.target.value }))}
+                    className="w-full h-9 pl-3 pr-8 bg-background border border-border rounded-lg text-xs font-medium text-foreground appearance-none outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer"
+                  >
+                    <option value="Semua">Semua Kelurahan/Desa</option>
+                    {kelurahanList.map((kel) => (
+                      <option key={kel} value={kel}>
+                        {kel}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                </div>
+                {draftFilters.kecamatan !== "Semua" && (
+                  <span className="text-[10px] text-muted-foreground pl-0.5">
+                    Menampilkan kelurahan di <span className="font-semibold text-foreground">{draftFilters.kecamatan}</span>
+                  </span>
+                )}
+              </div>
+
+              {/* 4. Kategori Usaha */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-foreground">Kategori Usaha</label>
+                <div className="relative">
+                  <select
+                    value={draftFilters.kategori}
+                    onChange={(e) => setDraftFilters((prev) => ({ ...prev, kategori: e.target.value }))}
+                    className="w-full h-9 pl-3 pr-8 bg-background border border-border rounded-lg text-xs font-medium text-foreground appearance-none outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer"
+                  >
+                    <option value="Semua">Semua Kategori</option>
+                    {kategoriList.map((kat) => (
+                      <option key={kat} value={kat}>
+                        {kat}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Action Button */}
+            <div className="p-3 border-t border-border bg-muted/10 flex justify-end">
+              <button
+                type="button"
+                onClick={handleApply}
+                className="w-full sm:w-auto px-5 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs rounded-lg shadow-sm transition-all active:scale-95 cursor-pointer"
+              >
+                Terapkan
+              </button>
+            </div>
           </PopoverPrimitive.Content>
         </PopoverPrimitive.Portal>
       </PopoverPrimitive.Root>
