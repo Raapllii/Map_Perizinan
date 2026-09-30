@@ -15,46 +15,50 @@ class PublicMapAccessLogController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama' => 'required|string|min:2|max:255',
+            'nama'     => 'required|string|min:2|max:255',
             'instansi' => 'required|string|min:2|max:255',
+            'nik'      => 'nullable|digits:16',
         ], [
-            'nama.required' => 'Nama wajib diisi.',
-            'nama.min' => 'Nama minimal 2 karakter.',
+            'nama.required'     => 'Nama wajib diisi.',
+            'nama.min'          => 'Nama minimal 2 karakter.',
             'instansi.required' => 'Instansi wajib diisi.',
-            'instansi.min' => 'Instansi minimal 2 karakter.',
+            'instansi.min'      => 'Instansi minimal 2 karakter.',
+            'nik.digits'        => 'NIK harus 16 digit angka.',
         ]);
 
-        $nama = trim($validated['nama']);
+        $nama     = trim($validated['nama']);
         $instansi = trim($validated['instansi']);
 
         if (empty($nama) || empty($instansi)) {
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'Nama dan Instansi tidak boleh hanya berisi spasi.',
-                'errors' => [
-                    'nama' => empty($nama) ? ['Nama tidak boleh kosong.'] : [],
+                'errors'  => [
+                    'nama'     => empty($nama)     ? ['Nama tidak boleh kosong.'] : [],
                     'instansi' => empty($instansi) ? ['Instansi tidak boleh kosong.'] : [],
                 ]
             ], 422);
         }
 
         $log = PublicMapAccessLog::create([
-            'nama' => $nama,
-            'instansi' => $instansi,
+            'nama'        => $nama,
+            'instansi'    => $instansi,
+            'nik'         => $validated['nik'] ?? null,
             'accessed_at' => now(),
-            'ip_address' => $request->ip(),
-            'user_agent' => substr($request->userAgent() ?? '', 0, 500),
+            'ip_address'  => $request->ip(),
+            'user_agent'  => substr($request->userAgent() ?? '', 0, 500),
         ]);
 
         return response()->json([
-            'status' => 'success',
+            'status'  => 'success',
             'message' => 'Akses Peta PB berhasil dicatat.',
-            'data' => [
-                'id' => $log->id,
+            'data'    => [
+                'id'            => $log->id,
                 'access_log_id' => $log->id,
-                'nama' => $log->nama,
-                'instansi' => $log->instansi,
-                'accessed_at' => $log->accessed_at,
+                'nama'          => $log->nama,
+                'instansi'      => $log->instansi,
+                'nik'           => $log->nik,
+                'accessed_at'   => $log->accessed_at,
             ],
         ], 201);
     }

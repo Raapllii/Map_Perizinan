@@ -6,6 +6,7 @@ export interface VisitorData {
   nama: string;
   instansi: string;
   id?: number;
+  nik?: string;
   last_active?: number;
 }
 
