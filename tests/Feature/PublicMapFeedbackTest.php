@@ -93,9 +93,19 @@ class PublicMapFeedbackTest extends TestCase
 
     public function test_public_map_access_endpoint_returns_access_log_id_explicitly()
     {
+        $token = \Illuminate\Support\Str::random(64);
+        \App\Models\PublicMapVerification::create([
+            'token_hash'    => hash('sha256', $token),
+            'verified_nik'  => '3201234567890001',
+            'verified_name' => 'Budi Pengunjung',
+            'expires_at'    => now()->addMinutes(5),
+            'used_at'       => null,
+        ]);
+
         $response = $this->postJson('/api/public-map-access', [
-            'nama' => 'Budi Pengunjung',
-            'instansi' => 'Universitas Mulawarman',
+            'verification_token' => $token,
+            'nama'               => 'Budi Pengunjung',
+            'instansi'           => 'Universitas Mulawarman',
         ]);
 
         $response->assertStatus(201);

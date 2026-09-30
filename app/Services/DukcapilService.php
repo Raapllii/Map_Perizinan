@@ -17,7 +17,7 @@ class DukcapilService
     public function verifyNik(string $nik): ?string
     {
         if (!config('dukcapil.enabled', false)) {
-            return 'Warga Verified (' . substr($nik, 0, 6) . '***)';
+            return 'Warga Terverifikasi';
         }
 
         try {
@@ -35,8 +35,8 @@ class DukcapilService
             ]);
 
             return null;
-        } catch (\Exception $e) {
-            Log::error('Dukcapil API error: ' . $e->getMessage());
+        } catch (\Throwable) {
+            Log::error('Dukcapil API connection error');
             return null;
         }
     }

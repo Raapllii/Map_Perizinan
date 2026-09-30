@@ -11,6 +11,12 @@ class PublicMapAccessLog extends Model
 
     protected $guarded = [];
 
+    protected $hidden = [
+        'nik',
+        'ip_address',
+        'user_agent',
+    ];
+
     protected $casts = [
         'accessed_at' => 'datetime',
     ];

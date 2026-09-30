@@ -4,26 +4,39 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\PublicMapAccessLog;
+use App\Models\PublicMapVerification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class PublicMapAccessLogController extends Controller
 {
     /**
-     * Store visitor public map access.
+     * Store visitor public map access using a short-lived, single-use verification token.
+     * The verified NIK is retrieved server-side from the verification record.
+     * Client-supplied NIK is rejected.
      */
     public function store(Request $request)
     {
+        // Reject direct client-supplied NIK
+        if ($request->has('nik')) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Pengiriman NIK langsung tidak diizinkan. Gunakan token verifikasi.',
+                'errors'  => ['nik' => ['Pengiriman NIK tidak diizinkan.']],
+            ], 422);
+        }
+
         $validated = $request->validate([
-            'nama'     => 'required|string|min:2|max:255',
-            'instansi' => 'required|string|min:2|max:255',
-            'nik'      => 'nullable|digits:16',
+            'verification_token' => 'required|string',
+            'nama'               => 'required|string|min:2|max:255',
+            'instansi'           => 'required|string|min:2|max:255',
         ], [
-            'nama.required'     => 'Nama wajib diisi.',
-            'nama.min'          => 'Nama minimal 2 karakter.',
-            'instansi.required' => 'Instansi wajib diisi.',
-            'instansi.min'      => 'Instansi minimal 2 karakter.',
-            'nik.digits'        => 'NIK harus 16 digit angka.',
+            'verification_token.required' => 'Token verifikasi wajib disertakan.',
+            'nama.required'               => 'Nama wajib diisi.',
+            'nama.min'                    => 'Nama minimal 2 karakter.',
+            'instansi.required'           => 'Instansi wajib diisi.',
+            'instansi.min'                => 'Instansi minimal 2 karakter.',
         ]);
 
         $nama     = trim($validated['nama']);
@@ -36,21 +49,90 @@ class PublicMapAccessLogController extends Controller
                 'errors'  => [
                     'nama'     => empty($nama)     ? ['Nama tidak boleh kosong.'] : [],
                     'instansi' => empty($instansi) ? ['Instansi tidak boleh kosong.'] : [],
-                ]
+                ],
             ], 422);
         }
 
-        $log = PublicMapAccessLog::create([
-            'nama'        => $nama,
-            'instansi'    => $instansi,
-            'nik'         => $validated['nik'] ?? null,
-            'accessed_at' => now(),
-            'ip_address'  => $request->ip(),
-            'user_agent'  => substr($request->userAgent() ?? '', 0, 500),
-        ]);
+        $tokenHash = hash('sha256', $validated['verification_token']);
+
+        // Execute atomic verification consumption & log creation within row lock
+        $result = DB::transaction(function () use ($tokenHash, $nama, $instansi, $request) {
+            $verification = PublicMapVerification::where('token_hash', $tokenHash)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$verification) {
+                return [
+                    'status'  => 'error',
+                    'code'    => 422,
+                    'message' => 'Token verifikasi tidak valid atau tidak ditemukan.',
+                    'errors'  => ['verification_token' => ['Token verifikasi tidak valid.']],
+                ];
+            }
+
+            if ($verification->isUsed()) {
+                return [
+                    'status'  => 'error',
+                    'code'    => 422,
+                    'message' => 'Token verifikasi sudah pernah digunakan.',
+                    'errors'  => ['verification_token' => ['Token verifikasi sudah pernah digunakan.']],
+                ];
+            }
+
+            if ($verification->isExpired()) {
+                return [
+                    'status'  => 'error',
+                    'code'    => 422,
+                    'message' => 'Token verifikasi telah kedaluwarsa.',
+                    'errors'  => ['verification_token' => ['Token verifikasi telah kedaluwarsa. Silakan verifikasi ulang NIK.']],
+                ];
+            }
+
+            // Verify that submitted nama matches the verified name
+            if (strcasecmp(trim($verification->verified_name), $nama) !== 0) {
+                return [
+                    'status'  => 'error',
+                    'code'    => 422,
+                    'message' => 'Nama tidak sesuai dengan data NIK terverifikasi.',
+                    'errors'  => ['nama' => ['Nama tidak sesuai dengan nama yang terverifikasi.']],
+                ];
+            }
+
+            // Consume token atomically
+            $verification->update([
+                'used_at' => now(),
+            ]);
+
+            // Create access log using server-authoritative verified NIK
+            $log = PublicMapAccessLog::create([
+                'nama'        => $verification->verified_name,
+                'instansi'    => $instansi,
+                'nik'         => $verification->verified_nik,
+                'accessed_at' => now(),
+                'ip_address'  => $request->ip(),
+                'user_agent'  => substr($request->userAgent() ?? '', 0, 500),
+            ]);
+
+            return [
+                'status' => 'success',
+                'code'   => 201,
+                'log'    => $log,
+            ];
+        });
+
+        if ($result['status'] === 'error') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $result['message'],
+                'errors'  => $result['errors'],
+            ], $result['code']);
+        }
+
+        $log = $result['log'];
 
         return response()->json([
             'status'  => 'success',
+            'success' => true,
             'message' => 'Akses Peta PB berhasil dicatat.',
             'data'    => [
                 'id'            => $log->id,

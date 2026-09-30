@@ -15,27 +15,28 @@ class RateLimitTest extends TestCase
         RateLimiter::clear('throttle:nik-verify');
     }
 
-    public function test_verify_nik_rate_limit_allows_10_requests_per_minute()
+    public function test_captcha_challenge_rate_limit_allows_10_requests_and_blocks_on_11th()
     {
-        // Make 10 valid-format requests (they will fail NIK validation, but
-        // the rate limiter runs before business logic, so we just need 11 hits).
         for ($i = 0; $i < 10; $i++) {
             $response = $this->getJson('/api/captcha-challenge');
-            // Should NOT be rate-limited for the first 10 requests
             $response->assertStatus(200);
         }
+
+        // 11th request: HTTP 429 Too Many Requests
+        $response = $this->getJson('/api/captcha-challenge');
+        $response->assertStatus(429);
     }
 
-    public function test_verify_nik_rate_limit_blocks_on_11th_request()
+    public function test_verify_nik_endpoint_is_protected_by_rate_limiter()
     {
-        // Exhaust the 10/min nik-verify limit by hitting captcha-challenge
-        // (it shares the same throttle group)
+        // First 10 requests are allowed through to controller (failing on missing data 422, not 429)
         for ($i = 0; $i < 10; $i++) {
-            $this->getJson('/api/captcha-challenge');
+            $response = $this->postJson('/api/verify-nik', []);
+            $response->assertStatus(422);
         }
 
-        // The 11th request should be rate-limited (HTTP 429)
-        $response = $this->getJson('/api/captcha-challenge');
+        // 11th request: HTTP 429 Too Many Requests
+        $response = $this->postJson('/api/verify-nik', []);
         $response->assertStatus(429);
     }
 }

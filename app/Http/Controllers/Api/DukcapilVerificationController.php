@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\PublicMapVerification;
 use App\Services\DukcapilService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class DukcapilVerificationController extends Controller
 {
@@ -13,7 +16,8 @@ class DukcapilVerificationController extends Controller
     }
 
     /**
-     * Validate CAPTCHA, then verify NIK via Dukcapil, return citizen name.
+     * Validate CAPTCHA, verify NIK via Dukcapil, create short-lived verification token.
+     * Response returns only verification_token and verified name (NO NIK).
      */
     public function verify(Request $request)
     {
@@ -29,7 +33,7 @@ class DukcapilVerificationController extends Controller
         if (!$this->verifyCaptcha($request->captcha_token, $request->captcha_answer)) {
             return response()->json([
                 'message' => 'CAPTCHA tidak valid.',
-                'errors'  => ['captcha_answer' => ['Jawaban CAPTCHA salah atau sudah kedaluwarsa.']],
+                'errors'  => ['captcha_answer' => ['Jawaban CAPTCHA salah, sudah digunakan, atau kedaluwarsa.']],
             ], 422);
         }
 
@@ -37,19 +41,37 @@ class DukcapilVerificationController extends Controller
 
         if (!$nama) {
             return response()->json([
-                'message' => 'NIK tidak ditemukan atau tidak valid dalam data Dukcapil.',
-                'errors'  => ['nik' => ['NIK tidak ditemukan.']],
+                'status'  => 'error',
+                'message' => 'Verifikasi NIK gagal. Silakan periksa data atau coba lagi.',
+                'errors'  => ['nik' => ['Verifikasi NIK gagal. Silakan periksa data atau coba lagi.']],
             ], 422);
         }
 
+        // Generate cryptographically secure random verification token (64 chars)
+        $plainToken = Str::random(64);
+        $tokenHash  = hash('sha256', $plainToken);
+
+        // Store server-side verification record with 5-minute TTL
+        PublicMapVerification::create([
+            'token_hash'    => $tokenHash,
+            'verified_nik'  => $request->nik,
+            'verified_name' => $nama,
+            'expires_at'    => now()->addMinutes(5),
+            'used_at'       => null,
+        ]);
+
         return response()->json([
-            'status' => 'success',
-            'data'   => ['nama' => $nama],
+            'status'  => 'success',
+            'success' => true,
+            'data'    => [
+                'verification_token' => $plainToken,
+                'nama'               => $nama,
+            ],
         ]);
     }
 
     /**
-     * Validate CAPTCHA signed token.
+     * Validate CAPTCHA signed token and enforce single-use replay protection.
      * Token format (base64-decoded): "{answer}::{timestamp}::{hmac}"
      * Valid for 10 minutes.
      */
@@ -64,14 +86,30 @@ class DukcapilVerificationController extends Controller
 
             [$answer, $timestamp, $hmac] = $parts;
 
-            // Check expiry (10 minutes)
-            if (time() - (int) $timestamp > 600) return false;
+            // Check expiry (10 minutes = 600s)
+            $age = time() - (int) $timestamp;
+            if ($age > 600 || $age < 0) return false;
 
             // Verify HMAC integrity
             $expectedHmac = hash_hmac('sha256', $answer . '::' . $timestamp, config('app.key'));
             if (!hash_equals($expectedHmac, $hmac)) return false;
 
-            return (int) $userAnswer === (int) $answer;
+            // Replay protection: check if this CAPTCHA signature was already consumed
+            $cacheKey = 'captcha_used:' . $hmac;
+            if (Cache::has($cacheKey)) {
+                return false;
+            }
+
+            // Verify answer
+            if ((int) $userAnswer !== (int) $answer) {
+                return false;
+            }
+
+            // Mark CAPTCHA challenge as consumed for the remaining TTL (up to 600s)
+            $remainingTtl = max(1, 600 - $age);
+            Cache::put($cacheKey, true, $remainingTtl);
+
+            return true;
         } catch (\Throwable) {
             return false;
         }

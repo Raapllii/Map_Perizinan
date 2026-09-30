@@ -9,7 +9,7 @@ import { setVisitorSession } from "../lib/visitorSession";
 
 interface PublicAccessModalProps {
   isOpen: boolean;
-  onSuccess: (visitor: { nama: string; instansi: string; id?: number }) => void;
+  onSuccess: (visitor: { nama: string; instansi: string; id?: number; access_log_id?: number }) => void;
 }
 
 type Step = "nik" | "instansi" | "done";
@@ -28,7 +28,8 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
   const [captchaAnswer, setCaptchaAnswer] = useState("");
   const [captchaLoading, setCaptchaLoading] = useState(false);
 
-  // Step 2: Instansi
+  // Step 2: Instansi + Single-use Verification Token
+  const [verificationToken, setVerificationToken] = useState("");
   const [namaVerified, setNamaVerified] = useState("");
   const [instansi, setInstansi] = useState("");
 
@@ -52,6 +53,7 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
     if (isOpen) {
       setStep("nik");
       setNik("");
+      setVerificationToken("");
       setNamaVerified("");
       setInstansi("");
       setCaptchaAnswer("");
@@ -88,7 +90,15 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
         captcha_token: captcha.token,
         captcha_answer: captchaAnswer.trim(),
       });
-      setNamaVerified(res.data.data.nama);
+
+      const data = res.data?.data;
+      setVerificationToken(data.verification_token);
+      setNamaVerified(data.nama);
+
+      // Immediately clear NIK from state once verified
+      setNik("");
+      setCaptcha(null);
+      setCaptchaAnswer("");
       setStep("instansi");
     } catch (err: any) {
       const errData = err.response?.data;
@@ -96,14 +106,14 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
         ? (Object.values(errData.errors).flat()[0] as string)
         : undefined;
       setErrorMessage(firstFieldError || errData?.message || "Verifikasi gagal. Silakan coba lagi.");
-      // Refresh CAPTCHA on any error
+      // Refresh CAPTCHA on error
       fetchCaptcha();
     } finally {
       setLoading(false);
     }
   };
 
-  // ── Step 2: Submit instansi + log access ─────────────────────────────
+  // ── Step 2: Submit instansi + log access via verification token ────────
   const handleSubmitInstansi = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
@@ -114,17 +124,29 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
       return;
     }
 
+    if (!verificationToken) {
+      setErrorMessage("Sesi verifikasi telah kedaluwarsa. Silakan verifikasi ulang NIK.");
+      setStep("nik");
+      fetchCaptcha();
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await axios.post("/api/public-map-access", {
+        verification_token: verificationToken,
         nama: namaVerified,
         instansi: trimmedInstansi,
-        nik: nik.replace(/\D/g, ""),
       });
 
-      const visitorData = res.data?.data || {
-        nama: namaVerified,
-        instansi: trimmedInstansi,
+      // Immediately clear verification token from React state
+      setVerificationToken("");
+
+      const visitorData = {
+        id: res.data?.data?.id,
+        access_log_id: res.data?.data?.access_log_id,
+        nama: res.data?.data?.nama || namaVerified,
+        instansi: res.data?.data?.instansi || trimmedInstansi,
       };
 
       setStep("done");
@@ -137,7 +159,16 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
       const firstFieldError = errData?.errors
         ? (Object.values(errData.errors).flat()[0] as string)
         : undefined;
-      setErrorMessage(firstFieldError || errData?.message || "Terjadi kesalahan. Silakan coba lagi.");
+      const msg = firstFieldError || errData?.message || "Terjadi kesalahan. Silakan coba lagi.";
+      setErrorMessage(msg);
+
+      // If token is invalid or expired, reset to step 1
+      if (errData?.errors?.verification_token) {
+        setVerificationToken("");
+        setNamaVerified("");
+        setStep("nik");
+        fetchCaptcha();
+      }
     } finally {
       setLoading(false);
     }

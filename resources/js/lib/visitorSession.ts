@@ -1,12 +1,14 @@
 /**
  * Visitor Session Helper with 15-Minute Inactivity Timeout
+ * Ensures visitor data stored in sessionStorage strictly contains only
+ * non-sensitive public identity (nama, instansi, id, access_log_id).
  */
 
 export interface VisitorData {
   nama: string;
   instansi: string;
   id?: number;
-  nik?: string;
+  access_log_id?: number;
   last_active?: number;
 }
 
@@ -16,10 +18,14 @@ export const THROTTLE_UPDATE_MS = 10 * 1000; // Throttle storage updates to once
 
 /**
  * Save or update visitor session in sessionStorage with current timestamp.
+ * Sanitizes input to ensure NO sensitive data (e.g. NIK or tokens) is ever stored.
  */
-export function setVisitorSession(visitor: VisitorData): VisitorData {
+export function setVisitorSession(visitor: Partial<VisitorData> & { nama: string; instansi: string }): VisitorData {
   const dataToStore: VisitorData = {
-    ...visitor,
+    nama: visitor.nama,
+    instansi: visitor.instansi,
+    id: visitor.id,
+    access_log_id: visitor.access_log_id || visitor.id,
     last_active: Date.now(),
   };
   try {
