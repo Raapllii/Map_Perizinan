@@ -29,8 +29,10 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 // Public API Routes (Map Data & Filter References)
 Route::post('/public-map-access', [PublicMapAccessLogController::class, 'store']);
 Route::post('/public-map-feedback', [PublicMapFeedbackController::class, 'store']);
-Route::get('/captcha-challenge', [CaptchaController::class, 'challenge']);
-Route::post('/verify-nik', [DukcapilVerificationController::class, 'verify']);
+Route::middleware('throttle:nik-verify')->group(function () {
+    Route::get('/captcha-challenge', [CaptchaController::class, 'challenge']);
+    Route::post('/verify-nik', [DukcapilVerificationController::class, 'verify']);
+});
 Route::get('/businesses/search', [BusinessController::class, 'search']);
 Route::get('/businesses', [BusinessController::class, 'index']);
 Route::get('/businesses/{business}', [BusinessController::class, 'show']);

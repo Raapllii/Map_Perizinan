@@ -9,7 +9,7 @@ import { setVisitorSession } from "../lib/visitorSession";
 
 interface PublicAccessModalProps {
   isOpen: boolean;
-  onSuccess: (visitor: { nama: string; instansi: string; nik?: string; id?: number }) => void;
+  onSuccess: (visitor: { nama: string; instansi: string; id?: number }) => void;
 }
 
 type Step = "nik" | "instansi" | "done";
@@ -125,7 +125,6 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
       const visitorData = res.data?.data || {
         nama: namaVerified,
         instansi: trimmedInstansi,
-        nik: nik.replace(/\D/g, ""),
       };
 
       setStep("done");

@@ -32,7 +32,6 @@ class DukcapilService
 
             Log::warning('Dukcapil API non-success', [
                 'status' => $response->status(),
-                'body'   => $response->body(),
             ]);
 
             return null;

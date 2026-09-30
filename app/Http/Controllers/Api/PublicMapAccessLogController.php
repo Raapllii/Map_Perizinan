@@ -57,7 +57,6 @@ class PublicMapAccessLogController extends Controller
                 'access_log_id' => $log->id,
                 'nama'          => $log->nama,
                 'instansi'      => $log->instansi,
-                'nik'           => $log->nik,
                 'accessed_at'   => $log->accessed_at,
             ],
         ], 201);
