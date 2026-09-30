@@ -107,3 +107,69 @@ export function formatFallback(value: any, fallback = '-'): string {
   const str = String(value).trim();
   return str === '' ? fallback : str;
 }
+
+export function formatCurrency(val: any): string {
+  if (val === null || val === undefined || val === '' || isNaN(Number(val))) return '-';
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(val));
+}
+
+export function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return '-';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return new Intl.DateTimeFormat('id-ID', { dateStyle: 'long' }).format(d);
+  } catch(e) {
+    return dateStr;
+  }
+}
+
+export interface BusinessIndicatorItem {
+  id: string | number;
+  judul: string;
+  nilai: string;
+  sort_order?: number;
+}
+
+/**
+ * Extracts non-empty indicators from business object.
+ * Prefers relational business.indicators (sorted by sort_order).
+ * Falls back to legacy indicator_1 .. indicator_10 if relational indicators are empty.
+ */
+export function extractBusinessIndicators(business: any): BusinessIndicatorItem[] {
+  if (!business) return [];
+
+  // 1. Relational Indicators
+  if (Array.isArray(business.indicators) && business.indicators.length > 0) {
+    const sorted = [...business.indicators].sort((a, b) => {
+      const orderA = a.sort_order ?? a.id ?? 0;
+      const orderB = b.sort_order ?? b.id ?? 0;
+      return orderA - orderB;
+    });
+
+    return sorted
+      .filter((ind: any) => ind && ind.judul && ind.nilai !== null && ind.nilai !== undefined && String(ind.nilai).trim() !== '')
+      .map((ind: any) => ({
+        id: ind.id ?? ind.judul,
+        judul: String(ind.judul).trim(),
+        nilai: String(ind.nilai).trim(),
+        sort_order: ind.sort_order,
+      }));
+  }
+
+  // 2. Legacy Fallback (indicator_1 .. indicator_10)
+  const legacyItems: BusinessIndicatorItem[] = [];
+  for (let n = 1; n <= 10; n++) {
+    const val = business[`indicator_${n}`];
+    if (val !== null && val !== undefined && String(val).trim() !== '') {
+      legacyItems.push({
+        id: `legacy_${n}`,
+        judul: `Indikator ${n}`,
+        nilai: String(val).trim(),
+        sort_order: n,
+      });
+    }
+  }
+
+  return legacyItems;
+}
