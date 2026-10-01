@@ -1,11 +1,18 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import {
-  Globe, ArrowRight, Loader2, ShieldCheck, RefreshCw,
-  CheckCircle2, User, Building2
+  Globe, ArrowRight, ArrowLeft, Loader2, ShieldCheck, RefreshCw,
+  CheckCircle2, Building2
 } from "lucide-react";
 import { Btn, InputField } from "./ui";
 import { setVisitorSession } from "../lib/visitorSession";
+
+export interface VerifiedIdentity {
+  nama: string;
+  jenis_kelamin?: string | null;
+  tempat_lahir?: string | null;
+  tanggal_lahir?: string | null;
+}
 
 interface PublicAccessModalProps {
   isOpen: boolean;
@@ -19,6 +26,28 @@ interface CaptchaChallenge {
   token: string;
 }
 
+function formatTanggalLahir(rawDate?: string | null): string {
+  if (!rawDate) return "—";
+  try {
+    const parts = rawDate.split("-");
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      const months = [
+        "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+        "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+      ];
+      if (!isNaN(year) && !isNaN(month) && !isNaN(day) && months[month]) {
+        return `${day} ${months[month]} ${year}`;
+      }
+    }
+    return rawDate;
+  } catch {
+    return rawDate;
+  }
+}
+
 export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessModalProps) {
   const [step, setStep] = useState<Step>("nik");
 
@@ -28,9 +57,10 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
   const [captchaAnswer, setCaptchaAnswer] = useState("");
   const [captchaLoading, setCaptchaLoading] = useState(false);
 
-  // Step 2: Instansi + Single-use Verification Token
+  // Step 2: Instansi + Single-use Verification Token + Biodata Display
   const [verificationToken, setVerificationToken] = useState("");
   const [namaVerified, setNamaVerified] = useState("");
+  const [verifiedIdentity, setVerifiedIdentity] = useState<VerifiedIdentity | null>(null);
   const [instansi, setInstansi] = useState("");
 
   const [loading, setLoading] = useState(false);
@@ -55,6 +85,7 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
       setNik("");
       setVerificationToken("");
       setNamaVerified("");
+      setVerifiedIdentity(null);
       setInstansi("");
       setCaptchaAnswer("");
       setErrorMessage("");
@@ -94,6 +125,7 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
       const data = res.data?.data;
       setVerificationToken(data.verification_token);
       setNamaVerified(data.nama);
+      setVerifiedIdentity(data.identity || { nama: data.nama });
 
       // Immediately clear NIK from state once verified
       setNik("");
@@ -111,6 +143,17 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBackToNik = () => {
+    setStep("nik");
+    setVerificationToken("");
+    setNamaVerified("");
+    setVerifiedIdentity(null);
+    setInstansi("");
+    setCaptchaAnswer("");
+    setErrorMessage("");
+    fetchCaptcha();
   };
 
   // ── Step 2: Submit instansi + log access via verification token ────────
@@ -139,8 +182,9 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
         instansi: trimmedInstansi,
       });
 
-      // Immediately clear verification token from React state
+      // Immediately clear verification token and identity from React state
       setVerificationToken("");
+      setVerifiedIdentity(null);
 
       const visitorData = {
         id: res.data?.data?.id,
@@ -166,6 +210,7 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
       if (errData?.errors?.verification_token) {
         setVerificationToken("");
         setNamaVerified("");
+        setVerifiedIdentity(null);
         setStep("nik");
         fetchCaptcha();
       }
@@ -178,11 +223,11 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-4 bg-background/85 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="w-full max-w-md bg-card text-card-foreground border border-border shadow-2xl rounded-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+      <div className="w-full max-w-md max-h-[92vh] overflow-y-auto bg-card text-card-foreground border border-border shadow-2xl rounded-2xl flex flex-col animate-in zoom-in-95 duration-200">
         {/* Decorative Top Accent */}
-        <div className="h-1.5 w-full bg-gradient-to-r from-primary via-primary/80 to-primary/60" />
+        <div className="h-1.5 w-full bg-gradient-to-r from-primary via-primary/80 to-primary/60 shrink-0" />
 
-        <div className="p-6 sm:p-8 space-y-6">
+        <div className="p-5 sm:p-7 space-y-5">
           {/* Header */}
           <div className="text-center space-y-2">
             <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 text-primary mx-auto flex items-center justify-center shadow-xs">
@@ -192,12 +237,12 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
             </div>
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
               {step === "nik" && "Verifikasi Identitas"}
-              {step === "instansi" && "Lengkapi Data"}
+              {step === "instansi" && "Konfirmasi Identitas"}
               {step === "done" && "Akses Diberikan"}
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground max-w-xs mx-auto">
               {step === "nik" && "Masukkan NIK Anda untuk memverifikasi identitas sebelum mengakses peta."}
-              {step === "instansi" && "Identitas terverifikasi. Pilih instansi Anda untuk melanjutkan."}
+              {step === "instansi" && "Identitas resmi terverifikasi. Masukkan instansi untuk melanjutkan."}
               {step === "done" && "Selamat datang di Peta WebGIS Perizinan Berusaha."}
             </p>
           </div>
@@ -307,17 +352,57 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
             </form>
           )}
 
-          {/* ── Step 2: Instansi ── */}
+          {/* ── Step 2: Konfirmasi Identitas + Instansi ── */}
           {step === "instansi" && (
             <form onSubmit={handleSubmitInstansi} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
-                  Nama (Terverifikasi)
-                </label>
-                <div className="flex items-center gap-2 px-3 py-2.5 bg-success/10 border border-success/30 rounded-lg text-sm font-semibold text-foreground">
-                  <User size={14} className="text-success shrink-0" />
-                  <span className="truncate">{namaVerified}</span>
-                  <CheckCircle2 size={14} className="text-success shrink-0 ml-auto" />
+              {/* Identity Verification Card */}
+              <div className="bg-muted/40 border border-border/80 rounded-xl p-3.5 sm:p-4 space-y-3">
+                <div className="flex items-center gap-2 pb-2.5 border-b border-border/60">
+                  <div className="w-5 h-5 rounded-full bg-success/15 text-success flex items-center justify-center shrink-0">
+                    <CheckCircle2 size={13} className="text-success" />
+                  </div>
+                  <span className="text-xs font-semibold text-foreground tracking-tight">
+                    Identitas Terverifikasi
+                  </span>
+                  <span className="ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full bg-success/10 text-success border border-success/20">
+                    Resmi
+                  </span>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-center justify-between py-1 border-b border-border/30">
+                    <span className="text-muted-foreground font-medium">Nama</span>
+                    <span className="font-semibold text-foreground text-right">
+                      {verifiedIdentity?.nama || namaVerified}
+                    </span>
+                  </div>
+
+                  {verifiedIdentity?.jenis_kelamin && (
+                    <div className="flex items-center justify-between py-1 border-b border-border/30">
+                      <span className="text-muted-foreground font-medium">Jenis Kelamin</span>
+                      <span className="font-semibold text-foreground text-right">
+                        {verifiedIdentity.jenis_kelamin}
+                      </span>
+                    </div>
+                  )}
+
+                  {verifiedIdentity?.tempat_lahir && (
+                    <div className="flex items-center justify-between py-1 border-b border-border/30">
+                      <span className="text-muted-foreground font-medium">Tempat Lahir</span>
+                      <span className="font-semibold text-foreground text-right">
+                        {verifiedIdentity.tempat_lahir}
+                      </span>
+                    </div>
+                  )}
+
+                  {verifiedIdentity?.tanggal_lahir && (
+                    <div className="flex items-center justify-between py-1">
+                      <span className="text-muted-foreground font-medium">Tanggal Lahir</span>
+                      <span className="font-semibold text-foreground text-right">
+                        {formatTanggalLahir(verifiedIdentity.tanggal_lahir)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -336,17 +421,27 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
                 />
               </div>
 
-              <div className="pt-2">
+              <div className="flex items-center gap-2 pt-2">
+                <Btn
+                  type="button"
+                  variant="outline"
+                  disabled={loading}
+                  onClick={handleBackToNik}
+                  className="flex-1 justify-center py-2.5 text-xs font-semibold gap-1.5 cursor-pointer"
+                >
+                  <ArrowLeft size={14} />
+                  <span>Kembali</span>
+                </Btn>
                 <Btn
                   type="submit"
                   variant="primary"
                   disabled={loading}
-                  className="w-full justify-center py-2.5 sm:py-3 text-sm font-semibold shadow-md gap-2"
+                  className="flex-[2] justify-center py-2.5 text-xs font-semibold shadow-md gap-1.5 cursor-pointer"
                 >
                   {loading ? (
-                    <><Loader2 size={18} className="animate-spin" /><span>Menghubungkan ke Peta...</span></>
+                    <><Loader2 size={16} className="animate-spin" /><span>Menghubungkan...</span></>
                   ) : (
-                    <><Building2 size={16} /><span>Masuk ke Peta</span></>
+                    <><Building2 size={14} /><span>Konfirmasi & Lanjutkan</span></>
                   )}
                 </Btn>
               </div>

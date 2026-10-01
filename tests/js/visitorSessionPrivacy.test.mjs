@@ -23,34 +23,46 @@ describe('Visitor Session Privacy & Hygiene', () => {
     storage.clear();
   });
 
-  it('never stores NIK in sessionStorage even if passed in input object', () => {
-    const maliciousPayload = {
-      nama: 'Budi Santoso',
+  it('never stores NIK, biodata (gender, birthplace, birthdate), or tokens in sessionStorage', () => {
+    const rawInputPayload = {
+      nama: 'Rahmat Hidayat',
       instansi: 'DPMPTSP',
       id: 42,
       access_log_id: 42,
-      nik: '3201234567890001', // Should be discarded
-      verification_token: 'secret-token-xyz', // Should be discarded
+      nik: '3201234567890001', // Must be discarded
+      verification_token: 'secret-token-xyz', // Must be discarded
+      jenis_kelamin: 'Laki-laki', // Must be discarded from storage
+      tempat_lahir: 'Banjarmasin', // Must be discarded from storage
+      tanggal_lahir: '1998-05-12', // Must be discarded from storage
     };
 
-    setVisitorSession(maliciousPayload);
+    setVisitorSession(rawInputPayload);
 
     const rawStored = sessionStorage.getItem(VISITOR_SESSION_KEY);
     assert.ok(rawStored, 'Session must exist in storage');
 
     const parsed = JSON.parse(rawStored);
-    assert.strictEqual(parsed.nama, 'Budi Santoso');
+    assert.strictEqual(parsed.nama, 'Rahmat Hidayat');
     assert.strictEqual(parsed.instansi, 'DPMPTSP');
     assert.strictEqual(parsed.id, 42);
     assert.strictEqual(parsed.access_log_id, 42);
 
-    // Verify NIK is NOT in sessionStorage
-    assert.strictEqual(parsed.nik, undefined, 'NIK must NOT be present in sessionStorage');
+    // Verify NIK and sensitive biodata are NOT in sessionStorage
+    assert.strictEqual(parsed.nik, undefined, 'NIK must NOT be in sessionStorage');
+    assert.strictEqual(parsed.jenis_kelamin, undefined, 'Gender must NOT be in sessionStorage');
+    assert.strictEqual(parsed.tempat_lahir, undefined, 'Birthplace must NOT be in sessionStorage');
+    assert.strictEqual(parsed.tanggal_lahir, undefined, 'Birthdate must NOT be in sessionStorage');
+    assert.strictEqual(parsed.verification_token, undefined, 'Verification token must NOT be in sessionStorage');
+
+    // Ensure raw strings do not exist in storage string
     assert.strictEqual(rawStored.includes('3201234567890001'), false, 'NIK string must not exist in raw storage');
     assert.strictEqual(rawStored.includes('secret-token-xyz'), false, 'Token string must not exist in raw storage');
+    assert.strictEqual(rawStored.includes('1998-05-12'), false, 'Birthdate string must not exist in raw storage');
+    assert.strictEqual(rawStored.includes('Banjarmasin'), false, 'Birthplace string must not exist in raw storage');
+    assert.strictEqual(rawStored.includes('Laki-laki'), false, 'Gender string must not exist in raw storage');
   });
 
-  it('retrieves only sanitized visitor identity from session', () => {
+  it('retrieves only sanitized public visitor identity from session', () => {
     setVisitorSession({
       nama: 'Siti Rahma',
       instansi: 'BAPENDA',

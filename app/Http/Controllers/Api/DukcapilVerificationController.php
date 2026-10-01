@@ -17,7 +17,8 @@ class DukcapilVerificationController extends Controller
 
     /**
      * Validate CAPTCHA, verify NIK via Dukcapil, create short-lived verification token.
-     * Response returns only verification_token and verified name (NO NIK).
+     * Response returns only verification_token, verified name, and verified identity biodata.
+     * NIK is NEVER returned to the client.
      */
     public function verify(Request $request)
     {
@@ -37,9 +38,9 @@ class DukcapilVerificationController extends Controller
             ], 422);
         }
 
-        $nama = $this->dukcapil->verifyNik($request->nik);
+        $identity = $this->dukcapil->verifyNik($request->nik);
 
-        if (!$nama) {
+        if (!$identity || empty($identity['nama'])) {
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Verifikasi NIK gagal. Silakan periksa data atau coba lagi.',
@@ -47,11 +48,13 @@ class DukcapilVerificationController extends Controller
             ], 422);
         }
 
+        $nama = $identity['nama'];
+
         // Generate cryptographically secure random verification token (64 chars)
         $plainToken = Str::random(64);
         $tokenHash  = hash('sha256', $plainToken);
 
-        // Store server-side verification record with 5-minute TTL
+        // Store server-side verification record with 5-minute TTL bound to verified identity
         PublicMapVerification::create([
             'token_hash'    => $tokenHash,
             'verified_nik'  => $request->nik,
@@ -66,6 +69,12 @@ class DukcapilVerificationController extends Controller
             'data'    => [
                 'verification_token' => $plainToken,
                 'nama'               => $nama,
+                'identity'           => [
+                    'nama'          => $nama,
+                    'jenis_kelamin' => $identity['jenis_kelamin'] ?? null,
+                    'tempat_lahir'  => $identity['tempat_lahir'] ?? null,
+                    'tanggal_lahir' => $identity['tanggal_lahir'] ?? null,
+                ],
             ],
         ]);
     }

@@ -129,9 +129,9 @@ class NikVerificationTest extends TestCase
                        ->assertJson(['message' => 'CAPTCHA tidak valid.']);
     }
 
-    // ── Dukcapil Stub & External Isolation ───────────────────────────────────
+    // ── Dukcapil Stub Mode & Biodata Output ───────────────────────────────────
 
-    public function test_verify_nik_returns_token_and_name_on_success_with_stub()
+    public function test_verify_nik_returns_token_and_biodata_identity_in_stub_mode()
     {
         config(['dukcapil.enabled' => false]);
 
@@ -143,18 +143,38 @@ class NikVerificationTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-                 ->assertJsonStructure(['status', 'data' => ['verification_token', 'nama']])
+                 ->assertJsonStructure([
+                     'status',
+                     'data' => [
+                         'verification_token',
+                         'nama',
+                         'identity' => [
+                             'nama',
+                             'jenis_kelamin',
+                             'tempat_lahir',
+                             'tanggal_lahir',
+                         ],
+                     ],
+                 ])
                  ->assertJson(['status' => 'success']);
+
+        // Verify simulated biodata content in stub mode
+        $identity = $response->json('data.identity');
+        $this->assertEquals('Rahmat Hidayat', $identity['nama']);
+        $this->assertEquals('Laki-laki', $identity['jenis_kelamin']);
+        $this->assertEquals('Banjarmasin', $identity['tempat_lahir']);
+        $this->assertEquals('1998-05-12', $identity['tanggal_lahir']);
 
         $token = $response->json('data.verification_token');
         $this->assertNotEmpty($token);
         $this->assertEquals(64, strlen($token));
 
-        // Ensure verification record exists in database
+        // Ensure verification record exists in database bound to verified name
         $this->assertDatabaseHas('public_map_verifications', [
-            'token_hash'   => hash('sha256', $token),
-            'verified_nik' => '3201234567890001',
-            'used_at'      => null,
+            'token_hash'    => hash('sha256', $token),
+            'verified_nik'  => '3201234567890001',
+            'verified_name' => 'Rahmat Hidayat',
+            'used_at'       => null,
         ]);
     }
 

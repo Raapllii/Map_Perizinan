@@ -8,16 +8,27 @@ use Illuminate\Support\Facades\Log;
 class DukcapilService
 {
     /**
-     * Verify NIK against Dukcapil API.
-     * Returns citizen name on success, null if not found or on error.
+     * Verify NIK against authorized Dukcapil/API integration.
+     * Returns structured identity data on success, or null on failure.
      *
-     * When DUKCAPIL_ENABLED=false (default), returns a stub name
-     * so the flow works in dev/test without a real API key.
+     * Desired identity information:
+     * - nama (string)
+     * - jenis_kelamin (string|null)
+     * - tempat_lahir (string|null)
+     * - tanggal_lahir (string|null)
+     *
+     * When DUKCAPIL_ENABLED=false (default), returns a stub simulated record
+     * so development and testing can proceed without requiring live credentials.
      */
-    public function verifyNik(string $nik): ?string
+    public function verifyNik(string $nik): ?array
     {
         if (!config('dukcapil.enabled', false)) {
-            return 'Warga Terverifikasi';
+            return [
+                'nama'          => 'Rahmat Hidayat',
+                'jenis_kelamin' => 'Laki-laki',
+                'tempat_lahir'  => 'Banjarmasin',
+                'tanggal_lahir' => '1998-05-12',
+            ];
         }
 
         try {
@@ -27,7 +38,19 @@ class DukcapilService
             ])->timeout(10)->post(config('dukcapil.endpoint'), ['nik' => $nik]);
 
             if ($response->successful()) {
-                return $response->json('data.nama') ?? $response->json('nama');
+                $payload = $response->json('data') ?? $response->json();
+                $nama = $payload['nama'] ?? null;
+
+                if (!$nama) {
+                    return null;
+                }
+
+                return [
+                    'nama'          => (string) $nama,
+                    'jenis_kelamin' => isset($payload['jenis_kelamin']) ? (string) $payload['jenis_kelamin'] : null,
+                    'tempat_lahir'  => isset($payload['tempat_lahir']) ? (string) $payload['tempat_lahir'] : null,
+                    'tanggal_lahir' => isset($payload['tanggal_lahir']) ? (string) $payload['tanggal_lahir'] : null,
+                ];
             }
 
             Log::warning('Dukcapil API non-success', [
