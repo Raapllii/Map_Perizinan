@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\PublicMapAccessLogController;
 use App\Http\Controllers\Api\PublicMapFeedbackController;
+use App\Http\Controllers\Api\PublicMapServiceSurveyController;
 use App\Http\Controllers\Api\CaptchaController;
 use App\Http\Controllers\Api\DukcapilVerificationController;
 
@@ -29,12 +30,14 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 // Public API Routes (Map Data & Filter References)
 Route::post('/public-map-access', [PublicMapAccessLogController::class, 'store']);
 Route::post('/public-map-feedback', [PublicMapFeedbackController::class, 'store']);
+Route::post('/public-map-survey', [PublicMapServiceSurveyController::class, 'store']);
 Route::middleware('throttle:nik-verify')->group(function () {
     Route::get('/captcha-challenge', [CaptchaController::class, 'challenge']);
     Route::post('/verify-nik', [DukcapilVerificationController::class, 'verify']);
 });
 Route::get('/businesses/search', [BusinessController::class, 'search']);
 Route::get('/businesses', [BusinessController::class, 'index']);
+Route::get('/businesses/{business}/download', [BusinessController::class, 'downloadPdf'])->where('business', '[0-9]+');
 Route::get('/businesses/{business}', [BusinessController::class, 'show']);
 Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/locations/kecamatan', [App\Http\Controllers\Api\LocationController::class, 'getKecamatan']);

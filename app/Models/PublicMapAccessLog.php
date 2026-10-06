@@ -25,4 +25,9 @@ class PublicMapAccessLog extends Model
     {
         return $this->hasOne(PublicMapFeedback::class, 'public_map_access_log_id');
     }
+
+    public function surveys()
+    {
+        return $this->hasMany(PublicMapServiceSurvey::class, 'public_map_access_log_id');
+    }
 }

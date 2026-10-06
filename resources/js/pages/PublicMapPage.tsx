@@ -326,6 +326,7 @@ export default function PublicMapPage() {
         <BusinessSidePanel 
           business={selectedBusiness}
           isMobile={isMobile}
+          accessLogId={visitor?.access_log_id || visitor?.id}
           onClose={() => {
             setSelectedBusiness(null);
           }}

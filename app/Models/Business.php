@@ -23,4 +23,9 @@ class Business extends Model
     {
         return $this->hasMany(BusinessIndicator::class, 'business_id')->orderBy('sort_order', 'asc');
     }
+
+    public function serviceSurveys()
+    {
+        return $this->hasMany(PublicMapServiceSurvey::class, 'business_id');
+    }
 }

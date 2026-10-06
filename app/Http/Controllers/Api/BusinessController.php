@@ -40,6 +40,12 @@ class BusinessController extends Controller
         return response()->json($business);
     }
 
+    public function downloadPdf($id)
+    {
+        $business = $this->businessService->show((int)$id);
+        return $this->businessService->generatePdf($business);
+    }
+
     public function store(StoreBusinessRequest $request)
     {
         $business = $this->businessService->store($request->validated());

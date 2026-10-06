@@ -7,6 +7,8 @@ use App\Models\BusinessIndicator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class BusinessService
 {
@@ -294,4 +296,142 @@ class BusinessService
 
         return $business;
     }
+
+    public function generatePdf($business)
+    {
+        // 1. Process indicators strictly preserving sort_order
+        $indicators = [];
+        if ($business->relationLoaded('indicators') || $business->indicators) {
+            foreach ($business->indicators as $ind) {
+                if (!empty(trim($ind->judul ?? '')) && $ind->nilai !== null && trim((string)$ind->nilai) !== '') {
+                    $indicators[] = [
+                        'judul' => trim($ind->judul),
+                        'nilai' => trim((string)$ind->nilai),
+                        'sort_order' => $ind->sort_order,
+                    ];
+                }
+            }
+        }
+
+        // If relational indicators are empty, fallback to legacy indicators 1..10
+        if (empty($indicators)) {
+            for ($i = 1; $i <= 10; $i++) {
+                $val = $business->{'indicator_' . $i} ?? null;
+                if ($val !== null && trim((string)$val) !== '') {
+                    $indicators[] = [
+                        'judul' => 'Indikator ' . $i,
+                        'nilai' => trim((string)$val),
+                        'sort_order' => $i,
+                    ];
+                }
+            }
+        }
+
+        // 2. Risk configuration matching Public Map
+        $riskConfig = $this->getRiskConfig($business->uraian_risiko_proyek);
+
+        // 3. Coordinate validation
+        $hasCoordinates = false;
+        $formattedCoords = null;
+        if (
+            $business->latitude !== null && 
+            $business->longitude !== null &&
+            is_numeric($business->latitude) && 
+            is_numeric($business->longitude) &&
+            !(floatval($business->latitude) == 0 && floatval($business->longitude) == 0) &&
+            floatval($business->latitude) >= -90 && floatval($business->latitude) <= 90 &&
+            floatval($business->longitude) >= -180 && floatval($business->longitude) <= 180
+        ) {
+            $hasCoordinates = true;
+            $formattedCoords = [
+                'latitude' => number_format((float)$business->latitude, 6, '.', ''),
+                'longitude' => number_format((float)$business->longitude, 6, '.', '')
+            ];
+        }
+
+        $data = [
+            'business' => $business,
+            'indicators' => $indicators,
+            'riskConfig' => $riskConfig,
+            'hasCoordinates' => $hasCoordinates,
+            'formattedCoords' => $formattedCoords,
+            'generatedAt' => now()->locale('id')->translatedFormat('d F Y, H:i') . ' WITA',
+        ];
+
+        $pdf = Pdf::loadView('pdf.business-detail', $data);
+        $pdf->setPaper('a4', 'portrait');
+        $pdf->setOptions([
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled' => true,
+            'defaultFont' => 'sans-serif',
+        ]);
+
+        $rawName = $business->nama_perusahaan ?: 'usaha-' . $business->id;
+        $slug = Str::slug($rawName);
+        if (empty($slug)) {
+            $slug = 'usaha-' . $business->id;
+        }
+
+        $filename = 'detail-usaha-' . $slug . '.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    public function getRiskConfig(?string $rawRisk): array
+    {
+        if (!$rawRisk || !is_string($rawRisk)) {
+            return [
+                'category' => 'Tidak Ada Data',
+                'color' => '#64748b',
+                'bg' => '#f1f5f9',
+                'border' => '#cbd5e1',
+            ];
+        }
+
+        $clean = strtolower(preg_replace('/\s+/', ' ', trim($rawRisk)));
+
+        if ($clean === 'rendah' || $clean === 'sangat rendah') {
+            return [
+                'category' => 'Rendah',
+                'color' => '#16a34a',
+                'bg' => '#dcfce7',
+                'border' => '#86efac',
+            ];
+        }
+
+        if ($clean === 'menengah rendah') {
+            return [
+                'category' => 'Menengah Rendah',
+                'color' => '#ca8a04',
+                'bg' => '#fef9c3',
+                'border' => '#fde047',
+            ];
+        }
+
+        if ($clean === 'menengah tinggi' || $clean === 'menengah') {
+            return [
+                'category' => 'Menengah Tinggi',
+                'color' => '#ea580c',
+                'bg' => '#ffedd5',
+                'border' => '#fdba74',
+            ];
+        }
+
+        if ($clean === 'tinggi' || $clean === 'sangat tinggi') {
+            return [
+                'category' => 'Tinggi',
+                'color' => '#dc2626',
+                'bg' => '#fee2e2',
+                'border' => '#fca5a5',
+            ];
+        }
+
+        return [
+            'category' => 'Tidak Ada Data',
+            'color' => '#64748b',
+            'bg' => '#f1f5f9',
+            'border' => '#cbd5e1',
+        ];
+    }
 }
+

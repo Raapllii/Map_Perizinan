@@ -15,7 +15,8 @@ import {
   Briefcase,
   CheckCircle2,
   Loader2,
-  Edit
+  Edit,
+  Download
 } from 'lucide-react';
 import { Drawer } from 'vaul';
 import { motion, AnimatePresence } from 'motion/react';
@@ -29,6 +30,8 @@ import {
   formatDate,
   extractBusinessIndicators
 } from './businessPanelUtils';
+import ServiceSurveyModal from '../ServiceSurveyModal';
+import { getVisitorSession } from '../../lib/visitorSession';
 
 export interface BusinessSidePanelProps {
   business: any;
@@ -37,6 +40,7 @@ export interface BusinessSidePanelProps {
   onDirectionsClick?: () => void;
   onDetailClick?: () => void;
   onEditClick?: () => void;
+  accessLogId?: number | null;
 }
 
 const DetailItem = ({ 
@@ -76,10 +80,12 @@ export function BusinessSidePanel({
   onClose,
   onDirectionsClick,
   onEditClick,
+  accessLogId,
 }: BusinessSidePanelProps) {
   const [copied, setCopied] = useState(false);
   const [detailBusiness, setDetailBusiness] = useState<any>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [isSurveyModalOpen, setIsSurveyModalOpen] = useState(false);
 
   // Fetch full business details when selected business changes
   useEffect(() => {
@@ -431,9 +437,22 @@ export function BusinessSidePanel({
     </div>
   );
 
-  // FOOTER PRIMARY ACTION (Lihat Rute)
+  // FOOTER PRIMARY ACTION (Unduh Detail Usaha & Lihat Rute)
   const renderPanelFooter = () => (
     <div className="p-3.5 sm:p-4 border-t border-border/60 bg-card shrink-0 flex flex-col gap-2 min-w-0">
+      {/* Button: Unduh Detail Usaha - Triggers Survey Modal */}
+      <button
+        type="button"
+        disabled={!activeBusiness?.id}
+        onClick={() => setIsSurveyModalOpen(true)}
+        className="w-full h-11 min-h-[44px] px-3 sm:px-4 rounded-xl font-semibold text-xs tracking-wide uppercase inline-flex items-center justify-center gap-2 transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 min-w-0 border bg-background hover:bg-muted/80 text-foreground border-border/80 active:scale-[0.99] cursor-pointer"
+        aria-label={`Unduh Dokumen Detail Usaha ${activeBusiness.nama_perusahaan || ''}`}
+      >
+        <Download size={15} className="text-primary shrink-0" />
+        <span className="truncate min-w-0">Unduh Detail Usaha</span>
+      </button>
+
+      {/* Button: Lihat Rute */}
       <button
         type="button"
         disabled={!hasCoordinates}
@@ -468,103 +487,123 @@ export function BusinessSidePanel({
   // MOBILE: BOTTOM SHEET (VAUL DRAWER)
   if (isMobile) {
     return (
-      <Drawer.Root open={!!business} onOpenChange={(open) => !open && onClose()} modal={false}>
-        <Drawer.Portal>
-          <Drawer.Content
-            className="bg-card flex flex-col rounded-t-[28px] fixed bottom-0 left-0 right-0 z-[1000] border-t border-border/80 shadow-[0_-12px_48px_rgba(0,0,0,0.14)] max-h-[90dvh] outline-none w-full max-w-[100vw] box-border"
-            style={{
-              pointerEvents: 'auto',
-              paddingLeft: 'env(safe-area-inset-left, 0px)',
-              paddingRight: 'env(safe-area-inset-right, 0px)',
-            }}
-          >
-            {/* Visual Drag Handle */}
-            <div className="w-full flex justify-center pt-3 pb-1 shrink-0">
-              <div className="w-10 h-1 bg-muted-foreground/20 rounded-full" />
-            </div>
-
-            {/* Header */}
-            <div className="px-4 sm:px-5 py-2.5 flex items-center justify-between border-b border-border/60 shrink-0 min-w-0">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                <Drawer.Title className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
-                  Detail Usaha
-                </Drawer.Title>
-                {isLoadingDetail && (
-                  <Loader2 size={12} className="animate-spin text-primary shrink-0" />
-                )}
+      <>
+        <Drawer.Root open={!!business} onOpenChange={(open) => !open && onClose()} modal={false}>
+          <Drawer.Portal>
+            <Drawer.Content
+              className="bg-card flex flex-col rounded-t-[28px] fixed bottom-0 left-0 right-0 z-[1000] border-t border-border/80 shadow-[0_-12px_48px_rgba(0,0,0,0.14)] max-h-[90dvh] outline-none w-full max-w-[100vw] box-border"
+              style={{
+                pointerEvents: 'auto',
+                paddingLeft: 'env(safe-area-inset-left, 0px)',
+                paddingRight: 'env(safe-area-inset-right, 0px)',
+              }}
+            >
+              {/* Visual Drag Handle */}
+              <div className="w-full flex justify-center pt-3 pb-1 shrink-0">
+                <div className="w-10 h-1 bg-muted-foreground/20 rounded-full" />
               </div>
-              <Drawer.Description className="sr-only">
-                Profil detail usaha {activeBusiness.nama_perusahaan}
-              </Drawer.Description>
-              <button
-                type="button"
-                onClick={onClose}
-                className="min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer shrink-0"
-                aria-label="Tutup panel detail usaha"
-              >
-                <X size={17} strokeWidth={2} />
-              </button>
-            </div>
 
-            {/* Scrollable Content */}
-            <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 pb-6 overscroll-contain [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-border/60 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
-              {renderPanelBody()}
-            </div>
+              {/* Header */}
+              <div className="px-4 sm:px-5 py-2.5 flex items-center justify-between border-b border-border/60 shrink-0 min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                  <Drawer.Title className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
+                    Detail Usaha
+                  </Drawer.Title>
+                  {isLoadingDetail && (
+                    <Loader2 size={12} className="animate-spin text-primary shrink-0" />
+                  )}
+                </div>
+                <Drawer.Description className="sr-only">
+                  Profil detail usaha {activeBusiness.nama_perusahaan}
+                </Drawer.Description>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer shrink-0"
+                  aria-label="Tutup panel detail usaha"
+                >
+                  <X size={17} strokeWidth={2} />
+                </button>
+              </div>
 
-            {/* Footer CTA with safe area bottom inset */}
-            <div className="pb-[max(0.875rem,env(safe-area-inset-bottom))]">
-              {renderPanelFooter()}
-            </div>
-          </Drawer.Content>
-        </Drawer.Portal>
-      </Drawer.Root>
+              {/* Scrollable Content */}
+              <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 pb-6 overscroll-contain [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-border/60 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+                {renderPanelBody()}
+              </div>
+
+              {/* Footer CTA with safe area bottom inset */}
+              <div className="pb-[max(0.875rem,env(safe-area-inset-bottom))]">
+                {renderPanelFooter()}
+              </div>
+            </Drawer.Content>
+          </Drawer.Portal>
+        </Drawer.Root>
+
+        {/* Public Service Satisfaction Survey Modal before Download */}
+        <ServiceSurveyModal
+          isOpen={isSurveyModalOpen}
+          onClose={() => setIsSurveyModalOpen(false)}
+          business={activeBusiness}
+          accessLogId={accessLogId || getVisitorSession()?.access_log_id || getVisitorSession()?.id || undefined}
+        />
+      </>
     );
   }
 
   // DESKTOP: FLOATING SIDE PANEL OVERLAY (Adaptive 380-420px Width)
   return (
-    <AnimatePresence>
-      {business && (
-        <motion.div
-          initial={{ x: -20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: -20, opacity: 0 }}
-          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="absolute top-3 sm:top-4 bottom-3 sm:bottom-4 left-3 sm:left-4 z-[1000] w-[min(380px,calc(100vw-1.5rem))] sm:w-[min(400px,calc(100vw-2rem))] xl:w-[min(420px,calc(100vw-2rem))] max-w-[calc(100vw-1.5rem)] pointer-events-none"
-        >
-          <div className="w-full h-full max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden pointer-events-auto shadow-[0_12px_40px_-8px_rgba(0,0,0,0.08),0_4px_16px_-4px_rgba(0,0,0,0.04)] border border-border/70 rounded-2xl bg-card box-border">
-            {/* Header */}
-            <div className="px-4 sm:px-5 py-3 border-b border-border/60 bg-card flex items-center justify-between shrink-0 min-w-0">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/90 truncate">
-                  Detail Usaha
-                </span>
-                {isLoadingDetail && (
-                  <Loader2 size={12} className="animate-spin text-primary shrink-0 ml-1" />
-                )}
+    <>
+      <AnimatePresence>
+        {business && (
+          <motion.div
+            initial={{ x: -20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -20, opacity: 0 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute top-3 sm:top-4 bottom-3 sm:bottom-4 left-3 sm:left-4 z-[1000] w-[min(380px,calc(100vw-1.5rem))] sm:w-[min(400px,calc(100vw-2rem))] xl:w-[min(420px,calc(100vw-2rem))] max-w-[calc(100vw-1.5rem)] pointer-events-none"
+          >
+            <div className="w-full h-full max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden pointer-events-auto shadow-[0_12px_40px_-8px_rgba(0,0,0,0.08),0_4px_16px_-4px_rgba(0,0,0,0.04)] border border-border/70 rounded-2xl bg-card box-border">
+              {/* Header */}
+              <div className="px-4 sm:px-5 py-3 border-b border-border/60 bg-card flex items-center justify-between shrink-0 min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/90 truncate">
+                    Detail Usaha
+                  </span>
+                  {isLoadingDetail && (
+                    <Loader2 size={12} className="animate-spin text-primary shrink-0 ml-1" />
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="w-8 h-8 min-w-[32px] min-h-[32px] -mr-1 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer shrink-0"
+                  aria-label="Tutup panel detail usaha"
+                >
+                  <X size={16} strokeWidth={2} />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="w-8 h-8 min-w-[32px] min-h-[32px] -mr-1 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer shrink-0"
-                aria-label="Tutup panel detail usaha"
-              >
-                <X size={16} strokeWidth={2} />
-              </button>
-            </div>
 
-            {/* Scrollable Body with subtle thin scrollbar */}
-            <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 overscroll-contain [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-border/60 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
-              {renderPanelBody()}
-            </div>
+              {/* Scrollable Body with subtle thin scrollbar */}
+              <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 overscroll-contain [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-border/60 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+                {renderPanelBody()}
+              </div>
 
-            {/* Footer CTA */}
-            {renderPanelFooter()}
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+              {/* Footer CTA */}
+              {renderPanelFooter()}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Public Service Satisfaction Survey Modal before Download */}
+      <ServiceSurveyModal
+        isOpen={isSurveyModalOpen}
+        onClose={() => setIsSurveyModalOpen(false)}
+        business={activeBusiness}
+        accessLogId={accessLogId || getVisitorSession()?.access_log_id || getVisitorSession()?.id || undefined}
+      />
+    </>
   );
 }
