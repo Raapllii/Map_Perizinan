@@ -402,9 +402,9 @@ class BusinessService
         if ($clean === 'menengah rendah') {
             return [
                 'category' => 'Menengah Rendah',
-                'color' => '#ca8a04',
-                'bg' => '#fef9c3',
-                'border' => '#fde047',
+                'color' => '#9333ea',
+                'bg' => '#f3e8ff',
+                'border' => '#d8b4fe',
             ];
         }
 

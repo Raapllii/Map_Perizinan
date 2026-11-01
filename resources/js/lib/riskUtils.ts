@@ -15,7 +15,7 @@ export interface RiskConfig {
 
 export const RISK_OPTIONS = [
   { key: 'rendah', label: 'Rendah', color: '#22c55e', dotClass: 'bg-emerald-500' },
-  { key: 'menengah-rendah', label: 'Menengah Rendah', color: '#eab308', dotClass: 'bg-yellow-500' },
+  { key: 'menengah-rendah', label: 'Menengah Rendah', color: '#a855f7', dotClass: 'bg-purple-500' },
   { key: 'menengah-tinggi', label: 'Menengah Tinggi', color: '#f97316', dotClass: 'bg-orange-500' },
   { key: 'tinggi', label: 'Tinggi', color: '#ef4444', dotClass: 'bg-red-500' },
   { key: 'none', label: 'Tidak ada data', color: '#9ca3af', dotClass: 'bg-gray-400' },
@@ -51,10 +51,10 @@ export function getRiskConfig(rawRisk?: string | null): RiskConfig {
       return {
         category: 'Menengah Rendah',
         key: 'menengah-rendah',
-        hexColor: '#eab308',
-        badgeClass: 'bg-yellow-500/15 text-yellow-600 border-yellow-500/30 dark:text-yellow-400',
-        dotClass: 'bg-yellow-500',
-        iconColor: 'text-yellow-500',
+        hexColor: '#a855f7',
+        badgeClass: 'bg-purple-500/15 text-purple-600 border-purple-500/30 dark:text-purple-400',
+        dotClass: 'bg-purple-500',
+        iconColor: 'text-purple-500',
       };
     case 'Menengah Tinggi':
       return {

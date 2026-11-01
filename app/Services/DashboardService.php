@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Business;
 use App\Models\ActivityLog;
+use App\Support\GenderNormalizer;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -11,7 +12,11 @@ class DashboardService
 {
     public function getDashboardData($year = null, $forceRefresh = false)
     {
-        $cacheKey = $year ? "dashboard_data_{$year}" : "dashboard_overview";
+        if ($year === 'Semua' || $year === 'all' || $year === '') {
+            $year = null;
+        }
+
+        $cacheKey = $year ? "dashboard_data_v2_{$year}" : "dashboard_overview_v2";
 
         if ($forceRefresh) {
             Cache::forget($cacheKey);
@@ -20,10 +25,14 @@ class DashboardService
         return Cache::remember($cacheKey, 3600, function () use ($year) {
             $latestDate = Business::max('tanggal_terbit_oss');
             $targetYear = $year ?: ($latestDate ? date('Y', strtotime($latestDate)) : date('Y'));
+            $genderData = $this->getGenderData($year);
+            $kpiData = $this->getKpiData($year);
+            $kpiData['gender'] = $genderData;
 
             return [
                 'target_year' => $targetYear,
-                'kpi' => $this->getKpiData($year),
+                'kpi' => $kpiData,
+                'gender' => $genderData,
                 'monthly' => $this->getMonthlyData($targetYear),
                 'distribution' => $this->getDistributionData($year),
                 'districts' => $this->getDistrictData($year),
@@ -32,6 +41,16 @@ class DashboardService
                 'markers' => $this->getMapMarkers($year),
             ];
         });
+    }
+
+    public function getGenderData($year = null): array
+    {
+        $query = Business::query();
+        if ($year && $year !== 'Semua' && $year !== 'all') {
+            $query->whereYear('tanggal_terbit_oss', $year);
+        }
+
+        return GenderNormalizer::aggregateForBusinessQuery($query);
     }
 
     private function getKpiData($year)

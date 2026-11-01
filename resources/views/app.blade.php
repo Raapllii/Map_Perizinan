@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Perizinan</title>
+    <script>
+        window.APP_CONFIG = {
+            recaptcha_site_key: "{{ config('recaptcha.site_key') }}"
+        };
+    </script>
     @php
         $isDev = file_exists(public_path('hot'));
         $manifestPath = public_path('build/manifest.json');

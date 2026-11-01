@@ -12,6 +12,8 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from "recharts";
 import { Card, Btn, StatusBadge } from "../components/ui";
+import GenderRecapSection from "../components/GenderRecapSection";
+import { downloadRekapitulasiExcel } from "../lib/exportExcel";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -163,7 +165,18 @@ export default function LaporanPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   const [year, setYear] = useState("2025");
+  const [isExporting, setIsExporting] = useState(false);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+
+  const handleExportExcel = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      await downloadRekapitulasiExcel({ year });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   useEffect(() => {
     setPortalTarget(document.getElementById("header-actions"));
@@ -228,6 +241,7 @@ export default function LaporanPage() {
               onChange={(e) => setYear(e.target.value)}
               className="w-full sm:w-auto text-sm font-medium border border-border rounded-lg pl-3 pr-8 py-2 appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-background cursor-pointer transition-colors"
             >
+              <option value="Semua">Semua Tahun</option>
               {["2025", "2024", "2023", "2022"].map((y) => (
                 <option key={y} value={y}>Tahun {y}</option>
               ))}
@@ -242,9 +256,11 @@ export default function LaporanPage() {
               variant="outline" 
               size="sm" 
               className="h-9 text-xs font-medium gap-1.5 flex-1 sm:flex-none justify-center"
-              onClick={() => window.open(`/api/admin/dashboard/export/excel?year=${year}`, '_blank')}
+              onClick={handleExportExcel}
+              disabled={isExporting}
             >
-              <FileDown size={13} /> Excel
+              {isExporting ? <Loader2 size={13} className="animate-spin" /> : <FileDown size={13} />}
+              {isExporting ? "Mengekspor..." : "Export Excel"}
             </Btn>
             <Btn 
               variant="outline" 
@@ -473,6 +489,17 @@ export default function LaporanPage() {
           </div>
         </Card>
       )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          4B. REKAPITULASI BERDASARKAN GENDER
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <GenderRecapSection
+        gender={data?.gender ?? kpis?.gender}
+        title="Rekapitulasi Data Berdasarkan Gender"
+        subtitle={`Statistik kepemilikan/pengguna perizinan berdasarkan jenis kelamin (${year === "Semua" ? "Semua Tahun" : `Tahun ${year}`})`}
+        onExportExcel={handleExportExcel}
+        isExporting={isExporting}
+      />
 
       {/* ═══════════════════════════════════════════════════════════════════════
           5. DISTRIBUSI KECAMATAN + TOP KATEGORI (60/40)

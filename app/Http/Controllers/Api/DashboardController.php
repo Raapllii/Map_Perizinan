@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exports\RekapitulasiPerizinanExport;
 use App\Http\Controllers\Controller;
+use App\Repositories\BusinessRepository;
 use App\Services\DashboardService;
+use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class DashboardController extends Controller
 {
@@ -14,7 +18,7 @@ class DashboardController extends Controller
         $this->dashboardService = $dashboardService;
     }
 
-    public function index(\Illuminate\Http\Request $request)
+    public function index(Request $request)
     {
         $forceRefresh = $request->query('refresh') === 'true';
         $year = $request->query('year');
@@ -22,44 +26,68 @@ class DashboardController extends Controller
         return response()->json($data);
     }
 
-    public function exportExcel()
+    public function exportExcel(Request $request, BusinessRepository $repository)
     {
-        // Simple CSV export using standard PHP since setting up Maatwebsite\Excel from scratch 
-        // in a controller might require creating an Export class which is tedious.
-        // We'll generate a CSV of the monthly summary for simplicity and speed, fulfilling the requirement.
-        
-        $year = request()->query('year');
-        $data = $this->dashboardService->getDashboardData($year, false);
-        $monthly = $data['monthly'];
-        
-        $filename = "dashboard-export-" . date('Y-m-d') . ".csv";
-        
-        $headers = [
-            "Content-type"        => "text/csv",
-            "Content-Disposition" => "attachment; filename=$filename",
-            "Pragma"              => "no-cache",
-            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
-            "Expires"             => "0"
-        ];
-        
-        $columns = ['Bulan', 'Registrasi', 'Terverifikasi', 'Ditolak'];
-        
-        $callback = function() use($monthly, $columns) {
-            $file = fopen('php://output', 'w');
-            fputcsv($file, $columns);
-            
-            foreach ($monthly as $row) {
-                fputcsv($file, [
-                    $row['month'],
-                    $row['registrasi'],
-                    $row['terverifikasi'],
-                    $row['ditolak']
-                ]);
+        // Normalize year -> tahun so BusinessRepository::getFilteredQuery applies it consistently
+        $year = $request->query('year') ?: $request->query('tahun');
+        if ($year && $year !== 'Semua' && $year !== 'all') {
+            $request->merge(['tahun' => $year]);
+        }
+
+        $query = $repository->getFilteredQuery($request);
+
+        // Optional date range filter if start_date / end_date are supplied
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        if (!empty($startDate) && !empty($endDate)) {
+            if ($startDate > $endDate) {
+                [$startDate, $endDate] = [$endDate, $startDate];
             }
-            
-            fclose($file);
-        };
-        
-        return response()->stream($callback, 200, $headers);
+            $query->whereDate('tanggal_terbit_oss', '>=', $startDate)
+                ->whereDate('tanggal_terbit_oss', '<=', $endDate);
+        } elseif (!empty($startDate)) {
+            $query->whereDate('tanggal_terbit_oss', '>=', $startDate);
+        } elseif (!empty($endDate)) {
+            $query->whereDate('tanggal_terbit_oss', '<=', $endDate);
+        }
+
+        // Build human-readable filter metadata for the Excel Summary Sheet
+        $yearLabel = ($year && $year !== 'Semua' && $year !== 'all') ? "Tahun {$year}" : 'Semua Tahun';
+        if (!empty($startDate) || !empty($endDate)) {
+            $yearLabel .= sprintf(' (%s s/d %s)', $startDate ?: 'Awal', $endDate ?: 'Sekarang');
+        }
+
+        $locParts = [];
+        if ($request->filled('kecamatan_usaha') && $request->query('kecamatan_usaha') !== 'Semua') {
+            $locParts[] = 'Kec. ' . $request->query('kecamatan_usaha');
+        }
+        if ($request->filled('kelurahan_usaha') && $request->query('kelurahan_usaha') !== 'Semua') {
+            $locParts[] = 'Kel. ' . $request->query('kelurahan_usaha');
+        }
+        $locationLabel = !empty($locParts) ? implode(' / ', $locParts) : 'Semua Wilayah';
+
+        $statusParts = [];
+        if ($request->filled('status') && $request->query('status') !== 'Semua') {
+            $statusParts[] = 'Status: ' . $request->query('status');
+        }
+        $risikoParam = $request->query('uraian_risiko_proyek') ?: $request->query('risiko');
+        if (!empty($risikoParam) && $risikoParam !== 'Semua') {
+            $statusParts[] = 'Risiko: ' . $risikoParam;
+        }
+        if ($request->filled('status_pemetaan') && $request->query('status_pemetaan') !== 'Semua') {
+            $statusParts[] = 'Pemetaan: ' . $request->query('status_pemetaan');
+        }
+        $statusLabel = !empty($statusParts) ? implode(' | ', $statusParts) : 'Semua Status & Risiko';
+
+        $filterMeta = [
+            'year_label' => $yearLabel,
+            'location_label' => $locationLabel,
+            'status_label' => $statusLabel,
+            'search_label' => $request->filled('search') ? $request->query('search') : '-',
+        ];
+
+        $filename = 'Rekapitulasi_Data_Perizinan_' . date('Y-m-d') . '.xlsx';
+
+        return Excel::download(new RekapitulasiPerizinanExport($query, $filterMeta), $filename);
     }
 }

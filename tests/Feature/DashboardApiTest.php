@@ -72,7 +72,23 @@ class DashboardApiTest extends TestCase
             'kpi' => [
                 'total',
                 'risks',
-                'belum_dipetakan'
+                'belum_dipetakan',
+                'gender' => [
+                    'laki_laki',
+                    'perempuan',
+                    'tidak_diketahui',
+                    'total_valid',
+                    'total',
+                    'persentase_laki_valid',
+                    'persentase_perempuan_valid',
+                ],
+            ],
+            'gender' => [
+                'laki_laki',
+                'perempuan',
+                'tidak_diketahui',
+                'total_valid',
+                'total',
             ],
             'monthly',
             'distribution',

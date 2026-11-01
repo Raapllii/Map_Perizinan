@@ -221,6 +221,10 @@
 }
 
 /* Custom Popup for Map */
+.custom-popup.leaflet-popup {
+  margin-bottom: 0 !important;
+}
+
 .custom-popup .leaflet-popup-content-wrapper {
   background: transparent !important;
   box-shadow: none !important;

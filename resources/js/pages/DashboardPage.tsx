@@ -3,9 +3,11 @@ import axios from 'axios';
 import {
   Building2, Clock, CheckCircle, AlertTriangle, XCircle, TrendingUp, TrendingDown,
   Download, FileSpreadsheet, Printer, FileText,
-  ShieldCheck, ShieldAlert, CircleHelp, Info
+  ShieldCheck, ShieldAlert, CircleHelp, Info, Loader2
 } from "lucide-react";
 import { Card, SectionHeader, Btn, Skeleton, StatCard } from "../components/ui";
+import GenderRecapSection from "../components/GenderRecapSection";
+import { downloadRekapitulasiExcel } from "../lib/exportExcel";
 
 const DashboardBarChart = lazy(() => import("../components/DashboardBarChart"));
 const DashboardPieChart = lazy(() => import("../components/DashboardPieChart"));
@@ -24,6 +26,17 @@ export default function DashboardPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportExcel = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      await downloadRekapitulasiExcel();
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const fetchData = (refresh = false) => {
     setLoading(true);
@@ -129,7 +142,9 @@ export default function DashboardPage() {
         {/* Monthly registrations */}
         <Card className="xl:col-span-7" padding="p-5">
           <SectionHeader title="Pendaftaran Usaha Bulanan" subtitle={`Tahun ${data?.target_year || currentYear} — registrasi, terverifikasi, dan ditolak`}>
-            <Btn variant="outline" size="sm" Icon={Download} onClick={() => window.open('/api/admin/dashboard/export/excel', '_blank')}>Export</Btn>
+            <Btn variant="outline" size="sm" Icon={isExporting ? Loader2 : Download} onClick={handleExportExcel} disabled={isExporting}>
+              {isExporting ? "Mengekspor..." : "Export Excel"}
+            </Btn>
           </SectionHeader>
           <div className="w-full min-w-0">
             <Suspense fallback={<Skeleton className="h-[260px] w-full" />}>
@@ -155,6 +170,15 @@ export default function DashboardPage() {
           </div>
         </Card>
       </div>
+
+      {/* Rekapitulasi Berdasarkan Gender */}
+      <GenderRecapSection
+        gender={data?.gender ?? kpiData?.gender}
+        title="Rekapitulasi Data Berdasarkan Gender"
+        subtitle="Statistik kepemilikan/pengguna perizinan berdasarkan jenis kelamin"
+        onExportExcel={handleExportExcel}
+        isExporting={isExporting}
+      />
 
       {/* Bottom row */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
@@ -221,8 +245,8 @@ export default function DashboardPage() {
             <Btn variant="outline" Icon={FileText} size="sm" className="w-full justify-start" onClick={() => window.print()}>
               Export PDF
             </Btn>
-            <Btn variant="outline" Icon={FileSpreadsheet} size="sm" className="w-full justify-start" onClick={() => window.open('/api/admin/dashboard/export/excel', '_blank')}>
-              Export Excel
+            <Btn variant="outline" Icon={isExporting ? Loader2 : FileSpreadsheet} size="sm" className="w-full justify-start" onClick={handleExportExcel} disabled={isExporting}>
+              {isExporting ? "Mengekspor..." : "Export Excel"}
             </Btn>
             <Btn variant="outline" Icon={Printer} size="sm" className="w-full justify-start" onClick={() => window.print()}>
               Cetak Laporan

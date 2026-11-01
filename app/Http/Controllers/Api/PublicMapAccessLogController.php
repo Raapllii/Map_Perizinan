@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\PublicMapAccessLog;
 use App\Models\PublicMapVerification;
+use App\Support\GenderNormalizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -189,6 +190,26 @@ class PublicMapAccessLogController extends Controller
         $totalAgencies = PublicMapAccessLog::distinct('instansi')->count('instansi');
         $totalFeedbacks = \App\Models\PublicMapFeedback::count();
 
+        // Gender recapitulation from filtered access logs (using verified 16-digit NIK, never guessing from name)
+        $genderRows = (clone $query)->select('id', 'nik')->get();
+        $lakiLaki = 0;
+        $perempuan = 0;
+        $tidakDiketahui = 0;
+        foreach ($genderRows as $gRow) {
+            $g = GenderNormalizer::fromNikOrField($gRow->nik ?? null);
+            if ($g === GenderNormalizer::MALE) {
+                $lakiLaki++;
+            } elseif ($g === GenderNormalizer::FEMALE) {
+                $perempuan++;
+            } else {
+                $tidakDiketahui++;
+            }
+        }
+        $genderRecap = GenderNormalizer::buildRecapPayload($lakiLaki, $perempuan, $tidakDiketahui, [
+            'source_available' => ($lakiLaki + $perempuan) > 0,
+            'source_note' => 'Data gender pengunjung diekstrak dari struktur NIK 16 digit terverifikasi Dukcapil (digit ke-7 & 8 tanggal lahir). Data tanpa NIK valid dikategorikan sebagai Belum Diisi / Tidak Diketahui.',
+        ]);
+
         $perPage = min((int) $request->get('per_page', 15), 100);
         $logs = $query->orderBy('accessed_at', 'desc')->paginate($perPage);
 
@@ -207,6 +228,7 @@ class PublicMapAccessLogController extends Controller
                 'total_agencies' => $totalAgencies,
                 'total_feedbacks' => $totalFeedbacks,
                 'agencies_list' => $agenciesList,
+                'gender_recap' => $genderRecap,
             ],
             'data' => $logs,
         ]);

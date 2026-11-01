@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, useMap, useMapEvents, ZoomControl, ScaleControl, Popup, CircleMarker, Marker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -118,6 +118,212 @@ function InvalidateSizeObserver() {
   return null;
 }
 
+interface AdaptivePopupProps {
+  marker: any;
+  isMiniMap?: boolean;
+  isMobile?: boolean;
+  selectedMarker?: any;
+  hoverTimeoutRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>;
+  onHoverMarker?: (marker: any | null) => void;
+  renderPopup: (marker: any) => React.ReactNode;
+}
+
+function AdaptivePopup({
+  marker,
+  isMiniMap = false,
+  isMobile = false,
+  selectedMarker,
+  hoverTimeoutRef,
+  onHoverMarker,
+  renderPopup,
+}: AdaptivePopupProps) {
+  const map = useMap();
+  const popupRef = useRef<L.Popup | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+
+  const lat = parseFloat(marker.latitude);
+  const lng = parseFloat(marker.longitude);
+
+  const computePopupLayout = useCallback(
+    (cardWidth: number, cardHeight: number) => {
+      const mapSize = map.getSize();
+      const point = map.latLngToContainerPoint([lat, lng]);
+
+      const mapContainerRect = map.getContainer().getBoundingClientRect();
+      const navEl = typeof document !== 'undefined' ? document.querySelector('nav') : null;
+      const navBottomInMap = navEl
+        ? Math.max(0, navEl.getBoundingClientRect().bottom - mapContainerRect.top)
+        : 68;
+
+      const topPad = isMiniMap ? 12 : Math.max(84, Math.round(navBottomInMap + 16));
+      const bottomPad = isMiniMap ? 12 : 24;
+      const hasDesktopSidePanel = Boolean(
+        !isMiniMap && !isMobile && selectedMarker?.id && mapSize.x >= 768
+      );
+      const sidePanelRightEdge = hasDesktopSidePanel
+        ? Math.min(436, Math.round(mapSize.x * 0.45))
+        : 16;
+      const leftPad =
+        mapSize.x - sidePanelRightEdge >= cardWidth + 24 ? sidePanelRightEdge : 16;
+      const rightPad = 16;
+
+      const minX = leftPad;
+      const maxX = Math.max(leftPad, mapSize.x - rightPad - cardWidth);
+      const minY = topPad;
+      const maxY = Math.max(topPad, mapSize.y - bottomPad - cardHeight);
+
+      const MARKER_HEIGHT = 38;
+      const MARKER_HALF_WIDTH = 18;
+      const GAP = 10;
+
+      let targetLeftX = Math.min(Math.max(point.x - cardWidth / 2, minX), maxX);
+      let targetTopY = point.y - MARKER_HEIGHT - GAP - cardHeight;
+
+      if (targetTopY >= minY && targetTopY <= maxY) {
+        // Default: fits cleanly above the marker without touching navbar
+      } else {
+        const bottomCandidateTopY = Math.max(point.y + GAP, minY);
+        if (
+          point.y >= minY - GAP &&
+          bottomCandidateTopY + cardHeight <= mapSize.y - bottomPad
+        ) {
+          // Marker is near the top/navbar: place popup cleanly below the marker tip
+          targetTopY = bottomCandidateTopY;
+        } else {
+          // Marker is at extreme top/bottom or viewport is very short: place to the right or left of marker
+          const rightCandidateX = point.x + MARKER_HALF_WIDTH + GAP;
+          const leftCandidateX = point.x - MARKER_HALF_WIDTH - GAP - cardWidth;
+          const fitsRight = rightCandidateX + cardWidth <= mapSize.x - rightPad;
+          const fitsLeft = leftCandidateX >= leftPad;
+
+          if (
+            fitsRight ||
+            (!fitsLeft &&
+              mapSize.x - rightPad - rightCandidateX >=
+                point.x - MARKER_HALF_WIDTH - GAP - leftPad)
+          ) {
+            targetLeftX = Math.min(Math.max(rightCandidateX, minX), maxX);
+          } else {
+            targetLeftX = Math.min(Math.max(leftCandidateX, minX), maxX);
+          }
+
+          const centeredSideTopY = point.y - MARKER_HEIGHT / 2 - cardHeight / 2;
+          targetTopY = Math.min(Math.max(centeredSideTopY, minY), maxY);
+        }
+      }
+
+      const offsetX = Math.round(targetLeftX - point.x) + Math.round(cardWidth / 2);
+      const offsetY = Math.round(targetTopY + cardHeight - point.y);
+
+      return {
+        offset: [offsetX, offsetY] as [number, number],
+        autoPanPaddingTopLeft: [leftPad, topPad] as [number, number],
+        autoPanPaddingBottomRight: [rightPad, bottomPad] as [number, number],
+        maxWidth: Math.min(252, Math.max(200, mapSize.x - 32)),
+      };
+    },
+    [map, lat, lng, isMiniMap, isMobile, selectedMarker?.id]
+  );
+
+  const syncPopupPosition = useCallback(() => {
+    const popup = popupRef.current;
+    if (!popup || !map) return;
+
+    const containerEl = (popup as any)._container as HTMLElement | undefined;
+    const cardEl = contentRef.current;
+    const cardWidth =
+      cardEl?.offsetWidth ||
+      containerEl?.offsetWidth ||
+      Math.min(248, Math.max(200, map.getSize().x - 32));
+    const cardHeight = cardEl?.offsetHeight || containerEl?.offsetHeight || 178;
+
+    const layout = computePopupLayout(cardWidth, cardHeight);
+    popup.options.offset = L.point(layout.offset[0], layout.offset[1]);
+    popup.options.autoPanPaddingTopLeft = L.point(
+      layout.autoPanPaddingTopLeft[0],
+      layout.autoPanPaddingTopLeft[1]
+    );
+    popup.options.autoPanPaddingBottomRight = L.point(
+      layout.autoPanPaddingBottomRight[0],
+      layout.autoPanPaddingBottomRight[1]
+    );
+    popup.options.maxWidth = layout.maxWidth;
+
+    if (containerEl) {
+      (popup as any)._updateLayout();
+      (popup as any)._updatePosition();
+    }
+  }, [computePopupLayout, map]);
+
+  const handleContentRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+        resizeObserverRef.current = null;
+      }
+      contentRef.current = node;
+      if (node) {
+        syncPopupPosition();
+        if (typeof ResizeObserver !== 'undefined') {
+          const observer = new ResizeObserver(() => {
+            syncPopupPosition();
+          });
+          observer.observe(node);
+          resizeObserverRef.current = observer;
+        }
+      }
+    },
+    [syncPopupPosition]
+  );
+
+  useEffect(() => {
+    syncPopupPosition();
+    map.on('popupopen move zoom resize', syncPopupPosition);
+    return () => {
+      map.off('popupopen move zoom resize', syncPopupPosition);
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+        resizeObserverRef.current = null;
+      }
+    };
+  }, [map, syncPopupPosition]);
+
+  const initialWidth = Math.min(248, Math.max(200, map.getSize().x - 32));
+  const initialLayout = computePopupLayout(initialWidth, 178);
+
+  return (
+    <Popup
+      ref={popupRef}
+      key={marker.id || `${lat}-${lng}`}
+      position={[lat, lng]}
+      className="custom-popup"
+      closeButton={false}
+      autoPan={false}
+      offset={initialLayout.offset}
+      autoPanPaddingTopLeft={initialLayout.autoPanPaddingTopLeft}
+      autoPanPaddingBottomRight={initialLayout.autoPanPaddingBottomRight}
+      minWidth={200}
+      maxWidth={initialLayout.maxWidth}
+    >
+      <div
+        ref={handleContentRef}
+        onMouseEnter={() => {
+          if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+        }}
+        onMouseLeave={() => {
+          hoverTimeoutRef.current = setTimeout(() => {
+            if (onHoverMarker) onHoverMarker(null);
+          }, 180);
+        }}
+        style={{ width: '100%', height: '100%' }}
+      >
+        {renderPopup(marker)}
+      </div>
+    </Popup>
+  );
+}
+
 export default function CityMapLeaflet({ height = "100%", markers = [], onSelectMarker, selectedMarker, onHoverMarker, hoveredMarker, onBoundsChange, className = "", mapType = 'peta', flyTrigger = null, isMobile = false, renderPopup, isMiniMap = false }: CityMapLeafletProps) {
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const defaultCenter: [number, number] = [-0.502106, 117.153709];
@@ -152,7 +358,7 @@ export default function CityMapLeaflet({ height = "100%", markers = [], onSelect
             mouseout: () => {
               hoverTimeoutRef.current = setTimeout(() => {
                 if (onHoverMarker) onHoverMarker(null);
-              }, 150);
+              }, 180);
             },
             keypress: (e) => {
               if (e.originalEvent.key === 'Enter' && onSelectMarker) {
@@ -174,6 +380,11 @@ export default function CityMapLeaflet({ height = "100%", markers = [], onSelect
     ? '&copy; Esri'
     : '&copy; OpenStreetMap';
 
+  const activePopupMarker =
+    hoveredMarker && (!selectedMarker || hoveredMarker.id !== selectedMarker.id)
+      ? hoveredMarker
+      : null;
+
   return (
     <div style={{ height, width: '100%', position: 'relative' }} className={className}>
       <MapContainer preferCanvas={true} center={defaultCenter} zoom={12} style={{ height: '100%', width: '100%' }} zoomControl={false}>
@@ -185,32 +396,17 @@ export default function CityMapLeaflet({ height = "100%", markers = [], onSelect
 
         {renderedMarkers}
 
-        {(() => {
-          const activePopupMarker = hoveredMarker && (!selectedMarker || hoveredMarker.id !== selectedMarker.id) ? hoveredMarker : null;
-          return activePopupMarker && !isMobile && renderPopup && activePopupMarker.latitude && activePopupMarker.longitude ? (
-            <Popup
-              position={[parseFloat(activePopupMarker.latitude), parseFloat(activePopupMarker.longitude)]}
-              className="custom-popup"
-              closeButton={false}
-              autoPan={false}
-              minWidth={260}
-            >
-              <div
-                onMouseEnter={() => {
-                  if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-                }}
-                onMouseLeave={() => {
-                  hoverTimeoutRef.current = setTimeout(() => {
-                    if (onHoverMarker) onHoverMarker(null);
-                  }, 150);
-                }}
-                style={{ width: '100%', height: '100%' }}
-              >
-                {renderPopup(activePopupMarker)}
-              </div>
-            </Popup>
-          ) : null;
-        })()}
+        {activePopupMarker && !isMobile && renderPopup && activePopupMarker.latitude && activePopupMarker.longitude ? (
+          <AdaptivePopup
+            marker={activePopupMarker}
+            isMiniMap={isMiniMap}
+            isMobile={isMobile}
+            selectedMarker={selectedMarker}
+            hoverTimeoutRef={hoverTimeoutRef}
+            onHoverMarker={onHoverMarker}
+            renderPopup={renderPopup}
+          />
+        ) : null}
 
         <MapFlyer trigger={flyTrigger} />
       </MapContainer>

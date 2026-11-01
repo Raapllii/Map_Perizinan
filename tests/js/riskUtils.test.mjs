@@ -26,7 +26,7 @@ test('normalizeRiskCategory maps null/empty/unrecognized to Tidak Ada Data', () 
 
 test('getRiskConfig returns correct hex colors and keys', () => {
   assert.equal(getRiskConfig('Rendah').hexColor, '#22c55e');
-  assert.equal(getRiskConfig('Menengah Rendah').hexColor, '#eab308');
+  assert.equal(getRiskConfig('Menengah Rendah').hexColor, '#a855f7');
   assert.equal(getRiskConfig('Menengah Tinggi').hexColor, '#f97316');
   assert.equal(getRiskConfig('Tinggi').hexColor, '#ef4444');
   assert.equal(getRiskConfig(null).hexColor, '#9ca3af');

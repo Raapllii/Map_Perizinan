@@ -354,6 +354,7 @@ export default function PublicMapPage() {
                 <BusinessDetailCard
                   business={marker}
                   onClose={() => {
+                    setHoveredBusiness(null);
                     setSelectedBusiness(null);
                   }}
                   onDirectionsClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${marker.latitude},${marker.longitude}`, '_blank')}

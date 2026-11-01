@@ -13,12 +13,12 @@ test('QA-TC-01: Risk Category Normalization - Rendah (Green #22c55e)', () => {
   }
 });
 
-test('QA-TC-02: Risk Category Normalization - Menengah Rendah (Yellow #eab308)', () => {
+test('QA-TC-02: Risk Category Normalization - Menengah Rendah (Purple #a855f7)', () => {
   const inputs = ['Menengah Rendah', 'MENENGAH RENDAH', 'menengah  rendah', ' Menengah Rendah '];
   for (const input of inputs) {
     const config = getRiskConfig(input);
     assert.equal(config.category, 'Menengah Rendah', `Input "${input}" should normalize to Menengah Rendah`);
-    assert.equal(config.hexColor, '#eab308', `Input "${input}" should have hex #eab308`);
+    assert.equal(config.hexColor, '#a855f7', `Input "${input}" should have hex #a855f7`);
     assert.equal(config.key, 'menengah-rendah');
   }
 });

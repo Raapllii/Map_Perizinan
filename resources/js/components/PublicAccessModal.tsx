@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import {
-  Globe, ArrowRight, ArrowLeft, Loader2, ShieldCheck, RefreshCw,
+  Globe, ArrowRight, ArrowLeft, Loader2, ShieldCheck,
   CheckCircle2, Building2
 } from "lucide-react";
 import { Btn, InputField } from "./ui";
 import { setVisitorSession } from "../lib/visitorSession";
+import GoogleRecaptcha, { GoogleRecaptchaHandle } from "./GoogleRecaptcha";
+import { executeRecaptchaV3 } from "../lib/recaptchaV3";
 
 export interface VerifiedIdentity {
   nama: string;
@@ -20,11 +22,6 @@ interface PublicAccessModalProps {
 }
 
 type Step = "nik" | "instansi" | "done";
-
-interface CaptchaChallenge {
-  question: string;
-  token: string;
-}
 
 function formatTanggalLahir(rawDate?: string | null): string {
   if (!rawDate) return "—";
@@ -51,11 +48,9 @@ function formatTanggalLahir(rawDate?: string | null): string {
 export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessModalProps) {
   const [step, setStep] = useState<Step>("nik");
 
-  // Step 1: NIK + CAPTCHA
+  // Step 1: NIK + Google reCAPTCHA v3
   const [nik, setNik] = useState("");
-  const [captcha, setCaptcha] = useState<CaptchaChallenge | null>(null);
-  const [captchaAnswer, setCaptchaAnswer] = useState("");
-  const [captchaLoading, setCaptchaLoading] = useState(false);
+  const recaptchaRef = useRef<GoogleRecaptchaHandle>(null);
 
   // Step 2: Instansi + Single-use Verification Token + Biodata Display
   const [verificationToken, setVerificationToken] = useState("");
@@ -66,19 +61,6 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const fetchCaptcha = useCallback(async () => {
-    setCaptchaLoading(true);
-    setCaptchaAnswer("");
-    try {
-      const res = await axios.get("/api/captcha-challenge");
-      setCaptcha(res.data);
-    } catch {
-      setCaptcha(null);
-    } finally {
-      setCaptchaLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
     if (isOpen) {
       setStep("nik");
@@ -87,15 +69,13 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
       setNamaVerified("");
       setVerifiedIdentity(null);
       setInstansi("");
-      setCaptchaAnswer("");
       setErrorMessage("");
-      fetchCaptcha();
     }
-  }, [isOpen, fetchCaptcha]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  // ── Step 1: Verify NIK + CAPTCHA ──────────────────────────────────────
+  // ── Step 1: Verify NIK + Google reCAPTCHA v3 ────────────────────────────
   const handleVerifyNik = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
@@ -105,21 +85,33 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
       setErrorMessage("NIK harus terdiri dari 16 digit angka.");
       return;
     }
-    if (!captchaAnswer.trim()) {
-      setErrorMessage("Jawaban CAPTCHA wajib diisi.");
-      return;
-    }
-    if (!captcha) {
-      setErrorMessage("CAPTCHA belum dimuat. Klik 'Ganti soal'.");
+
+    setLoading(true);
+    let token = "";
+    try {
+      if (recaptchaRef.current?.execute) {
+        token = await recaptchaRef.current.execute("verify_identity");
+      } else {
+        token = await executeRecaptchaV3("verify_identity");
+      }
+    } catch (recaptchaErr: any) {
+      setLoading(false);
+      setErrorMessage(
+        recaptchaErr?.message || "Gagal memverifikasi keamanan reCAPTCHA. Periksa koneksi internet Anda."
+      );
       return;
     }
 
-    setLoading(true);
+    if (!token) {
+      setLoading(false);
+      setErrorMessage("Token keamanan reCAPTCHA tidak valid. Silakan coba lagi.");
+      return;
+    }
+
     try {
       const res = await axios.post("/api/verify-nik", {
         nik: trimmedNik,
-        captcha_token: captcha.token,
-        captcha_answer: captchaAnswer.trim(),
+        recaptcha_token: token.trim(),
       });
 
       const data = res.data?.data;
@@ -127,10 +119,8 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
       setNamaVerified(data.nama);
       setVerifiedIdentity(data.identity || { nama: data.nama });
 
-      // Immediately clear NIK from state once verified
+      // Immediately clear sensitive NIK from state once verified
       setNik("");
-      setCaptcha(null);
-      setCaptchaAnswer("");
       setStep("instansi");
     } catch (err: any) {
       const errData = err.response?.data;
@@ -138,8 +128,6 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
         ? (Object.values(errData.errors).flat()[0] as string)
         : undefined;
       setErrorMessage(firstFieldError || errData?.message || "Verifikasi gagal. Silakan coba lagi.");
-      // Refresh CAPTCHA on error
-      fetchCaptcha();
     } finally {
       setLoading(false);
     }
@@ -151,9 +139,7 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
     setNamaVerified("");
     setVerifiedIdentity(null);
     setInstansi("");
-    setCaptchaAnswer("");
     setErrorMessage("");
-    fetchCaptcha();
   };
 
   // ── Step 2: Submit instansi + log access via verification token ────────
@@ -170,7 +156,6 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
     if (!verificationToken) {
       setErrorMessage("Sesi verifikasi telah kedaluwarsa. Silakan verifikasi ulang NIK.");
       setStep("nik");
-      fetchCaptcha();
       return;
     }
 
@@ -212,7 +197,6 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
         setNamaVerified("");
         setVerifiedIdentity(null);
         setStep("nik");
-        fetchCaptcha();
       }
     } finally {
       setLoading(false);
@@ -241,7 +225,7 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
               {step === "done" && "Akses Diberikan"}
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground max-w-xs mx-auto">
-              {step === "nik" && "Masukkan NIK Anda untuk memverifikasi identitas sebelum mengakses peta."}
+              {step === "nik" && "Masukkan NIK dan selesaikan verifikasi CAPTCHA sebelum mengakses peta."}
               {step === "instansi" && "Identitas resmi terverifikasi. Masukkan instansi untuk melanjutkan."}
               {step === "done" && "Selamat datang di Peta WebGIS Perizinan Berusaha."}
             </p>
@@ -277,7 +261,7 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
             </div>
           )}
 
-          {/* ── Step 1: NIK + CAPTCHA ── */}
+          {/* ── Step 1: NIK + Google reCAPTCHA v2 Checkbox ── */}
           {step === "nik" && (
             <form onSubmit={handleVerifyNik} className="space-y-4">
               <div>
@@ -300,46 +284,19 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
                 </p>
               </div>
 
-              {/* CAPTCHA */}
+              {/* Google reCAPTCHA v3 Protection */}
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    CAPTCHA <span className="text-danger">*</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={fetchCaptcha}
-                    disabled={captchaLoading || loading}
-                    className="flex items-center gap-1 text-[11px] text-primary hover:underline disabled:opacity-50 cursor-pointer"
-                  >
-                    <RefreshCw size={11} className={captchaLoading ? "animate-spin" : ""} />
-                    Ganti soal
-                  </button>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0 bg-muted border border-border rounded-lg px-4 py-2.5 font-mono font-bold text-base text-foreground min-w-[110px] text-center select-none">
-                    {captchaLoading
-                      ? <Loader2 size={16} className="animate-spin mx-auto" />
-                      : (captcha?.question ?? "—")}
-                  </div>
-                  <InputField
-                    name="captcha_answer"
-                    value={captchaAnswer}
-                    onChange={(e: any) => setCaptchaAnswer(e.target.value)}
-                    placeholder="Jawaban"
-                    required
-                    disabled={loading || captchaLoading}
-                    inputMode="numeric"
-                    className="max-w-[100px]"
-                  />
-                </div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                  Proteksi Keamanan
+                </label>
+                <GoogleRecaptcha ref={recaptchaRef} />
               </div>
 
               <div className="pt-2">
                 <Btn
                   type="submit"
                   variant="primary"
-                  disabled={loading || captchaLoading}
+                  disabled={loading || nik.replace(/\D/g, "").length !== 16}
                   className="w-full justify-center py-2.5 sm:py-3 text-sm font-semibold shadow-md gap-2"
                 >
                   {loading ? (
@@ -463,7 +420,7 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
           {step !== "done" && (
             <div className="pt-2 border-t border-border flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground text-center">
               <ShieldCheck size={14} className="text-primary/70 shrink-0" />
-              <span>NIK diverifikasi melalui layanan Dukcapil. Data digunakan untuk statistik resmi WebGIS.</span>
+              <span>Verifikasi dilindungi oleh Google reCAPTCHA dan layanan kependudukan resmi.</span>
             </div>
           )}
         </div>

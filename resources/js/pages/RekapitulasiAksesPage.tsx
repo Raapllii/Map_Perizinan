@@ -33,6 +33,7 @@ import {
   HelpCircle,
   ExternalLink,
   ChevronDown,
+  FileSpreadsheet,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -62,6 +63,8 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { StatCard } from "../components/ui";
+import GenderRecapSection, { GenderRecapData } from "../components/GenderRecapSection";
+import { downloadRekapitulasiExcel } from "../lib/exportExcel";
 
 // Inline Table Components matching DataUsahaPage exact implementation
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
@@ -135,7 +138,16 @@ export default function RekapitulasiAksesPage() {
 
   const [logs, setLogs] = useState<PublicMapAccessLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [meta, setMeta] = useState({
+  const [isExporting, setIsExporting] = useState(false);
+  const [meta, setMeta] = useState<{
+    total_access: number;
+    total_visitors: number;
+    today_access: number;
+    total_agencies: number;
+    total_feedbacks: number;
+    agencies_list: string[];
+    gender_recap?: GenderRecapData;
+  }>({
     total_access: 0,
     total_visitors: 0,
     today_access: 0,
@@ -143,6 +155,19 @@ export default function RekapitulasiAksesPage() {
     total_feedbacks: 0,
     agencies_list: [] as string[],
   });
+
+  const handleExportExcel = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      await downloadRekapitulasiExcel({
+        start_date: activeFilters.startDate,
+        end_date: activeFilters.endDate,
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Filter & Search states
   const [searchTerm, setSearchTerm] = useState("");
@@ -563,6 +588,15 @@ export default function RekapitulasiAksesPage() {
         />
       </div>
 
+      {/* Rekapitulasi Berdasarkan Gender */}
+      <GenderRecapSection
+        gender={meta.gender_recap}
+        title="Rekapitulasi Pengunjung Berdasarkan Gender"
+        subtitle="Distribusi jenis kelamin pengunjung peta publik berdasarkan verifikasi NIK 16 digit"
+        onExportExcel={handleExportExcel}
+        isExporting={isExporting}
+      />
+
       {/* 2. Modern Filter Toolbar matching DataUsahaPage */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-2 w-full min-w-0">
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto min-w-0">
@@ -702,8 +736,16 @@ export default function RekapitulasiAksesPage() {
           </Popover>
         </div>
 
-        {/* Right Side Refresh Button */}
+        {/* Right Side Refresh & Export Buttons */}
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto min-w-0">
+          <Button variant="outline" onClick={handleExportExcel} disabled={isExporting}>
+            {isExporting ? (
+              <Loader2 className="-ms-1 me-2 animate-spin opacity-60" size={16} strokeWidth={2} aria-hidden="true" />
+            ) : (
+              <FileSpreadsheet className="-ms-1 me-2 opacity-60" size={16} strokeWidth={2} aria-hidden="true" />
+            )}
+            {isExporting ? "Mengekspor..." : "Export Excel"}
+          </Button>
           <Button variant="outline" onClick={handleRefresh}>
             <RotateCcw className="-ms-1 me-2 opacity-60" size={16} strokeWidth={2} aria-hidden="true" />
             Segarkan

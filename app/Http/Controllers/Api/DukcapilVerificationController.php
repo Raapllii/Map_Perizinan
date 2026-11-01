@@ -5,36 +5,49 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\PublicMapVerification;
 use App\Services\DukcapilService;
+use App\Services\RecaptchaService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class DukcapilVerificationController extends Controller
 {
-    public function __construct(private DukcapilService $dukcapil)
-    {
+    public function __construct(
+        private DukcapilService $dukcapil,
+        private RecaptchaService $recaptcha
+    ) {
     }
 
     /**
-     * Validate CAPTCHA, verify NIK via Dukcapil, create short-lived verification token.
+     * Validate Google reCAPTCHA v2, verify NIK via Dukcapil, create short-lived verification token.
      * Response returns only verification_token, verified name, and verified identity biodata.
      * NIK is NEVER returned to the client.
      */
     public function verify(Request $request)
     {
+        $recaptchaToken = $request->input('recaptcha_token') ?? $request->input('g-recaptcha-response');
+
         $request->validate([
-            'nik'            => ['required', 'digits:16'],
-            'captcha_token'  => ['required', 'string'],
-            'captcha_answer' => ['required', 'string'],
+            'nik' => ['required', 'digits:16'],
         ], [
             'nik.required' => 'NIK wajib diisi.',
             'nik.digits'   => 'NIK harus terdiri dari 16 digit angka.',
         ]);
 
-        if (!$this->verifyCaptcha($request->captcha_token, $request->captcha_answer)) {
+        if (empty($recaptchaToken) || !is_string($recaptchaToken) || trim($recaptchaToken) === '') {
             return response()->json([
-                'message' => 'CAPTCHA tidak valid.',
-                'errors'  => ['captcha_answer' => ['Jawaban CAPTCHA salah, sudah digunakan, atau kedaluwarsa.']],
+                'status'  => 'error',
+                'message' => 'Verifikasi CAPTCHA wajib diselesaikan.',
+                'errors'  => ['recaptcha_token' => ['Verifikasi CAPTCHA wajib diselesaikan.']],
+            ], 422);
+        }
+
+        $captchaResult = $this->recaptcha->verify($recaptchaToken, $request->ip());
+
+        if (!$captchaResult['success']) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $captchaResult['message'] ?? 'Verifikasi CAPTCHA gagal. Silakan coba lagi.',
+                'errors'  => ['recaptcha_token' => [$captchaResult['message'] ?? 'Verifikasi CAPTCHA gagal. Silakan coba lagi.']],
             ], 422);
         }
 
@@ -77,50 +90,5 @@ class DukcapilVerificationController extends Controller
                 ],
             ],
         ]);
-    }
-
-    /**
-     * Validate CAPTCHA signed token and enforce single-use replay protection.
-     * Token format (base64-decoded): "{answer}::{timestamp}::{hmac}"
-     * Valid for 10 minutes.
-     */
-    private function verifyCaptcha(string $token, string $userAnswer): bool
-    {
-        try {
-            $decoded = base64_decode($token, true);
-            if ($decoded === false) return false;
-
-            $parts = explode('::', $decoded, 3);
-            if (count($parts) !== 3) return false;
-
-            [$answer, $timestamp, $hmac] = $parts;
-
-            // Check expiry (10 minutes = 600s)
-            $age = time() - (int) $timestamp;
-            if ($age > 600 || $age < 0) return false;
-
-            // Verify HMAC integrity
-            $expectedHmac = hash_hmac('sha256', $answer . '::' . $timestamp, config('app.key'));
-            if (!hash_equals($expectedHmac, $hmac)) return false;
-
-            // Replay protection: check if this CAPTCHA signature was already consumed
-            $cacheKey = 'captcha_used:' . $hmac;
-            if (Cache::has($cacheKey)) {
-                return false;
-            }
-
-            // Verify answer
-            if ((int) $userAnswer !== (int) $answer) {
-                return false;
-            }
-
-            // Mark CAPTCHA challenge as consumed for the remaining TTL (up to 600s)
-            $remainingTtl = max(1, 600 - $age);
-            Cache::put($cacheKey, true, $remainingTtl);
-
-            return true;
-        } catch (\Throwable) {
-            return false;
-        }
     }
 }
