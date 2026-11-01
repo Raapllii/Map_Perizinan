@@ -25,6 +25,7 @@ class NikVerificationTest extends TestCase
             'recaptcha.verify_url'        => 'https://www.google.com/recaptcha/api/siteverify',
             'recaptcha.timeout'           => 5,
             'dukcapil.enabled'            => false,
+            'dukcapil.simulation_enabled' => true,
         ]);
 
         Cache::flush();
@@ -490,5 +491,252 @@ class NikVerificationTest extends TestCase
                  ->assertJson(['status' => 'success']);
 
         $this->assertNotEmpty($response->json('data.verification_token'));
+    }
+
+    // ── 8. Dukcapil Official API Contract, Simulation Guards & Failure Modes ──
+
+    public function test_verify_nik_fails_closed_when_api_not_configured_and_simulation_disabled()
+    {
+        $this->fakeGoogleRecaptchaSuccess();
+        config([
+            'dukcapil.enabled'            => false,
+            'dukcapil.simulation_enabled' => false,
+        ]);
+
+        $response = $this->postJson('/api/verify-nik', [
+            'nik'             => '3201234567890001',
+            'recaptcha_token' => 'token-unconfigured-api',
+        ]);
+
+        $response->assertStatus(422)
+                 ->assertJsonValidationErrors(['nik'])
+                 ->assertJson([
+                     'status'     => 'error',
+                     'error_code' => 'not_configured',
+                 ]);
+
+        // Must NOT create any verification token
+        $this->assertDatabaseMissing('public_map_verifications', [
+            'verified_nik' => '3201234567890001',
+        ]);
+    }
+
+    public function test_verify_nik_fails_closed_when_enabled_but_endpoint_or_key_missing()
+    {
+        $this->fakeGoogleRecaptchaSuccess();
+        config([
+            'dukcapil.enabled'  => true,
+            'dukcapil.endpoint' => '',
+            'dukcapil.api_key'  => '',
+        ]);
+
+        $response = $this->postJson('/api/verify-nik', [
+            'nik'             => '3201234567890002',
+            'recaptcha_token' => 'token-missing-creds',
+        ]);
+
+        $response->assertStatus(422)
+                 ->assertJsonValidationErrors(['nik'])
+                 ->assertJson([
+                     'status'     => 'error',
+                     'error_code' => 'not_configured',
+                 ]);
+    }
+
+    public function test_simulation_mode_is_strictly_blocked_in_production_environment()
+    {
+        $this->app['env'] = 'production';
+        config([
+            'recaptcha.secret_key'        => 'prod-secret-key-xyz',
+            'recaptcha.site_key'          => 'prod-site-key-xyz',
+            'recaptcha.allowed_hostnames' => ['peta.dpmptsp.go.id'],
+            'dukcapil.enabled'            => false,
+            'dukcapil.simulation_enabled' => true, // Even if someone sets true in prod!
+        ]);
+
+        $this->fakeGoogleRecaptchaSuccess('peta.dpmptsp.go.id');
+
+        $response = $this->postJson('/api/verify-nik', [
+            'nik'             => '3201234567890003',
+            'recaptcha_token' => 'token-prod-sim-blocked',
+        ]);
+
+        $response->assertStatus(422)
+                 ->assertJsonValidationErrors(['nik'])
+                 ->assertJson([
+                     'status'     => 'error',
+                     'error_code' => 'not_configured',
+                 ]);
+    }
+
+    public function test_simulation_mode_marks_response_as_simulated_never_official()
+    {
+        $this->fakeGoogleRecaptchaSuccess();
+        config([
+            'dukcapil.enabled'            => false,
+            'dukcapil.simulation_enabled' => true,
+        ]);
+
+        $response = $this->postJson('/api/verify-nik', [
+            'nik'             => '3201234567890004',
+            'recaptcha_token' => 'token-sim-flag-check',
+        ]);
+
+        $response->assertStatus(200)
+                 ->assertJsonPath('data.is_simulated', true)
+                 ->assertJsonPath('data.verification_mode', 'simulation')
+                 ->assertJsonPath('data.identity.is_simulated', true);
+    }
+
+    public function test_official_api_handles_connection_failure_gracefully()
+    {
+        config([
+            'dukcapil.enabled'  => true,
+            'dukcapil.endpoint' => 'https://api.dukcapil.fake/verify',
+            'dukcapil.api_key'  => 'official-key-xyz',
+        ]);
+
+        Http::fake([
+            'https://www.google.com/recaptcha/api/siteverify' => Http::response([
+                'success'  => true,
+                'hostname' => 'testkey.google.com',
+            ], 200),
+            'https://api.dukcapil.fake/verify' => function () {
+                throw new \Illuminate\Http\Client\ConnectionException('Could not resolve host');
+            },
+        ]);
+
+        $response = $this->postJson('/api/verify-nik', [
+            'nik'             => '3201234567890005',
+            'recaptcha_token' => 'token-conn-fail',
+        ]);
+
+        $response->assertStatus(422)
+                 ->assertJsonValidationErrors(['nik'])
+                 ->assertJson([
+                     'status'     => 'error',
+                     'error_code' => 'connection_error',
+                 ]);
+        $this->assertStringNotContainsString('official-key-xyz', $response->content());
+    }
+
+    public function test_official_api_rejects_http_200_when_payload_indicates_rejection()
+    {
+        config([
+            'dukcapil.enabled'  => true,
+            'dukcapil.endpoint' => 'https://api.dukcapil.fake/verify',
+            'dukcapil.api_key'  => 'official-key-xyz',
+        ]);
+
+        Http::fake([
+            'https://www.google.com/recaptcha/api/siteverify' => Http::response([
+                'success'  => true,
+                'hostname' => 'testkey.google.com',
+            ], 200),
+            'https://api.dukcapil.fake/verify' => Http::response([
+                'status'  => 'not_found',
+                'success' => false,
+                'message' => 'Data NIK tidak ditemukan',
+            ], 200),
+        ]);
+
+        $response = $this->postJson('/api/verify-nik', [
+            'nik'             => '3201234567890006',
+            'recaptcha_token' => 'token-200-rejected',
+        ]);
+
+        $response->assertStatus(422)
+                 ->assertJsonValidationErrors(['nik'])
+                 ->assertJson([
+                     'status'     => 'error',
+                     'error_code' => 'rejected',
+                 ]);
+    }
+
+    public function test_official_api_rejects_http_200_with_invalid_or_incomplete_payload()
+    {
+        config([
+            'dukcapil.enabled'  => true,
+            'dukcapil.endpoint' => 'https://api.dukcapil.fake/verify',
+            'dukcapil.api_key'  => 'official-key-xyz',
+        ]);
+
+        Http::fake([
+            'https://www.google.com/recaptcha/api/siteverify' => Http::response([
+                'success'  => true,
+                'hostname' => 'testkey.google.com',
+            ], 200),
+            // HTTP 200 but missing nama attribute
+            'https://api.dukcapil.fake/verify' => Http::response([
+                'status' => 'ok',
+                'data'   => [
+                    'tempat_lahir' => 'Banjarbaru',
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->postJson('/api/verify-nik', [
+            'nik'             => '3201234567890007',
+            'recaptcha_token' => 'token-200-invalid-schema',
+        ]);
+
+        $response->assertStatus(422)
+                 ->assertJsonValidationErrors(['nik'])
+                 ->assertJson([
+                     'status'     => 'error',
+                     'error_code' => 'invalid_response',
+                 ]);
+    }
+
+    public function test_official_api_accepts_valid_contract_and_marks_as_official()
+    {
+        config([
+            'dukcapil.enabled'  => true,
+            'dukcapil.endpoint' => 'https://api.dukcapil.fake/verify',
+            'dukcapil.api_key'  => 'official-key-xyz',
+        ]);
+
+        Http::fake([
+            'https://www.google.com/recaptcha/api/siteverify' => Http::response([
+                'success'  => true,
+                'hostname' => 'testkey.google.com',
+            ], 200),
+            'https://api.dukcapil.fake/verify' => Http::response([
+                'status'  => 'success',
+                'success' => true,
+                'data'    => [
+                    'nik'           => '3201234567890008',
+                    'nama'          => 'Siti Aminah',
+                    'jenis_kelamin' => 'Perempuan',
+                    'tempat_lahir'  => 'Banjarbaru',
+                    'tanggal_lahir' => '1995-08-17',
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->postJson('/api/verify-nik', [
+            'nik'             => '3201234567890008',
+            'recaptcha_token' => 'token-official-success',
+        ]);
+
+        $response->assertStatus(200)
+                 ->assertJson([
+                     'status' => 'success',
+                     'data'   => [
+                         'nama'              => 'Siti Aminah',
+                         'verification_mode' => 'official',
+                         'is_simulated'      => false,
+                         'identity'          => [
+                             'nama'          => 'Siti Aminah',
+                             'jenis_kelamin' => 'Perempuan',
+                             'tempat_lahir'  => 'Banjarbaru',
+                             'tanggal_lahir' => '1995-08-17',
+                             'is_simulated'  => false,
+                         ],
+                     ],
+                 ]);
+
+        // Ensure NIK is never exposed in response
+        $this->assertStringNotContainsString('3201234567890008', $response->content());
     }
 }

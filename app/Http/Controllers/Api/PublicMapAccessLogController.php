@@ -2,20 +2,25 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exports\RekapitulasiAksesExport;
 use App\Http\Controllers\Controller;
 use App\Models\PublicMapAccessLog;
 use App\Models\PublicMapVerification;
 use App\Support\GenderNormalizer;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Maatwebsite\Excel\Facades\Excel;
 
 class PublicMapAccessLogController extends Controller
 {
     /**
      * Store visitor public map access using a short-lived, single-use verification token.
-     * The verified NIK is retrieved server-side from the verification record.
-     * Client-supplied NIK is rejected.
+     * The verified NIK and verified gender (jenis_kelamin) are retrieved server-side
+     * from the verification record. Client-supplied NIK is rejected.
      */
     public function store(Request $request)
     {
@@ -104,20 +109,37 @@ class PublicMapAccessLogController extends Controller
                 'used_at' => now(),
             ]);
 
-            // Create access log using server-authoritative verified NIK
-            $log = PublicMapAccessLog::create([
+            $rawVerifiedGender = $verification->verified_gender
+                ?? Cache::pull("public_map_verified_gender:{$tokenHash}");
+            $verifiedGender = GenderNormalizer::normalize(
+                $rawVerifiedGender !== null ? (string) $rawVerifiedGender : null
+            );
+
+            $logPayload = [
                 'nama'        => $verification->verified_name,
                 'instansi'    => $instansi,
                 'nik'         => $verification->verified_nik,
                 'accessed_at' => now(),
                 'ip_address'  => $request->ip(),
                 'user_agent'  => substr($request->userAgent() ?? '', 0, 500),
-            ]);
+            ];
+
+            try {
+                if (Schema::hasColumn('public_map_access_logs', 'jenis_kelamin')) {
+                    $logPayload['jenis_kelamin'] = $verifiedGender;
+                }
+            } catch (\Throwable $e) {
+                // Ignore schema check errors in isolated environments
+            }
+
+            // Create access log using server-authoritative verified NIK and gender
+            $log = PublicMapAccessLog::create($logPayload);
 
             return [
                 'status' => 'success',
                 'code'   => 201,
                 'log'    => $log,
+                'gender' => $verifiedGender,
             ];
         });
 
@@ -140,21 +162,22 @@ class PublicMapAccessLogController extends Controller
                 'access_log_id' => $log->id,
                 'nama'          => $log->nama,
                 'instansi'      => $log->instansi,
+                'jenis_kelamin' => $log->jenis_kelamin ?? $result['gender'],
                 'accessed_at'   => $log->accessed_at,
             ],
         ], 201);
     }
 
     /**
-     * Get paginated access logs for admin recap.
+     * Build filtered query for PublicMapAccessLog (shared by index() and exportExcel()).
      */
-    public function index(Request $request)
+    public function buildFilteredQuery(Request $request): Builder
     {
         $query = PublicMapAccessLog::with(['feedback.business:id,nama_perusahaan']);
 
         // Search by Nama or Instansi
         if ($request->filled('search')) {
-            $search = strtolower(trim($request->search));
+            $search = strtolower(trim((string) $request->search));
             $query->where(function ($q) use ($search) {
                 $q->whereRaw('LOWER(nama) LIKE ?', ["%{$search}%"])
                   ->orWhereRaw('LOWER(instansi) LIKE ?', ["%{$search}%"]);
@@ -182,33 +205,26 @@ class PublicMapAccessLogController extends Controller
             $query->whereDate('accessed_at', '<=', $endDate);
         }
 
+        return $query;
+    }
+
+    /**
+     * Get paginated access logs and visitor gender recapitulation for admin recap.
+     */
+    public function index(Request $request)
+    {
+        $query = $this->buildFilteredQuery($request);
+
         // Aggregate statistics
         $today = Carbon::today();
         $totalAccess = PublicMapAccessLog::count();
         $totalVisitors = (int) PublicMapAccessLog::selectRaw("COUNT(DISTINCT CONCAT(LOWER(TRIM(nama)), ':::', LOWER(TRIM(instansi)))) as count")->value('count');
         $todayAccess = PublicMapAccessLog::whereDate('accessed_at', $today)->count();
         $totalAgencies = PublicMapAccessLog::distinct('instansi')->count('instansi');
-        $totalFeedbacks = \App\Models\PublicMapFeedback::count();
+        $totalFeedbacks = Schema::hasTable('public_map_feedbacks') ? \App\Models\PublicMapFeedback::count() : 0;
 
-        // Gender recapitulation from filtered access logs (using verified 16-digit NIK, never guessing from name)
-        $genderRows = (clone $query)->select('id', 'nik')->get();
-        $lakiLaki = 0;
-        $perempuan = 0;
-        $tidakDiketahui = 0;
-        foreach ($genderRows as $gRow) {
-            $g = GenderNormalizer::fromNikOrField($gRow->nik ?? null);
-            if ($g === GenderNormalizer::MALE) {
-                $lakiLaki++;
-            } elseif ($g === GenderNormalizer::FEMALE) {
-                $perempuan++;
-            } else {
-                $tidakDiketahui++;
-            }
-        }
-        $genderRecap = GenderNormalizer::buildRecapPayload($lakiLaki, $perempuan, $tidakDiketahui, [
-            'source_available' => ($lakiLaki + $perempuan) > 0,
-            'source_note' => 'Data gender pengunjung diekstrak dari struktur NIK 16 digit terverifikasi Dukcapil (digit ke-7 & 8 tanggal lahir). Data tanpa NIK valid dikategorikan sebagai Belum Diisi / Tidak Diketahui.',
-        ]);
+        // Gender recapitulation from stored jenis_kelamin (deduplicated per unique visitor, never guessing from name or NIK digits)
+        $genderRecap = GenderNormalizer::aggregateForAccessLogsQuery(clone $query);
 
         $perPage = min((int) $request->get('per_page', 15), 100);
         $logs = $query->orderBy('accessed_at', 'desc')->paginate($perPage);
@@ -232,5 +248,35 @@ class PublicMapAccessLogController extends Controller
             ],
             'data' => $logs,
         ]);
+    }
+
+    /**
+     * Export filtered visitor access logs and gender recapitulation to Excel (.xlsx).
+     */
+    public function exportExcel(Request $request)
+    {
+        $query = $this->buildFilteredQuery($request);
+
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
+        $periodLabel = 'Semua Periode';
+        if (!empty($startDate) || !empty($endDate)) {
+            $periodLabel = sprintf('%s s/d %s', $startDate ?: 'Awal', $endDate ?: 'Sekarang');
+        }
+
+        $instansiLabel = ($request->filled('instansi') && $request->get('instansi') !== 'Semua')
+            ? 'Instansi: ' . $request->get('instansi')
+            : 'Semua Instansi';
+
+        $filterMeta = [
+            'year_label'     => $periodLabel,
+            'location_label' => $instansiLabel,
+            'status_label'   => 'Pengunjung Peta Publik Terverifikasi NIK',
+            'search_label'   => $request->filled('search') ? (string) $request->get('search') : '-',
+        ];
+
+        $filename = 'Rekapitulasi_Akses_Pengunjung_' . date('Y-m-d') . '.xlsx';
+
+        return Excel::download(new RekapitulasiAksesExport($query, $filterMeta), $filename);
     }
 }

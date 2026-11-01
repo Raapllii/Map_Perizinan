@@ -104,37 +104,6 @@ class RekapitulasiPerizinanExport implements WithMultipleSheets
 
     protected function buildGenderMapForQuery(Builder $baseQuery): array
     {
-        $map = [];
-        try {
-            if (!Schema::hasTable('business_indicators')) {
-                return $map;
-            }
-
-            $rows = DB::table('business_indicators')
-                ->joinSub(
-                    (clone $baseQuery)->select('businesses.id'),
-                    'filtered_biz',
-                    'business_indicators.business_id',
-                    '=',
-                    'filtered_biz.id'
-                )
-                ->whereIn(DB::raw('LOWER(TRIM(business_indicators.judul))'), GenderNormalizer::INDICATOR_TITLES)
-                ->whereNotNull('business_indicators.nilai')
-                ->orderBy('business_indicators.business_id')
-                ->orderBy('business_indicators.sort_order', 'asc')
-                ->orderBy('business_indicators.id', 'asc')
-                ->get(['business_indicators.business_id', 'business_indicators.nilai']);
-
-            foreach ($rows as $row) {
-                $bId = (int) $row->business_id;
-                if (!isset($map[$bId])) {
-                    $map[$bId] = GenderNormalizer::normalize($row->nilai ?? null);
-                }
-            }
-        } catch (\Throwable $e) {
-            // Ignore if table not available
-        }
-
-        return $map;
+        return GenderNormalizer::resolveBusinessGenderMap($baseQuery);
     }
 }

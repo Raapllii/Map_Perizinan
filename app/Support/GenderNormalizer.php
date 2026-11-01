@@ -20,7 +20,12 @@ class GenderNormalizer
     ];
 
     /**
-     * Normalize a raw gender string into canonical category without guessing from names/titles.
+     * Normalize a raw gender string into canonical category without guessing from names, titles, or NIK digits.
+     *
+     * Supported variations:
+     * - Laki-laki, laki-laki, L, LK, Pria, Male, M -> Laki-laki
+     * - Perempuan, P, PR, Wanita, Female, F -> Perempuan
+     * - Empty, null, or unrecognized -> Tidak Diketahui
      */
     public static function normalize(?string $raw): string
     {
@@ -33,7 +38,7 @@ class GenderNormalizer
             return self::UNKNOWN;
         }
 
-        if (in_array($clean, ['laki-laki', 'laki - laki', 'laki', 'l', 'lk', 'pria', 'male', 'm'], true)) {
+        if (in_array($clean, ['laki-laki', 'laki - laki', 'laki_laki', 'laki', 'l', 'lk', 'pria', 'male', 'm'], true)) {
             return self::MALE;
         }
 
@@ -54,11 +59,14 @@ class GenderNormalizer
             return self::UNKNOWN;
         }
 
-        // 1. Direct column if present on model/stdClass
+        // 1. Direct column if present on model/stdClass/array
         foreach (['jenis_kelamin', 'gender', 'gender_value'] as $attr) {
             $val = is_array($business) ? ($business[$attr] ?? null) : ($business->{$attr} ?? null);
             if ($val !== null && trim((string) $val) !== '') {
-                return self::normalize((string) $val);
+                $normalized = self::normalize((string) $val);
+                if ($normalized !== self::UNKNOWN) {
+                    return $normalized;
+                }
             }
         }
 
@@ -80,7 +88,10 @@ class GenderNormalizer
                 $nilai = is_array($ind) ? ($ind['nilai'] ?? null) : ($ind->nilai ?? null);
                 $judulNorm = strtolower(trim((string) $judul));
                 if (in_array($judulNorm, self::INDICATOR_TITLES, true) && $nilai !== null && trim((string) $nilai) !== '') {
-                    return self::normalize((string) $nilai);
+                    $normalized = self::normalize((string) $nilai);
+                    if ($normalized !== self::UNKNOWN) {
+                        return $normalized;
+                    }
                 }
             }
         }
@@ -89,85 +100,84 @@ class GenderNormalizer
     }
 
     /**
-     * Extract gender from verified 16-digit Indonesian NIK (Dukcapil standard: digits 7-8 are DD, +40 for female)
-     * or explicit jenis_kelamin field if available. Never guesses from visitor name.
+     * Extract canonical gender from explicit jenis_kelamin field received from Dukcapil verification.
+     * Never guesses or infers gender from NIK digits or visitor name; empty or unrecognized values
+     * always return Tidak Diketahui.
      */
     public static function fromNikOrField(?string $nik, ?string $rawGender = null): string
     {
-        if ($rawGender !== null && trim($rawGender) !== '') {
-            $norm = self::normalize($rawGender);
-            if ($norm !== self::UNKNOWN) {
-                return $norm;
-            }
+        if ($rawGender !== null) {
+            return self::normalize($rawGender);
         }
 
-        if ($nik === null) {
-            return self::UNKNOWN;
-        }
-
-        $cleanNik = trim($nik);
-        if (!preg_match('/^\d{16}$/', $cleanNik)) {
-            return self::UNKNOWN;
-        }
-
-        $dayPart = (int) substr($cleanNik, 6, 2);
-        $monthPart = (int) substr($cleanNik, 8, 2);
-
-        if ($monthPart < 1 || $monthPart > 12) {
-            return self::UNKNOWN;
-        }
-
-        if ($dayPart >= 1 && $dayPart <= 31) {
-            return self::MALE;
-        }
-
-        if ($dayPart >= 41 && $dayPart <= 71) {
-            return self::FEMALE;
+        // Support single-argument calls where a gender value is passed directly instead of a 16-digit NIK
+        if ($nik !== null && !preg_match('/^\d{16}$/', trim($nik))) {
+            return self::normalize($nik);
         }
 
         return self::UNKNOWN;
     }
 
     /**
-     * Calculate gender recapitulation for a Business query builder without double-counting any business.
+     * Extract canonical gender for a PublicMapAccessLog model/stdClass/array.
      */
-    public static function aggregateForBusinessQuery(Builder $baseQuery): array
+    public static function fromAccessLog($log): string
+    {
+        if (!$log) {
+            return self::UNKNOWN;
+        }
+
+        foreach (['jenis_kelamin', 'verified_gender', 'gender'] as $attr) {
+            $val = is_array($log) ? ($log[$attr] ?? null) : ($log->{$attr} ?? null);
+            if ($val !== null && trim((string) $val) !== '') {
+                return self::normalize((string) $val);
+            }
+        }
+
+        return self::UNKNOWN;
+    }
+
+    /**
+     * Resolve deduplicated [business_id => canonical_gender] map for a Business query.
+     * Checks direct gender column on `businesses` first, then falls back to `business_indicators`.
+     * Guarantees each business_id is evaluated at most once.
+     *
+     * @return array<int, string>
+     */
+    public static function resolveBusinessGenderMap(Builder $baseQuery): array
     {
         $cloned = (clone $baseQuery)->setEagerLoads([])->reorder();
 
-        $totalAll = (clone $cloned)->count('businesses.id');
-        if ($totalAll === 0) {
-            return self::buildRecapPayload(0, 0, 0, [
-                'source_available' => self::hasDirectGenderColumn(),
-                'source_note' => 'Data gender diambil dari field jenis_kelamin / indikator usaha yang tersedia.',
-            ]);
-        }
-
         $hasDirectColumn = self::hasDirectGenderColumn();
         $directColName = self::getDirectGenderColumnName();
-        $hasIndicatorsTable = Schema::hasTable('business_indicators');
+        $hasIndicatorsTable = false;
+        try {
+            $hasIndicatorsTable = Schema::hasTable('business_indicators');
+        } catch (\Throwable $e) {
+            $hasIndicatorsTable = false;
+        }
 
-        $lakiLaki = 0;
-        $perempuan = 0;
+        $businessMap = [];
 
         if ($hasDirectColumn && $directColName) {
             $rows = (clone $cloned)
-                ->select("businesses.id", "businesses.{$directColName} as raw_gender")
+                ->select('businesses.id', "businesses.{$directColName} as raw_gender")
+                ->distinct()
                 ->get();
 
             foreach ($rows as $row) {
-                $g = self::normalize($row->raw_gender ?? null);
-                if ($g === self::MALE) {
-                    $lakiLaki++;
-                } elseif ($g === self::FEMALE) {
-                    $perempuan++;
+                $bId = (int) $row->id;
+                $g = self::normalize(isset($row->raw_gender) ? (string) $row->raw_gender : null);
+                if (!isset($businessMap[$bId]) || ($businessMap[$bId] === self::UNKNOWN && $g !== self::UNKNOWN)) {
+                    $businessMap[$bId] = $g;
                 }
             }
-        } elseif ($hasIndicatorsTable) {
-            // Deduplicate by business_id so one business with multiple indicators is NEVER counted twice
+        }
+
+        if ($hasIndicatorsTable) {
             $indicatorRows = DB::table('business_indicators')
                 ->joinSub(
-                    (clone $cloned)->select('businesses.id'),
+                    (clone $cloned)->select('businesses.id')->distinct(),
                     'filtered_businesses',
                     'business_indicators.business_id',
                     '=',
@@ -180,20 +190,45 @@ class GenderNormalizer
                 ->orderBy('business_indicators.id', 'asc')
                 ->get(['business_indicators.business_id', 'business_indicators.nilai']);
 
-            $seenBusinessIds = [];
             foreach ($indicatorRows as $indRow) {
-                $bId = $indRow->business_id;
-                if (isset($seenBusinessIds[$bId])) {
-                    continue;
+                $bId = (int) $indRow->business_id;
+                $current = $businessMap[$bId] ?? self::UNKNOWN;
+                if ($current === self::UNKNOWN) {
+                    $g = self::normalize(isset($indRow->nilai) ? (string) $indRow->nilai : null);
+                    $businessMap[$bId] = $g;
                 }
-                $seenBusinessIds[$bId] = true;
+            }
+        }
 
-                $g = self::normalize($indRow->nilai ?? null);
-                if ($g === self::MALE) {
-                    $lakiLaki++;
-                } elseif ($g === self::FEMALE) {
-                    $perempuan++;
-                }
+        return $businessMap;
+    }
+
+    /**
+     * Calculate gender recapitulation for a Business query builder without double-counting any business.
+     */
+    public static function aggregateForBusinessQuery(Builder $baseQuery): array
+    {
+        $cloned = (clone $baseQuery)->setEagerLoads([])->reorder();
+
+        $totalAll = (clone $cloned)->distinct()->count('businesses.id');
+        if ($totalAll === 0) {
+            return self::buildRecapPayload(0, 0, 0, [
+                'source_available' => self::hasDirectGenderColumn(),
+                'source_note' => 'Data gender diambil dari field jenis_kelamin / indikator usaha yang tersedia.',
+            ]);
+        }
+
+        $hasDirectColumn = self::hasDirectGenderColumn();
+        $businessMap = self::resolveBusinessGenderMap($cloned);
+
+        $lakiLaki = 0;
+        $perempuan = 0;
+
+        foreach ($businessMap as $gender) {
+            if ($gender === self::MALE) {
+                $lakiLaki++;
+            } elseif ($gender === self::FEMALE) {
+                $perempuan++;
             }
         }
 
@@ -204,6 +239,99 @@ class GenderNormalizer
             'source_note' => ($lakiLaki + $perempuan === 0)
                 ? 'Data ekspor OSS standar belum memuat kolom jenis kelamin pemilik usaha, sehingga data yang belum memiliki atribut gender dikategorikan sebagai Belum Diisi / Tidak Diketahui.'
                 : 'Data gender bersumber dari atribut jenis kelamin / indikator usaha yang tercatat di sistem.',
+        ]);
+    }
+
+    /**
+     * Resolve deduplicated [visitor_key => canonical_gender] map from a PublicMapAccessLog query.
+     * Deduplicates by verified NIK (or normalized nama + instansi for legacy rows without NIK)
+     * so the same visitor is NEVER counted twice.
+     *
+     * @return array<string, string>
+     */
+    public static function resolveAccessLogsVisitorGenderMap(Builder $baseQuery): array
+    {
+        $cloned = (clone $baseQuery)->setEagerLoads([])->reorder();
+
+        $hasNikCol = false;
+        $hasGenderCol = false;
+        try {
+            $hasNikCol = Schema::hasColumn('public_map_access_logs', 'nik');
+            $hasGenderCol = Schema::hasColumn('public_map_access_logs', 'jenis_kelamin');
+        } catch (\Throwable $e) {
+            // Ignore schema inspection errors
+        }
+
+        $selectCols = ['public_map_access_logs.id', 'public_map_access_logs.nama', 'public_map_access_logs.instansi'];
+        if ($hasNikCol) {
+            $selectCols[] = 'public_map_access_logs.nik';
+        }
+        if ($hasGenderCol) {
+            $selectCols[] = 'public_map_access_logs.jenis_kelamin';
+        }
+
+        $rows = $cloned
+            ->orderByDesc('public_map_access_logs.accessed_at')
+            ->orderByDesc('public_map_access_logs.id')
+            ->get($selectCols);
+
+        $visitorMap = [];
+        foreach ($rows as $row) {
+            $nik = $hasNikCol ? trim((string) ($row->nik ?? '')) : '';
+            if ($nik !== '') {
+                $visitorKey = 'nik:' . $nik;
+            } else {
+                $namaNorm = strtolower(trim((string) ($row->nama ?? '')));
+                $instansiNorm = strtolower(trim((string) ($row->instansi ?? '')));
+                $visitorKey = ($namaNorm !== '' || $instansiNorm !== '')
+                    ? "visitor:{$namaNorm}:::{$instansiNorm}"
+                    : 'id:' . $row->id;
+            }
+
+            $rawGender = $hasGenderCol ? ($row->jenis_kelamin ?? null) : null;
+            $normalized = self::normalize($rawGender !== null ? (string) $rawGender : null);
+
+            if (!isset($visitorMap[$visitorKey])) {
+                $visitorMap[$visitorKey] = $normalized;
+            } elseif ($visitorMap[$visitorKey] === self::UNKNOWN && $normalized !== self::UNKNOWN) {
+                $visitorMap[$visitorKey] = $normalized;
+            }
+        }
+
+        return $visitorMap;
+    }
+
+    /**
+     * Calculate gender recapitulation for a PublicMapAccessLog query builder without double-counting any visitor.
+     */
+    public static function aggregateForAccessLogsQuery(Builder $baseQuery): array
+    {
+        $visitorMap = self::resolveAccessLogsVisitorGenderMap($baseQuery);
+
+        $lakiLaki = 0;
+        $perempuan = 0;
+        $tidakDiketahui = 0;
+
+        foreach ($visitorMap as $gender) {
+            if ($gender === self::MALE) {
+                $lakiLaki++;
+            } elseif ($gender === self::FEMALE) {
+                $perempuan++;
+            } else {
+                $tidakDiketahui++;
+            }
+        }
+
+        $hasGenderCol = false;
+        try {
+            $hasGenderCol = Schema::hasColumn('public_map_access_logs', 'jenis_kelamin');
+        } catch (\Throwable $e) {
+            $hasGenderCol = false;
+        }
+
+        return self::buildRecapPayload($lakiLaki, $perempuan, $tidakDiketahui, [
+            'source_available' => $hasGenderCol || ($lakiLaki + $perempuan > 0),
+            'source_note' => 'Data gender pengunjung bersumber dari field jenis_kelamin hasil verifikasi NIK Dukcapil (dihitung per pengunjung unik tanpa duplikasi). Data kosong atau tidak dikenal dikategorikan sebagai Belum Diisi / Tidak Diketahui.',
         ]);
     }
 

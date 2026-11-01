@@ -28,6 +28,10 @@ class DashboardController extends Controller
 
     public function exportExcel(Request $request, BusinessRepository $repository)
     {
+        if ($request->query('source') === 'access_logs') {
+            return app(PublicMapAccessLogController::class)->exportExcel($request);
+        }
+
         // Normalize year -> tahun so BusinessRepository::getFilteredQuery applies it consistently
         $year = $request->query('year') ?: $request->query('tahun');
         if ($year && $year !== 'Semua' && $year !== 'all') {

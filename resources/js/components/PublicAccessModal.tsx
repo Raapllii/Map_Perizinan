@@ -14,6 +14,7 @@ export interface VerifiedIdentity {
   jenis_kelamin?: string | null;
   tempat_lahir?: string | null;
   tanggal_lahir?: string | null;
+  is_simulated?: boolean;
 }
 
 interface PublicAccessModalProps {
@@ -115,9 +116,13 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
       });
 
       const data = res.data?.data;
+      const simulatedFlag = Boolean(data?.is_simulated || data?.verification_mode === "simulation" || data?.identity?.is_simulated);
       setVerificationToken(data.verification_token);
       setNamaVerified(data.nama);
-      setVerifiedIdentity(data.identity || { nama: data.nama });
+      setVerifiedIdentity({
+        ...(data.identity || { nama: data.nama }),
+        is_simulated: simulatedFlag,
+      });
 
       // Immediately clear sensitive NIK from state once verified
       setNik("");
@@ -226,7 +231,11 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground max-w-xs mx-auto">
               {step === "nik" && "Masukkan NIK dan selesaikan verifikasi CAPTCHA sebelum mengakses peta."}
-              {step === "instansi" && "Identitas resmi terverifikasi. Masukkan instansi untuk melanjutkan."}
+              {step === "instansi" && (
+                verifiedIdentity?.is_simulated
+                  ? "Mode simulasi pengembangan lokal aktif (bukan verifikasi resmi Dukcapil)."
+                  : "Identitas resmi terverifikasi. Masukkan instansi untuk melanjutkan."
+              )}
               {step === "done" && "Selamat datang di Peta WebGIS Perizinan Berusaha."}
             </p>
           </div>
@@ -315,15 +324,23 @@ export default function PublicAccessModal({ isOpen, onSuccess }: PublicAccessMod
               {/* Identity Verification Card */}
               <div className="bg-muted/40 border border-border/80 rounded-xl p-3.5 sm:p-4 space-y-3">
                 <div className="flex items-center gap-2 pb-2.5 border-b border-border/60">
-                  <div className="w-5 h-5 rounded-full bg-success/15 text-success flex items-center justify-center shrink-0">
-                    <CheckCircle2 size={13} className="text-success" />
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
+                    verifiedIdentity?.is_simulated ? "bg-warning/15 text-warning" : "bg-success/15 text-success"
+                  }`}>
+                    <CheckCircle2 size={13} className={verifiedIdentity?.is_simulated ? "text-warning" : "text-success"} />
                   </div>
                   <span className="text-xs font-semibold text-foreground tracking-tight">
-                    Identitas Terverifikasi
+                    {verifiedIdentity?.is_simulated ? "Identitas Simulasi (Dev)" : "Identitas Terverifikasi"}
                   </span>
-                  <span className="ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full bg-success/10 text-success border border-success/20">
-                    Resmi
-                  </span>
+                  {verifiedIdentity?.is_simulated ? (
+                    <span className="ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full bg-warning/15 text-warning border border-warning/30">
+                      Simulasi
+                    </span>
+                  ) : (
+                    <span className="ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full bg-success/10 text-success border border-success/20">
+                      Resmi
+                    </span>
+                  )}
                 </div>
 
                 <div className="space-y-2 text-xs">

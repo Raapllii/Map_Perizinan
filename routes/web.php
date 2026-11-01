@@ -68,6 +68,7 @@ Route::prefix('api/admin')->group(function () {
         Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
         Route::get('/activity-logs', [UserController::class, 'getActivityLogs']);
         Route::get('/public-map-access-logs', [PublicMapAccessLogController::class, 'index']);
+        Route::get('/public-map-access-logs/export', [PublicMapAccessLogController::class, 'exportExcel']);
         Route::get('/service-surveys/recap', [\App\Http\Controllers\Api\PublicMapServiceSurveyController::class, 'recap']);
         Route::get('/service-surveys/responses', [\App\Http\Controllers\Api\PublicMapServiceSurveyController::class, 'indexResponses']);
         Route::get('/service-surveys/{id}', [\App\Http\Controllers\Api\PublicMapServiceSurveyController::class, 'showSurvey']);

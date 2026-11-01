@@ -161,6 +161,9 @@ export default function RekapitulasiAksesPage() {
     setIsExporting(true);
     try {
       await downloadRekapitulasiExcel({
+        source: "access_logs",
+        search: debouncedSearch,
+        instansi: activeFilters.instansi,
         start_date: activeFilters.startDate,
         end_date: activeFilters.endDate,
       });
@@ -592,7 +595,7 @@ export default function RekapitulasiAksesPage() {
       <GenderRecapSection
         gender={meta.gender_recap}
         title="Rekapitulasi Pengunjung Berdasarkan Gender"
-        subtitle="Distribusi jenis kelamin pengunjung peta publik berdasarkan verifikasi NIK 16 digit"
+        subtitle="Distribusi jenis kelamin pengunjung peta publik berdasarkan data verifikasi NIK Dukcapil (per pengunjung unik)"
         onExportExcel={handleExportExcel}
         isExporting={isExporting}
       />
