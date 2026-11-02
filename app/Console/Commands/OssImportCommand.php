@@ -8,18 +8,24 @@ use App\Imports\BusinessesImport;
 
 class OssImportCommand extends Command
 {
-    protected $signature = 'oss:import {file=DP.Proyek.xlsx : Nama file excel atau csv yang akan diimport}';
+    protected $signature = 'oss:import {file : Path atau nama file excel/csv yang akan diimport}';
     protected $description = 'Import Data dari file ke tabel businesses';
 
     public function handle()
     {
+        $file = $this->argument('file');
+
+        if (!file_exists($file)) {
+            $this->error("File tidak ditemukan: {$file}");
+            return Command::FAILURE;
+        }
+
         $this->info('Starting import process...');
         
         $startTime = microtime(true);
         $import = new BusinessesImport();
         
         try {
-            $file = $this->argument('file');
             $this->info("Mengimport file: {$file} ...");
             Excel::import($import, $file);
             $endTime = microtime(true);
