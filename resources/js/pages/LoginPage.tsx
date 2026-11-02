@@ -3,8 +3,10 @@ import axios from 'axios';
 import { useNavigate } from "react-router";
 import { Building2 } from "lucide-react";
 import { Card, Btn, InputField } from "../components/ui";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 export default function LoginPage({ setUser }: { setUser: (user: any) => void }) {
+  useDocumentTitle("Login Admin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);

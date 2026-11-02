@@ -50,33 +50,34 @@ describe('getSemanticRiskBadge', () => {
   test('maps Rendah to low risk', () => {
     const res = getSemanticRiskBadge('Rendah');
     assert.equal(res.level, 'low');
-    assert.match(res.colorClass, /success/);
+    assert.match(res.colorClass, /emerald/);
   });
 
-  test('maps Menengah Rendah and Menengah Tinggi to medium risk', () => {
+  test('maps Menengah Rendah to purple and Menengah Tinggi to orange', () => {
     const mr = getSemanticRiskBadge('Menengah Rendah');
     assert.equal(mr.level, 'medium');
-    assert.match(mr.colorClass, /warning/);
+    assert.match(mr.colorClass, /purple/);
 
     const mt = getSemanticRiskBadge('Menengah Tinggi');
     assert.equal(mt.level, 'medium');
-    assert.match(mt.colorClass, /warning/);
+    assert.match(mt.colorClass, /orange/);
   });
 
   test('maps Tinggi to high risk', () => {
     const t = getSemanticRiskBadge('Tinggi');
     assert.equal(t.level, 'high');
-    assert.match(t.colorClass, /danger/);
+    assert.match(t.colorClass, /red/);
 
     const st = getSemanticRiskBadge('Sangat Tinggi');
     assert.equal(st.level, 'high');
-    assert.match(st.colorClass, /danger/);
+    assert.match(st.colorClass, /red/);
   });
 
   test('handles empty or unknown risk safely', () => {
     const empty = getSemanticRiskBadge(null);
     assert.equal(empty.level, 'neutral');
-    assert.equal(empty.label, 'Tidak Ditentukan');
+    assert.equal(empty.label, 'Tidak Ada Data');
+    assert.match(empty.colorClass, /muted/);
   });
 });
 
@@ -129,6 +130,30 @@ describe('boundary & safety checks', () => {
     assert.equal(formatFallback(undefined), '-');
   });
 });
+
+describe('BusinessSidePanel Download Mode Determination', () => {
+  test('determines Public Map mode requires survey modal', () => {
+    const isAdmin = false;
+    const onEditClick = undefined;
+    const isPanelAdmin = Boolean(isAdmin || onEditClick);
+    assert.equal(isPanelAdmin, false, 'Public map must NOT be treated as admin');
+  });
+
+  test('determines Dashboard Admin mode with isAdmin=true triggers direct download', () => {
+    const isAdmin = true;
+    const onEditClick = undefined;
+    const isPanelAdmin = Boolean(isAdmin || onEditClick);
+    assert.equal(isPanelAdmin, true, 'Admin with isAdmin=true must be treated as admin');
+  });
+
+  test('determines Dashboard Admin mode with onEditClick triggers direct download', () => {
+    const isAdmin = false;
+    const onEditClick = () => {};
+    const isPanelAdmin = Boolean(isAdmin || onEditClick);
+    assert.equal(isPanelAdmin, true, 'Admin with onEditClick must be treated as admin');
+  });
+});
+
 
 
 

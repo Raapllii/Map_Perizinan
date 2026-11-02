@@ -8,12 +8,14 @@ import {
 import { Card, SectionHeader, Btn, Skeleton, StatCard } from "../components/ui";
 import GenderRecapSection from "../components/GenderRecapSection";
 import { downloadRekapitulasiExcel } from "../lib/exportExcel";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 const DashboardBarChart = lazy(() => import("../components/DashboardBarChart"));
 const DashboardPieChart = lazy(() => import("../components/DashboardPieChart"));
 const CityMapLeaflet = lazy(() => import("../components/CityMapLeaflet"));
 
 export default function DashboardPage() {
+  useDocumentTitle("Dashboard");
   const activityColors: Record<string, string> = {
     new: "bg-info/15 text-info",
     approved: "bg-success/15 text-success",
@@ -159,15 +161,21 @@ export default function DashboardPage() {
           <Suspense fallback={<Skeleton className="h-[220px] w-full" />}>
             <DashboardPieChart distributionData={distributionData} />
           </Suspense>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2.5 mt-4">
-            {distributionData.map((d: any, i: number) => (
-              <div key={d.name} className="flex items-center gap-2.5 text-xs">
-                <span className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm" style={{ background: d.color || `var(--chart-${(i % 5) + 1})` }} />
-                <span className="truncate text-muted-foreground font-medium">{d.name}</span>
-                <span className="ml-auto font-bold text-foreground">{d.value.toLocaleString("id")}</span>
-              </div>
-            ))}
-          </div>
+          {distributionData.length === 0 ? (
+            <div className="py-4 text-center text-xs text-muted-foreground">
+              Belum ada data kategori usaha terdaftar.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2.5 mt-4">
+              {distributionData.map((d: any, i: number) => (
+                <div key={d.name} className="flex items-center gap-2.5 text-xs">
+                  <span className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm" style={{ background: d.color || `var(--chart-${(i % 5) + 1})` }} />
+                  <span className="truncate text-muted-foreground font-medium">{d.name}</span>
+                  <span className="ml-auto font-bold text-foreground">{d.value?.toLocaleString("id") ?? 0}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
 
@@ -186,18 +194,29 @@ export default function DashboardPage() {
         <Card className="xl:col-span-4 flex flex-col" padding="p-5">
           <SectionHeader title="Aktivitas Terkini" subtitle="Log aktivitas sistem hari ini" />
           <div className="space-y-4 max-h-[380px] overflow-y-auto pr-2">
-            {activityFeed.map((a: any, i: number) => (
-              <div key={i} className="flex items-start gap-3.5 group">
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-bold transition-transform group-hover:scale-105 ${activityColors[a.status] || "bg-muted text-muted-foreground"}`}>
-                  {a.time.split(":")[0]}
-                </div>
-                <div className="flex-1 min-w-0 pt-0.5">
-                  <div className="text-sm font-semibold text-foreground truncate">{a.name}</div>
-                  <div className="text-xs text-muted-foreground mt-1 line-clamp-1">{a.action}</div>
-                </div>
-                <div className="text-xs font-medium text-muted-foreground/60 flex-shrink-0 pt-1">{a.time}</div>
+            {activityFeed.length === 0 ? (
+              <div className="py-8 text-center text-xs text-muted-foreground">
+                Belum ada aktivitas tercatat hari ini.
               </div>
-            ))}
+            ) : (
+              activityFeed.map((a: any, i: number) => {
+                const hourPrefix = a.time && typeof a.time === 'string' && a.time.includes(':')
+                  ? a.time.split(':')[0]
+                  : '--';
+                return (
+                  <div key={i} className="flex items-start gap-3.5 group">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-bold transition-transform group-hover:scale-105 ${activityColors[a.status] || "bg-muted text-muted-foreground"}`}>
+                      {hourPrefix}
+                    </div>
+                    <div className="flex-1 min-w-0 pt-0.5">
+                      <div className="text-sm font-semibold text-foreground truncate">{a.name}</div>
+                      <div className="text-xs text-muted-foreground mt-1 line-clamp-1">{a.action}</div>
+                    </div>
+                    <div className="text-xs font-medium text-muted-foreground/60 flex-shrink-0 pt-1">{a.time || '-'}</div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </Card>
 
@@ -205,30 +224,36 @@ export default function DashboardPage() {
         <Card className="xl:col-span-5 flex flex-col" padding="p-5">
           <SectionHeader title="Statistik per Kecamatan" subtitle="Distribusi usaha di setiap kecamatan" />
           <div className="space-y-4 max-h-[380px] overflow-y-auto pr-1 sm:pr-2">
-            {districtData.map((d: any, i: number) => (
-              <div key={d.name} className="mb-4 last:mb-0">
-                <div className="flex items-center justify-between mb-1.5 gap-2">
-                  <span className="text-xs sm:text-sm font-semibold text-foreground truncate min-w-0">{d.name}</span>
-                  <span className="text-[10px] sm:text-xs font-medium text-muted-foreground flex-shrink-0">Total {d.total?.toLocaleString("id") || 0} usaha</span>
-                </div>
-                
-                <div className="h-2 bg-muted rounded-full overflow-hidden flex mb-2">
-                  {d.total > 0 && (
-                    <>
-                      <div className="h-full bg-success transition-all duration-1000 ease-out" style={{ width: `${(d.risiko_rendah / d.total) * 100}%` }} title={`Risiko Rendah: ${d.risiko_rendah}`} />
-                      <div className="h-full bg-warning transition-all duration-1000 ease-out" style={{ width: `${(d.risiko_menengah / d.total) * 100}%` }} title={`Risiko Menengah: ${d.risiko_menengah}`} />
-                      <div className="h-full bg-danger transition-all duration-1000 ease-out" style={{ width: `${(d.risiko_tinggi / d.total) * 100}%` }} title={`Risiko Tinggi: ${d.risiko_tinggi}`} />
-                    </>
-                  )}
-                </div>
-
-                <div className="flex justify-between items-center text-[10px] text-muted-foreground gap-1.5 flex-wrap">
-                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-success shrink-0"></span> Rendah {d.risiko_rendah}</div>
-                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-warning shrink-0"></span> Menengah {d.risiko_menengah}</div>
-                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-danger shrink-0"></span> Tinggi {d.risiko_tinggi}</div>
-                </div>
+            {districtData.length === 0 ? (
+              <div className="py-8 text-center text-xs text-muted-foreground">
+                Belum ada data usaha per kecamatan.
               </div>
-            ))}
+            ) : (
+              districtData.map((d: any) => (
+                <div key={d.name} className="mb-4 last:mb-0">
+                  <div className="flex items-center justify-between mb-1.5 gap-2">
+                    <span className="text-xs sm:text-sm font-semibold text-foreground truncate min-w-0">{d.name}</span>
+                    <span className="text-[10px] sm:text-xs font-medium text-muted-foreground flex-shrink-0">Total {d.total?.toLocaleString("id") || 0} usaha</span>
+                  </div>
+                  
+                  <div className="h-2 bg-muted rounded-full overflow-hidden flex mb-2">
+                    {d.total > 0 && (
+                      <>
+                        <div className="h-full bg-success transition-all duration-1000 ease-out" style={{ width: `${(d.risiko_rendah / d.total) * 100}%` }} title={`Risiko Rendah: ${d.risiko_rendah}`} />
+                        <div className="h-full bg-warning transition-all duration-1000 ease-out" style={{ width: `${(d.risiko_menengah / d.total) * 100}%` }} title={`Risiko Menengah: ${d.risiko_menengah}`} />
+                        <div className="h-full bg-danger transition-all duration-1000 ease-out" style={{ width: `${(d.risiko_tinggi / d.total) * 100}%` }} title={`Risiko Tinggi: ${d.risiko_tinggi}`} />
+                      </>
+                    )}
+                  </div>
+
+                  <div className="flex justify-between items-center text-[10px] text-muted-foreground gap-1.5 flex-wrap">
+                    <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-success shrink-0"></span> Rendah {d.risiko_rendah}</div>
+                    <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-warning shrink-0"></span> Menengah {d.risiko_menengah}</div>
+                    <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-danger shrink-0"></span> Tinggi {d.risiko_tinggi}</div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </Card>
 

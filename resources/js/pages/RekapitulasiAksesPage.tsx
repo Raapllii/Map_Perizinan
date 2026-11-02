@@ -48,6 +48,7 @@ import { cn } from "../lib/utils";
 import { PublicMapAccessLog } from "../types";
 import SurveyRespondentDetailModal from "../components/SurveyRespondentDetailModal";
 import { SERVICE_SURVEY_QUESTIONS } from "../constants/surveyQuestions";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 // Shadcn UI components matching DataUsahaPage
 import { Input } from "../components/ui/input";
@@ -64,7 +65,7 @@ import {
 } from "../components/ui/select";
 import { StatCard } from "../components/ui";
 import GenderRecapSection, { GenderRecapData } from "../components/GenderRecapSection";
-import { downloadRekapitulasiExcel } from "../lib/exportExcel";
+import { downloadRekapitulasiExcel, downloadRekapitulasiSurveiExcel } from "../lib/exportExcel";
 
 // Inline Table Components matching DataUsahaPage exact implementation
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
@@ -231,6 +232,33 @@ export default function RekapitulasiAksesPage() {
 
   // Modal Detail 1 Sesi Responden (9 Jawaban Utuh)
   const [activeModalSurveyId, setActiveModalSurveyId] = useState<number | null>(null);
+
+  // Dynamic Title: Tab-aware & Modal-aware page title
+  const currentTitle = activeModalSurveyId
+    ? "Detail Isian Survei"
+    : activeTab === "surveys"
+    ? "Rekapitulasi Survei Pelayanan"
+    : "Rekapitulasi Akses";
+
+  useDocumentTitle(currentTitle);
+  const [isExportingSurvey, setIsExportingSurvey] = useState(false);
+
+  const handleExportSurveyExcel = async () => {
+    if (isExportingSurvey) return;
+    setIsExportingSurvey(true);
+    try {
+      await downloadRekapitulasiSurveiExcel({
+        year: surveyFilters.year,
+        start_date: surveyFilters.startDate,
+        end_date: surveyFilters.endDate,
+        instansi: surveyFilters.instansi,
+        search: detailSearch,
+        indicator_key: selectedIndicator,
+      });
+    } finally {
+      setIsExportingSurvey(false);
+    }
+  };
 
   // Debounce survey detail search
   useEffect(() => {
@@ -1209,6 +1237,21 @@ export default function RekapitulasiAksesPage() {
                   </div>
                 </PopoverContent>
               </Popover>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs font-semibold cursor-pointer"
+                onClick={handleExportSurveyExcel}
+                disabled={isExportingSurvey}
+              >
+                {isExportingSurvey ? (
+                  <Loader2 className="-ms-0.5 me-1.5 animate-spin opacity-60" size={13} strokeWidth={2} aria-hidden="true" />
+                ) : (
+                  <FileSpreadsheet className="-ms-0.5 me-1.5 opacity-60" size={13} strokeWidth={2} aria-hidden="true" />
+                )}
+                {isExportingSurvey ? "Mengekspor..." : "Export Excel"}
+              </Button>
             </div>
           </div>
 

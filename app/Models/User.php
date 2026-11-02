@@ -46,4 +46,51 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    /**
+     * Check if user is currently active.
+     */
+    public function isActive(): bool
+    {
+        return $this->status === 'Aktif';
+    }
+
+    /**
+     * Check if user has any of the given roles.
+     */
+    public function hasRole(...$roles): bool
+    {
+        if (empty($roles)) {
+            return false;
+        }
+
+        $userRole = strtolower(trim((string) $this->role));
+        foreach ($roles as $role) {
+            if (is_array($role)) {
+                if ($this->hasRole(...$role)) {
+                    return true;
+                }
+            } elseif ($userRole === strtolower(trim((string) $role))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if user is Super Admin.
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole('Super Admin');
+    }
+
+    /**
+     * Check if user is Super Admin or Administrator.
+     */
+    public function isAdmin(): bool
+    {
+        return $this->hasRole('Super Admin', 'Administrator');
+    }
 }

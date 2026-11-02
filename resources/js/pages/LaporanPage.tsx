@@ -14,6 +14,7 @@ import {
 import { Card, Btn, StatusBadge } from "../components/ui";
 import GenderRecapSection from "../components/GenderRecapSection";
 import { downloadRekapitulasiExcel } from "../lib/exportExcel";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -162,6 +163,7 @@ const SectionTitle = ({ title, subtitle, action }: { title: string; subtitle?: s
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 export default function LaporanPage() {
+  useDocumentTitle("Laporan");
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   const [year, setYear] = useState("2025");

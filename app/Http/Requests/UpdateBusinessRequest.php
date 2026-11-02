@@ -37,8 +37,8 @@ class UpdateBusinessRequest extends FormRequest
             'kab_kota_usaha' => 'nullable|string',
             'kecamatan_usaha' => 'nullable|string',
             'kelurahan_usaha' => 'nullable|string',
-            'latitude' => 'nullable|numeric',
-            'longitude' => 'nullable|numeric',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
             
             // Tanah, Investasi & TKI
             'luas_tanah' => 'nullable|numeric',

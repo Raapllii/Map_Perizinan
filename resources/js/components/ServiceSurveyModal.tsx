@@ -38,6 +38,7 @@ export default function ServiceSurveyModal({
   const [validationError, setValidationError] = useState<string | null>(null);
   const [unansweredKeys, setUnansweredKeys] = useState<string[]>([]);
   const [surveySaved, setSurveySaved] = useState(false);
+  const [savedSurveyId, setSavedSurveyId] = useState<number | null>(null);
   const [downloadFailed, setDownloadFailed] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -50,6 +51,7 @@ export default function ServiceSurveyModal({
       setValidationError(null);
       setUnansweredKeys([]);
       setSurveySaved(false);
+      setSavedSurveyId(null);
       setDownloadFailed(false);
       setSuccessMessage(null);
     }
@@ -76,10 +78,19 @@ export default function ServiceSurveyModal({
     }
   }, [unansweredKeys]);
 
-  // Execute PDF file download
-  const triggerPdfDownload = useCallback(async (businessId: number, companyName: string): Promise<boolean> => {
+  // Execute PDF file download with survey verification credentials
+  const triggerPdfDownload = useCallback(async (
+    businessId: number, 
+    companyName: string,
+    targetAccessLogId?: number | null,
+    targetSurveyId?: number | null
+  ): Promise<boolean> => {
     try {
       const response = await axios.get(`/api/businesses/${businessId}/download`, {
+        params: {
+          access_log_id: targetAccessLogId || undefined,
+          survey_id: targetSurveyId || undefined,
+        },
         responseType: "blob",
       });
 
@@ -122,7 +133,13 @@ export default function ServiceSurveyModal({
     setLoadingText("Menyiapkan detail usaha...");
     setDownloadFailed(false);
 
-    const downloadOk = await triggerPdfDownload(business.id, business.nama_perusahaan);
+    const resolvedAccessLogId = accessLogId || getVisitorSession()?.access_log_id || getVisitorSession()?.id;
+    const downloadOk = await triggerPdfDownload(
+      business.id, 
+      business.nama_perusahaan, 
+      resolvedAccessLogId, 
+      savedSurveyId
+    );
     setIsSubmitting(false);
 
     if (downloadOk) {
@@ -175,17 +192,24 @@ export default function ServiceSurveyModal({
 
     try {
       // Step A: Save survey responses to database
-      await axios.post("/api/public-map-survey", {
+      const surveyRes = await axios.post("/api/public-map-survey", {
         access_log_id: resolvedAccessLogId,
         business_id: business.id,
         answers: answers,
       });
 
+      const surveyId = surveyRes?.data?.data?.survey_id || null;
+      setSavedSurveyId(surveyId);
       setSurveySaved(true);
 
       // Step B: Trigger PDF generation and download
       setLoadingText("Menyiapkan detail usaha...");
-      const downloadOk = await triggerPdfDownload(business.id, business.nama_perusahaan);
+      const downloadOk = await triggerPdfDownload(
+        business.id, 
+        business.nama_perusahaan, 
+        resolvedAccessLogId, 
+        surveyId
+      );
 
       if (downloadOk) {
         setSuccessMessage("Survey berhasil disimpan. Detail usaha sedang diunduh.");

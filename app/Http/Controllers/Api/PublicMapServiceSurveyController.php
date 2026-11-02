@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exports\RekapitulasiSurveiExport;
 use App\Http\Controllers\Controller;
 use App\Models\Business;
 use App\Models\PublicMapAccessLog;
@@ -10,6 +11,7 @@ use App\Models\PublicMapServiceSurveyResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Maatwebsite\Excel\Facades\Excel;
 
 class PublicMapServiceSurveyController extends Controller
 {
@@ -258,10 +260,9 @@ class PublicMapServiceSurveyController extends Controller
     }
 
     /**
-     * Admin: Detail Jawaban Per Pertanyaan (Hasil Isian Asli Responden).
-     * Server-side paginated list of each respondent's actual response.
+     * Build filtered query for PublicMapServiceSurveyResponse (shared by indexResponses() and exportExcel()).
      */
-    public function indexResponses(Request $request)
+    public function buildFilteredResponsesQuery(Request $request)
     {
         $query = PublicMapServiceSurveyResponse::with([
             'accessLog',
@@ -280,11 +281,16 @@ class PublicMapServiceSurveyController extends Controller
         }
 
         // Filter: Rentang Tanggal
-        if ($request->filled('start_date')) {
-            $query->whereDate('created_at', '>=', $request->input('start_date'));
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        if (!empty($startDate) && !empty($endDate) && $startDate > $endDate) {
+            [$startDate, $endDate] = [$endDate, $startDate];
         }
-        if ($request->filled('end_date')) {
-            $query->whereDate('created_at', '<=', $request->input('end_date'));
+        if (!empty($startDate)) {
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+        if (!empty($endDate)) {
+            $query->whereDate('created_at', '<=', $endDate);
         }
 
         // Filter: Instansi
@@ -311,6 +317,17 @@ class PublicMapServiceSurveyController extends Controller
                 });
             });
         }
+
+        return $query;
+    }
+
+    /**
+     * Admin: Detail Jawaban Per Pertanyaan (Hasil Isian Asli Responden).
+     * Server-side paginated list of each respondent's actual response.
+     */
+    public function indexResponses(Request $request)
+    {
+        $query = $this->buildFilteredResponsesQuery($request);
 
         $perPage = (int) $request->input('per_page', 15);
         if ($perPage < 1 || $perPage > 100) {
@@ -404,9 +421,9 @@ class PublicMapServiceSurveyController extends Controller
     }
 
     /**
-     * Admin: Rekapitulasi Survei, Nilai IKM Per Unsur, dan Nilai IKM Per Bulan.
+     * Compute survey recapitulation data (shared by recap() and exportExcel()).
      */
-    public function recap(Request $request)
+    public function getRecapData(Request $request): array
     {
         $definitions = self::getIndicatorDefinitions();
         $totalIndicators = count($definitions); // 9
@@ -418,11 +435,17 @@ class PublicMapServiceSurveyController extends Controller
         if ($request->filled('year') && $request->input('year') !== 'Semua') {
             $surveyQuery->whereYear('created_at', $request->input('year'));
         }
-        if ($request->filled('start_date')) {
-            $surveyQuery->whereDate('created_at', '>=', $request->input('start_date'));
+
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        if (!empty($startDate) && !empty($endDate) && $startDate > $endDate) {
+            [$startDate, $endDate] = [$endDate, $startDate];
         }
-        if ($request->filled('end_date')) {
-            $surveyQuery->whereDate('created_at', '<=', $request->input('end_date'));
+        if (!empty($startDate)) {
+            $surveyQuery->whereDate('created_at', '>=', $startDate);
+        }
+        if (!empty($endDate)) {
+            $surveyQuery->whereDate('created_at', '<=', $endDate);
         }
         if ($request->filled('instansi') && $request->input('instansi') !== 'Semua') {
             $instansi = $request->input('instansi');
@@ -442,20 +465,28 @@ class PublicMapServiceSurveyController extends Controller
         $totalNrrTertimbang = 0;
         $number = 1;
 
-        foreach ($definitions as $key => $def) {
-            $responsesQuery = PublicMapServiceSurveyResponse::where('indicator_key', $key)
-                ->whereIn('survey_id', (clone $surveyQuery)->select('id'));
+        // BUG-04 OPTIMIZATION: Single aggregated query grouped by indicator_key and answer_label
+        $surveyIdsSubquery = (clone $surveyQuery)->select('id');
+        $rawAggregations = PublicMapServiceSurveyResponse::whereIn('survey_id', $surveyIdsSubquery)
+            ->selectRaw('indicator_key, answer_label, count(*) as total_count, sum(score) as sum_score')
+            ->groupBy('indicator_key', 'answer_label')
+            ->get();
 
-            $countRespon = (clone $responsesQuery)->count();
-            $totalNilaiUnsur = (clone $responsesQuery)->sum('score') ?? 0;
+        $groupedByIndicator = $rawAggregations->groupBy('indicator_key');
+
+        foreach ($definitions as $key => $def) {
+            $indicatorGroup = $groupedByIndicator->get($key, collect());
+            $countRespon = (int) $indicatorGroup->sum('total_count');
+            $totalNilaiUnsur = (float) $indicatorGroup->sum('sum_score');
             $avgScore = $countRespon > 0 ? ($totalNilaiUnsur / $countRespon) : 0;
             $nrrTertimbang = round($avgScore * $bobotUnsur, 4);
             $totalNrrTertimbang += $nrrTertimbang;
 
-            // Distribution per answer option
+            // Distribution per answer option resolved from pre-aggregated collection
+            $countsByLabel = $indicatorGroup->pluck('total_count', 'answer_label');
             $distribution = [];
             foreach ($def['options'] as $label => $score) {
-                $count = (clone $responsesQuery)->where('answer_label', $label)->count();
+                $count = (int) ($countsByLabel->get($label) ?? 0);
                 $percentage = $countRespon > 0 ? round(($count / $countRespon) * 100, 1) : 0;
                 $distribution[] = [
                     'label' => $label,
@@ -515,20 +546,24 @@ class PublicMapServiceSurveyController extends Controller
             12 => ['nama' => 'Desember', 'short' => 'Des'],
         ];
 
+        $yearSurveysQuery = PublicMapServiceSurvey::whereYear('created_at', $selectedYear);
+        if ($request->filled('instansi') && $request->input('instansi') !== 'Semua') {
+            $instansi = $request->input('instansi');
+            $yearSurveysQuery->whereHas('accessLog', function ($q) use ($instansi) {
+                $q->where('instansi', $instansi);
+            });
+        }
+
+        $yearSurveys = $yearSurveysQuery->get(['created_at', 'average_score']);
+        $surveysByMonth = $yearSurveys->groupBy(function ($item) {
+            return (int) date('n', strtotime($item->created_at));
+        });
+
         $ikmPerBulan = [];
         for ($m = 1; $m <= 12; $m++) {
-            $monthQuery = PublicMapServiceSurvey::whereYear('created_at', $selectedYear)
-                ->whereMonth('created_at', $m);
-
-            if ($request->filled('instansi') && $request->input('instansi') !== 'Semua') {
-                $instansi = $request->input('instansi');
-                $monthQuery->whereHas('accessLog', function ($q) use ($instansi) {
-                    $q->where('instansi', $instansi);
-                });
-            }
-
-            $monthSurveysCount = (clone $monthQuery)->count();
-            $monthAvg = (clone $monthQuery)->avg('average_score') ?? 0;
+            $monthItems = $surveysByMonth->get($m, collect());
+            $monthSurveysCount = $monthItems->count();
+            $monthAvg = $monthSurveysCount > 0 ? (float) $monthItems->avg('average_score') : 0.0;
             $monthIkmKonversi = round($monthAvg * 25, 2);
             $monthMutu = self::getMutuPelayanan($monthIkmKonversi);
 
@@ -568,7 +603,7 @@ class PublicMapServiceSurveyController extends Controller
             $yearsList = [(int) date('Y')];
         }
 
-        return response()->json([
+        return [
             'status' => 'success',
             'meta' => [
                 'total_surveys' => $totalSurveys,
@@ -594,6 +629,64 @@ class PublicMapServiceSurveyController extends Controller
                 'years_list' => $yearsList,
                 'selected_year' => $selectedYear,
             ],
+        ];
+    }
+
+    /**
+     * Admin: Rekapitulasi Survei, Nilai IKM Per Unsur, dan Nilai IKM Per Bulan.
+     */
+    public function recap(Request $request)
+    {
+        return response()->json($this->getRecapData($request));
+    }
+
+    /**
+     * Admin: Export Excel Rekapitulasi Survei Pelayanan (3 Sheets).
+     */
+    public function exportExcel(Request $request)
+    {
+        $recap = $this->getRecapData($request);
+        $responseQuery = $this->buildFilteredResponsesQuery($request);
+
+        $year = $request->input('year');
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        if (!empty($startDate) && !empty($endDate) && $startDate > $endDate) {
+            [$startDate, $endDate] = [$endDate, $startDate];
+        }
+
+        $periodLabel = 'Semua Tahun';
+        if ($year && $year !== 'Semua' && $year !== 'all') {
+            $periodLabel = 'Tahun ' . $year;
+        }
+
+        $dateRangeLabel = 'Semua Periode';
+        if (!empty($startDate) || !empty($endDate)) {
+            $dateRangeLabel = sprintf('%s s/d %s', $startDate ?: 'Awal', $endDate ?: 'Sekarang');
+        }
+
+        $instansiLabel = ($request->filled('instansi') && $request->input('instansi') !== 'Semua')
+            ? 'Instansi: ' . $request->input('instansi')
+            : 'Semua Instansi';
+
+        $summary = array_merge($recap, [
+            'exported_at' => now()->locale('id')->translatedFormat('d F Y, H:i') . ' WITA',
+            'filter_year_label' => $periodLabel,
+            'filter_instansi_label' => $instansiLabel,
+            'filter_date_range_label' => $dateRangeLabel,
+            'filter_search_label' => $request->filled('search') ? (string) $request->input('search') : '-',
         ]);
+
+        $filename = 'Rekapitulasi_Survei_Pelayanan';
+        if (!empty($startDate) && !empty($endDate)) {
+            $filename .= '_' . $startDate . '_sd_' . $endDate;
+        } elseif ($year && $year !== 'Semua' && $year !== 'all') {
+            $filename .= '_' . $year;
+        } else {
+            $filename .= '_Semua_Periode';
+        }
+        $filename .= '.xlsx';
+
+        return Excel::download(new RekapitulasiSurveiExport($summary, $responseQuery), $filename);
     }
 }

@@ -161,9 +161,10 @@ class GenderNormalizer
 
         if ($hasDirectColumn && $directColName) {
             $rows = (clone $cloned)
+                ->toBase()
                 ->select('businesses.id', "businesses.{$directColName} as raw_gender")
                 ->distinct()
-                ->get();
+                ->cursor();
 
             foreach ($rows as $row) {
                 $bId = (int) $row->id;
@@ -188,7 +189,7 @@ class GenderNormalizer
                 ->orderBy('business_indicators.business_id')
                 ->orderBy('business_indicators.sort_order', 'asc')
                 ->orderBy('business_indicators.id', 'asc')
-                ->get(['business_indicators.business_id', 'business_indicators.nilai']);
+                ->cursor(['business_indicators.business_id', 'business_indicators.nilai']);
 
             foreach ($indicatorRows as $indRow) {
                 $bId = (int) $indRow->business_id;

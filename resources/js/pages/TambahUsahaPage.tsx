@@ -2,8 +2,10 @@ import { useState } from "react";
 import axios from 'axios';
 import { Check, Upload, RefreshCw, FileText, CheckCircle, Save, ChevronLeft, RotateCcw, ChevronRight } from "lucide-react";
 import { Card, SectionHeader, InputField, SelectField, Btn } from "../components/ui";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 export default function TambahUsahaPage() {
+  useDocumentTitle("Tambah Usaha");
   const [form, setForm] = useState({
     namaUsaha: "", nib: "", nama_user: "", kategori: "Perdagangan Umum",
     kecamatan_usaha: "Kec. Pusat", kelurahan_usaha: "Kel. Merdeka", alamat_usaha: "",

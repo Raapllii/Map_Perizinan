@@ -32,14 +32,14 @@ class StoreBusinessRequest extends FormRequest
             'uraian_risiko_proyek' => 'nullable|string',
             'uraian_skala_usaha' => 'nullable|string',
 
-            // Lokasi Usaha
+            // Lokasi Usaha (BUG-03: Validasi rentang koordinat geografis)
             'alamat_usaha' => 'nullable|string',
             'kab_kota_usaha' => 'nullable|string',
             'kecamatan_usaha' => 'nullable|string',
             'kelurahan_usaha' => 'nullable|string',
-            'latitude' => 'nullable|numeric',
-            'longitude' => 'nullable|numeric',
-            
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+
             // Tanah, Investasi & TKI
             'luas_tanah' => 'nullable|numeric',
             'satuan_tanah' => 'nullable|string',
@@ -48,6 +48,8 @@ class StoreBusinessRequest extends FormRequest
 
             // Kontak & Pengguna
             'nama_user' => 'nullable|string',
+            'jenis_kelamin' => 'nullable|string|max:50',
+            'nik_pemohon' => 'nullable|string|max:20',
             'email' => 'nullable|string',
             'nomor_telp' => 'nullable|string',
 

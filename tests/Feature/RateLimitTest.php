@@ -19,7 +19,7 @@ class RateLimitTest extends TestCase
     {
         for ($i = 0; $i < 10; $i++) {
             $response = $this->getJson('/api/captcha-challenge');
-            $response->assertStatus(200);
+            $response->assertStatus(410);
         }
 
         // 11th request: HTTP 429 Too Many Requests

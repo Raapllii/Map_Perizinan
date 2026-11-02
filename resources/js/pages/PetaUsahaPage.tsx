@@ -7,10 +7,13 @@ import { BusinessSidePanel } from "../components/ui/BusinessSidePanel";
 import { BusinessDetailCard } from "../components/ui/BusinessDetailCard";
 import { Business } from "../types";
 import DataUsahaFormModal from "../components/DataUsahaFormModal";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 const CityMapLeaflet = lazy(() => import('../components/CityMapLeaflet'));
 
 export default function PetaUsahaPage() {
+  // Dynamic Title: Business Name when selected, otherwise "Peta Usaha"
+  useDocumentTitle(selectedBusiness?.nama_perusahaan ? selectedBusiness.nama_perusahaan : "Peta Usaha");
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const [hoveredBusiness, setHoveredBusiness] = useState<Business | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -258,7 +261,10 @@ export default function PetaUsahaPage() {
               renderPopup={(marker) => (
                 <BusinessDetailCard
                   business={marker}
-                  onClose={() => setSelectedBusiness(null)}
+                  onClose={() => {
+                    setHoveredBusiness(null);
+                    setSelectedBusiness(null);
+                  }}
                   onDirectionsClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${marker.latitude},${marker.longitude}`, '_blank')}
                 />
               )}
@@ -269,6 +275,7 @@ export default function PetaUsahaPage() {
         {/* Unified Side Panel overlay */}
         <BusinessSidePanel 
           business={selected}
+          isAdmin={true}
           isMobile={isMobile}
           onClose={() => setSelectedBusiness(null)}
           onDirectionsClick={() => {

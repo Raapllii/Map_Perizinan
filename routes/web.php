@@ -48,51 +48,71 @@ Route::middleware('auth')->group(function () {
 Route::prefix('api/admin')->group(function () {
     Route::middleware('throttle:5,1')->post('/login', [AuthController::class, 'login']);
     
-    Route::middleware('auth')->group(function () {
+    Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/dashboard', [DashboardController::class, 'index']);
         Route::get('/dashboard/export/excel', [DashboardController::class, 'exportExcel']);
         
-        Route::post('/businesses', [BusinessController::class, 'store']);
-        Route::post('/businesses/bulk-delete', [BusinessController::class, 'bulkDestroy']);
+        // Business Routes with RBAC
         Route::get('/businesses/{business}', [BusinessController::class, 'show']);
-        Route::put('/businesses/{business}', [BusinessController::class, 'update']);
-        Route::delete('/businesses/{business}', [BusinessController::class, 'destroy']);
+        Route::get('/businesses/{business}/download', [BusinessController::class, 'downloadPdfAdmin'])->where('business', '[0-9]+');
+        Route::middleware('role:Super Admin,Administrator,Verifier,Surveyor')->group(function () {
+            Route::post('/businesses', [BusinessController::class, 'store']);
+            Route::put('/businesses/{business}', [BusinessController::class, 'update']);
+        });
+        Route::middleware('role:Super Admin,Administrator')->group(function () {
+            Route::delete('/businesses/{business}', [BusinessController::class, 'destroy']);
+            Route::post('/businesses/bulk-delete', [BusinessController::class, 'bulkDestroy']);
+        });
         
-        Route::put('/businesses/{business}/verify', [VerificationController::class, 'verify']);
+        // Verification Routes with RBAC
+        Route::middleware('role:Super Admin,Administrator,Verifier')->group(function () {
+            Route::put('/businesses/{business}/verify', [VerificationController::class, 'verify']);
+        });
         
-        Route::get('/users', [UserController::class, 'index']);
-        Route::post('/users', [UserController::class, 'store']);
-        Route::put('/users/{id}', [UserController::class, 'update']);
-        Route::put('/users/{id}/status', [UserController::class, 'updateStatus']);
-        Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
+        // User Management Routes (Super Admin & Administrator only)
+        Route::middleware('role:Super Admin,Administrator')->group(function () {
+            Route::get('/users', [UserController::class, 'index']);
+            Route::post('/users', [UserController::class, 'store']);
+            Route::put('/users/{id}', [UserController::class, 'update']);
+            Route::put('/users/{id}/status', [UserController::class, 'updateStatus']);
+            Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
+        });
+
         Route::get('/activity-logs', [UserController::class, 'getActivityLogs']);
         Route::get('/public-map-access-logs', [PublicMapAccessLogController::class, 'index']);
         Route::get('/public-map-access-logs/export', [PublicMapAccessLogController::class, 'exportExcel']);
         Route::get('/service-surveys/recap', [\App\Http\Controllers\Api\PublicMapServiceSurveyController::class, 'recap']);
         Route::get('/service-surveys/responses', [\App\Http\Controllers\Api\PublicMapServiceSurveyController::class, 'indexResponses']);
+        Route::get('/service-surveys/export', [\App\Http\Controllers\Api\PublicMapServiceSurveyController::class, 'exportExcel']);
         Route::get('/service-surveys/{id}', [\App\Http\Controllers\Api\PublicMapServiceSurveyController::class, 'showSurvey']);
         
         Route::get('/user', function (\Illuminate\Http\Request $request) {
             return response()->json(['user' => $request->user()]);
         });
         
-        // Profile & Account Routes
+        // Profile & Account Routes (any authenticated user can update their own profile)
         Route::put('/user/profile', [UserController::class, 'updateProfile']);
         Route::post('/user/avatar', [UserController::class, 'uploadAvatar']);
         
         // Settings Routes
         Route::get('/settings', [SettingController::class, 'index']);
-        Route::put('/settings', [SettingController::class, 'update']);
+        Route::middleware('role:Super Admin,Administrator')->group(function () {
+            Route::put('/settings', [SettingController::class, 'update']);
+        });
         
         // Database & Backup Routes
-        Route::get('/database/status', [DatabaseController::class, 'status']);
-        Route::post('/database/backup', [DatabaseController::class, 'backup']);
-        Route::post('/database/restore', [DatabaseController::class, 'restore']);
-        Route::delete('/database/backup', [DatabaseController::class, 'deleteBackup']);
-        Route::get('/database/backup/{filename}', [DatabaseController::class, 'downloadBackup']);
-        Route::get('/database/export', [DatabaseController::class, 'export']);
-        Route::post('/database/import', [DatabaseController::class, 'import']);
-        Route::get('/database/import-progress/{id}', [DatabaseController::class, 'importProgress']);
+        Route::middleware('role:Super Admin')->group(function () {
+            Route::get('/database/status', [DatabaseController::class, 'status']);
+            Route::post('/database/backup', [DatabaseController::class, 'backup']);
+            Route::post('/database/restore', [DatabaseController::class, 'restore']);
+            Route::delete('/database/backup', [DatabaseController::class, 'deleteBackup']);
+            Route::get('/database/backup/{filename}', [DatabaseController::class, 'downloadBackup']);
+        });
+        Route::middleware('role:Super Admin,Administrator')->group(function () {
+            Route::get('/database/export', [DatabaseController::class, 'export']);
+            Route::post('/database/import', [DatabaseController::class, 'import']);
+            Route::get('/database/import-progress/{id}', [DatabaseController::class, 'importProgress']);
+        });
     });
 });

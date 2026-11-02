@@ -1,6 +1,16 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function DashboardPieChart({ distributionData }: { distributionData: any[] }) {
+  const hasData = distributionData && distributionData.length > 0 && distributionData.some(d => Number(d.value) > 0);
+
+  if (!hasData) {
+    return (
+      <div className="h-[220px] flex flex-col items-center justify-center text-muted-foreground text-xs">
+        <p>Belum ada data distribusi kategori</p>
+      </div>
+    );
+  }
+
   return (
     <ResponsiveContainer width="100%" height={220}>
       <PieChart>

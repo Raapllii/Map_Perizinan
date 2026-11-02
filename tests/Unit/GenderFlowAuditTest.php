@@ -38,6 +38,8 @@ class GenderFlowAuditTest extends TestCase
             $table->string('name');
             $table->string('email')->unique();
             $table->string('password');
+            $table->string('role')->default('Super Admin');
+            $table->string('status')->default('Aktif');
             $table->timestamps();
         });
 
@@ -357,6 +359,8 @@ class GenderFlowAuditTest extends TestCase
             'name'     => 'Admin Test',
             'email'    => 'admin@banjarbaru.go.id',
             'password' => bcrypt('password'),
+            'role'     => 'Super Admin',
+            'status'   => 'Aktif',
         ]);
 
         $apiRes = $this->actingAs($admin)->getJson('/api/admin/public-map-access-logs');

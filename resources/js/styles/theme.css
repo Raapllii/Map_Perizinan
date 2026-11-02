@@ -230,12 +230,14 @@
   box-shadow: none !important;
   padding: 0 !important;
   border-radius: 0 !important;
+  overflow: visible !important;
 }
 
 .custom-popup .leaflet-popup-content {
   margin: 0 !important;
   width: auto !important;
   line-height: normal !important;
+  overflow: visible !important;
 }
 
 .custom-popup .leaflet-popup-tip-container {

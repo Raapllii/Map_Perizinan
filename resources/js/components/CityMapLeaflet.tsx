@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { MapContainer, TileLayer, useMap, useMapEvents, ZoomControl, ScaleControl, Popup, CircleMarker, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, useMap, useMapEvents, ZoomControl, ScaleControl, Popup, Marker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -24,7 +24,7 @@ interface CityMapLeafletProps {
   flyTrigger?: { lat: number, lng: number, zoom: number, ts: number } | null;
   showHeatmap?: boolean;
   isMobile?: boolean;
-  renderPopup?: (marker: any) => React.ReactNode;
+  renderPopup?: (marker: any, options?: { maxHeight?: number }) => React.ReactNode;
   isMiniMap?: boolean;
 }
 
@@ -125,7 +125,7 @@ interface AdaptivePopupProps {
   selectedMarker?: any;
   hoverTimeoutRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>;
   onHoverMarker?: (marker: any | null) => void;
-  renderPopup: (marker: any) => React.ReactNode;
+  renderPopup: (marker: any, options?: { maxHeight?: number }) => React.ReactNode;
 }
 
 function AdaptivePopup({
@@ -149,15 +149,28 @@ function AdaptivePopup({
     (cardWidth: number, cardHeight: number) => {
       const mapSize = map.getSize();
       const point = map.latLngToContainerPoint([lat, lng]);
-
       const mapContainerRect = map.getContainer().getBoundingClientRect();
-      const navEl = typeof document !== 'undefined' ? document.querySelector('nav') : null;
-      const navBottomInMap = navEl
-        ? Math.max(0, navEl.getBoundingClientRect().bottom - mapContainerRect.top)
-        : 68;
 
-      const topPad = isMiniMap ? 12 : Math.max(84, Math.round(navBottomInMap + 16));
-      const bottomPad = isMiniMap ? 12 : 24;
+      let navBottomInMap = 0;
+      if (typeof document !== 'undefined') {
+        // Only look for a floating top navigation bar that actually overlaps the map horizontally
+        const floatingNav = document.querySelector('header.fixed, nav.pointer-events-auto, .fixed nav, [data-floating-nav]');
+        if (floatingNav) {
+          const navRect = floatingNav.getBoundingClientRect();
+          const isTopBar = navRect.height < 140;
+          const horizontallyOverlaps =
+            navRect.right > mapContainerRect.left + 50 &&
+            navRect.left < mapContainerRect.right - 50;
+          const isAboveMapBottom = navRect.bottom > mapContainerRect.top && navRect.bottom < mapContainerRect.bottom;
+
+          if (isTopBar && horizontallyOverlaps && isAboveMapBottom) {
+            navBottomInMap = Math.max(0, navRect.bottom - mapContainerRect.top);
+          }
+        }
+      }
+
+      const topPad = isMiniMap ? 12 : (navBottomInMap > 0 ? Math.max(76, Math.round(navBottomInMap + 12)) : 16);
+      const bottomPad = isMiniMap ? 12 : 16;
       const hasDesktopSidePanel = Boolean(
         !isMiniMap && !isMobile && selectedMarker?.id && mapSize.x >= 768
       );
@@ -168,59 +181,59 @@ function AdaptivePopup({
         mapSize.x - sidePanelRightEdge >= cardWidth + 24 ? sidePanelRightEdge : 16;
       const rightPad = 16;
 
+      const maxAllowedHeight = Math.max(160, Math.floor(mapSize.y - topPad - bottomPad));
+      const effectiveCardHeight = Math.min(cardHeight, maxAllowedHeight);
+      const effectiveCardWidth = Math.min(cardWidth, Math.max(200, mapSize.x - leftPad - rightPad));
+
       const minX = leftPad;
-      const maxX = Math.max(leftPad, mapSize.x - rightPad - cardWidth);
+      const maxX = Math.max(leftPad, mapSize.x - rightPad - effectiveCardWidth);
       const minY = topPad;
-      const maxY = Math.max(topPad, mapSize.y - bottomPad - cardHeight);
+      const maxY = Math.max(topPad, mapSize.y - bottomPad - effectiveCardHeight);
 
       const MARKER_HEIGHT = 38;
       const MARKER_HALF_WIDTH = 18;
       const GAP = 10;
 
-      let targetLeftX = Math.min(Math.max(point.x - cardWidth / 2, minX), maxX);
-      let targetTopY = point.y - MARKER_HEIGHT - GAP - cardHeight;
+      // Candidate 1: Above marker (preferred natural position)
+      const aboveTopY = point.y - MARKER_HEIGHT - GAP - effectiveCardHeight;
+      // Candidate 2: Below marker (when marker is near top or navbar)
+      const belowTopY = point.y + GAP;
 
-      if (targetTopY >= minY && targetTopY <= maxY) {
-        // Default: fits cleanly above the marker without touching navbar
+      let targetLeftX = Math.min(Math.max(point.x - effectiveCardWidth / 2, minX), maxX);
+      let targetTopY: number;
+
+      if (aboveTopY >= minY && aboveTopY <= maxY) {
+        targetTopY = aboveTopY;
+      } else if (belowTopY >= minY && belowTopY + effectiveCardHeight <= mapSize.y - bottomPad) {
+        targetTopY = belowTopY;
       } else {
-        const bottomCandidateTopY = Math.max(point.y + GAP, minY);
-        if (
-          point.y >= minY - GAP &&
-          bottomCandidateTopY + cardHeight <= mapSize.y - bottomPad
-        ) {
-          // Marker is near the top/navbar: place popup cleanly below the marker tip
-          targetTopY = bottomCandidateTopY;
+        // Marker is near edge or viewport is short: position to the side
+        const rightCandidateX = point.x + MARKER_HALF_WIDTH + GAP;
+        const leftCandidateX = point.x - MARKER_HALF_WIDTH - GAP - effectiveCardWidth;
+        const fitsRight = rightCandidateX + effectiveCardWidth <= mapSize.x - rightPad;
+        const fitsLeft = leftCandidateX >= leftPad;
+
+        if (fitsRight) {
+          targetLeftX = rightCandidateX;
+        } else if (fitsLeft) {
+          targetLeftX = leftCandidateX;
         } else {
-          // Marker is at extreme top/bottom or viewport is very short: place to the right or left of marker
-          const rightCandidateX = point.x + MARKER_HALF_WIDTH + GAP;
-          const leftCandidateX = point.x - MARKER_HALF_WIDTH - GAP - cardWidth;
-          const fitsRight = rightCandidateX + cardWidth <= mapSize.x - rightPad;
-          const fitsLeft = leftCandidateX >= leftPad;
-
-          if (
-            fitsRight ||
-            (!fitsLeft &&
-              mapSize.x - rightPad - rightCandidateX >=
-                point.x - MARKER_HALF_WIDTH - GAP - leftPad)
-          ) {
-            targetLeftX = Math.min(Math.max(rightCandidateX, minX), maxX);
-          } else {
-            targetLeftX = Math.min(Math.max(leftCandidateX, minX), maxX);
-          }
-
-          const centeredSideTopY = point.y - MARKER_HEIGHT / 2 - cardHeight / 2;
-          targetTopY = Math.min(Math.max(centeredSideTopY, minY), maxY);
+          targetLeftX = Math.min(Math.max(point.x - effectiveCardWidth / 2, minX), maxX);
         }
+
+        const centeredSideTopY = point.y - MARKER_HEIGHT / 2 - effectiveCardHeight / 2;
+        targetTopY = Math.min(Math.max(centeredSideTopY, minY), maxY);
       }
 
-      const offsetX = Math.round(targetLeftX - point.x) + Math.round(cardWidth / 2);
-      const offsetY = Math.round(targetTopY + cardHeight - point.y);
+      const offsetX = Math.round(targetLeftX - point.x) + Math.round(effectiveCardWidth / 2);
+      const offsetY = Math.round(targetTopY + effectiveCardHeight - point.y);
 
       return {
         offset: [offsetX, offsetY] as [number, number],
         autoPanPaddingTopLeft: [leftPad, topPad] as [number, number],
         autoPanPaddingBottomRight: [rightPad, bottomPad] as [number, number],
-        maxWidth: Math.min(252, Math.max(200, mapSize.x - 32)),
+        maxWidth: Math.min(256, Math.max(200, mapSize.x - 32)),
+        maxHeight: maxAllowedHeight,
       };
     },
     [map, lat, lng, isMiniMap, isMobile, selectedMarker?.id]
@@ -232,11 +245,10 @@ function AdaptivePopup({
 
     const containerEl = (popup as any)._container as HTMLElement | undefined;
     const cardEl = contentRef.current;
-    const cardWidth =
-      cardEl?.offsetWidth ||
-      containerEl?.offsetWidth ||
-      Math.min(248, Math.max(200, map.getSize().x - 32));
-    const cardHeight = cardEl?.offsetHeight || containerEl?.offsetHeight || 178;
+    const cardChild = cardEl?.firstElementChild as HTMLElement | null;
+    const measuredWidth = cardChild?.offsetWidth || cardEl?.offsetWidth || containerEl?.offsetWidth;
+    const cardWidth = Math.min(252, Math.max(200, measuredWidth || map.getSize().x - 32));
+    const cardHeight = cardChild?.offsetHeight || cardEl?.offsetHeight || containerEl?.offsetHeight || 230;
 
     const layout = computePopupLayout(cardWidth, cardHeight);
     popup.options.offset = L.point(layout.offset[0], layout.offset[1]);
@@ -290,7 +302,7 @@ function AdaptivePopup({
   }, [map, syncPopupPosition]);
 
   const initialWidth = Math.min(248, Math.max(200, map.getSize().x - 32));
-  const initialLayout = computePopupLayout(initialWidth, 178);
+  const initialLayout = computePopupLayout(initialWidth, 230);
 
   return (
     <Popup
@@ -316,9 +328,14 @@ function AdaptivePopup({
             if (onHoverMarker) onHoverMarker(null);
           }, 180);
         }}
-        style={{ width: '100%', height: '100%' }}
+        style={{
+          width: '100%',
+          maxHeight: initialLayout.maxHeight,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
       >
-        {renderPopup(marker)}
+        {renderPopup(marker, { maxHeight: initialLayout.maxHeight })}
       </div>
     </Popup>
   );

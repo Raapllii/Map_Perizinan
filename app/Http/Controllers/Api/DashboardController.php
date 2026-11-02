@@ -32,6 +32,10 @@ class DashboardController extends Controller
             return app(PublicMapAccessLogController::class)->exportExcel($request);
         }
 
+        if ($request->query('source') === 'service_surveys' || $request->query('source') === 'surveys') {
+            return app(PublicMapServiceSurveyController::class)->exportExcel($request);
+        }
+
         // Normalize year -> tahun so BusinessRepository::getFilteredQuery applies it consistently
         $year = $request->query('year') ?: $request->query('tahun');
         if ($year && $year !== 'Semua' && $year !== 'all') {

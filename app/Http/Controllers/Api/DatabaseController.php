@@ -176,14 +176,16 @@ class DatabaseController extends Controller
         }
 
         $request->validate([
-            'filename' => 'required|string'
+            'filename' => ['required', 'string', 'regex:/^[A-Za-z0-9_.-]+\.(sql|dump)$/']
         ]);
 
-        $filename = $request->filename;
+        $filename = basename($request->input('filename'));
+        $backupDir = realpath(storage_path('app/backups'));
         $fullPath = storage_path('app/backups/' . $filename);
+        $realFullPath = realpath($fullPath);
 
-        if (!File::exists($fullPath)) {
-            return response()->json(['status' => 'error', 'message' => 'File backup tidak ditemukan'], 404);
+        if (!$realFullPath || !$backupDir || strpos($realFullPath, $backupDir) !== 0 || !File::exists($realFullPath)) {
+            return response()->json(['status' => 'error', 'message' => 'File backup tidak ditemukan atau tidak valid'], 404);
         }
 
         // Get DB credentials
@@ -202,7 +204,7 @@ class DatabaseController extends Controller
                 '-p', $dbPort,
                 '-U', $dbUser,
                 '-d', $dbName,
-                '-f', $fullPath
+                '-f', $realFullPath
             ];
 
             $process = new Process($command, null, $env);
@@ -237,16 +239,22 @@ class DatabaseController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
         
-        $request->validate(['filename' => 'required|string']);
-        $fullPath = storage_path('app/backups/' . $request->filename);
+        $request->validate([
+            'filename' => ['required', 'string', 'regex:/^[A-Za-z0-9_.-]+\.(sql|dump)$/']
+        ]);
         
-        if (File::exists($fullPath)) {
-            File::delete($fullPath);
-            $this->logActivity('Delete Backup', "Menghapus file backup: {$request->filename}", $request);
+        $filename = basename($request->input('filename'));
+        $backupDir = realpath(storage_path('app/backups'));
+        $fullPath = storage_path('app/backups/' . $filename);
+        $realFullPath = realpath($fullPath);
+        
+        if ($realFullPath && $backupDir && strpos($realFullPath, $backupDir) === 0 && File::exists($realFullPath)) {
+            File::delete($realFullPath);
+            $this->logActivity('Delete Backup', "Menghapus file backup: {$filename}", $request);
             return response()->json(['status' => 'success', 'message' => 'Backup berhasil dihapus']);
         }
         
-        return response()->json(['status' => 'error', 'message' => 'File tidak ditemukan'], 404);
+        return response()->json(['status' => 'error', 'message' => 'File tidak ditemukan atau tidak valid'], 404);
     }
 
     /**
@@ -258,14 +266,21 @@ class DatabaseController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
         
+        if (!preg_match('/^[A-Za-z0-9_.-]+\.(sql|dump)$/', (string) $filename)) {
+            return response()->json(['status' => 'error', 'message' => 'Nama file tidak valid'], 400);
+        }
+
+        $filename = basename((string) $filename);
+        $backupDir = realpath(storage_path('app/backups'));
         $fullPath = storage_path('app/backups/' . $filename);
+        $realFullPath = realpath($fullPath);
         
-        if (File::exists($fullPath)) {
+        if ($realFullPath && $backupDir && strpos($realFullPath, $backupDir) === 0 && File::exists($realFullPath)) {
             $this->logActivity('Download Backup', "Mengunduh file backup: $filename", request());
-            return response()->download($fullPath);
+            return response()->download($realFullPath);
         }
         
-        return response()->json(['status' => 'error', 'message' => 'File tidak ditemukan'], 404);
+        return response()->json(['status' => 'error', 'message' => 'File tidak ditemukan atau tidak valid'], 404);
     }
 
     /**
@@ -322,12 +337,13 @@ class DatabaseController extends Controller
                     }
                 }
             ],
-            'import_id' => 'nullable|string'
+            'import_id' => ['nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9_-]+$/']
         ]);
 
         if ($request->hasFile('file')) {
             $file = $request->file('file');
-            $importId = $request->input('import_id') ?: ('import_' . uniqid() . '_' . time());
+            $rawImportId = $request->input('import_id') ?: ('import_' . uniqid() . '_' . time());
+            $importId = preg_replace('/[^A-Za-z0-9_-]/', '', $rawImportId);
             $ext = strtolower($file->getClientOriginalExtension());
 
             $importsDir = storage_path('app/imports');
@@ -416,26 +432,34 @@ class DatabaseController extends Controller
                     'message' => 'Gagal memulai import: File artisan tidak ditemukan.',
                 ], 3600);
             } else {
+                $cleanImportId = preg_replace('/[^A-Za-z0-9_-]/', '', $importId);
+                $escapedPhp = escapeshellarg($phpBinary);
+                $escapedArtisan = escapeshellarg($artisanPath);
+                $escapedImportId = escapeshellarg($cleanImportId);
+                $escapedTargetPath = escapeshellarg($targetPath);
+                $escapedUserId = (int) ($userId ?: 0);
+                $escapedLogPath = escapeshellarg($logPath);
+
                 if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
                     $cmd = sprintf(
-                        'start /B "" "%s" "%s" businesses:import "%s" "%s" %s > "%s" 2>&1',
-                        $phpBinary,
-                        $artisanPath,
-                        $importId,
-                        $targetPath,
-                        $userId ?: 0,
-                        $logPath
+                        'start /B "" %s %s businesses:import %s %s %d > %s 2>&1',
+                        $escapedPhp,
+                        $escapedArtisan,
+                        $escapedImportId,
+                        $escapedTargetPath,
+                        $escapedUserId,
+                        $escapedLogPath
                     );
                     pclose(popen($cmd, 'r'));
                 } else {
                     $cmd = sprintf(
-                        '"%s" "%s" businesses:import "%s" "%s" %s > "%s" 2>&1 &',
-                        $phpBinary,
-                        $artisanPath,
-                        $importId,
-                        $targetPath,
-                        $userId ?: 0,
-                        $logPath
+                        '%s %s businesses:import %s %s %d > %s 2>&1 &',
+                        $escapedPhp,
+                        $escapedArtisan,
+                        $escapedImportId,
+                        $escapedTargetPath,
+                        $escapedUserId,
+                        $escapedLogPath
                     );
                     exec($cmd);
                 }
@@ -587,13 +611,14 @@ class DatabaseController extends Controller
         try {
             ActivityLog::create([
                 'user_id' => Auth::id(),
+                'user_name' => Auth::user() ? Auth::user()->name : 'System',
                 'action' => $action,
-                'description' => $description,
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent()
+                'name' => 'Database Backup / Restore',
+                'status_type' => 'system',
+                'note' => $description,
             ]);
         } catch (\Exception $e) {
-            // Ignore
+            Log::warning("Failed to record database activity log: " . $e->getMessage());
         }
     }
 }

@@ -34,6 +34,11 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+        $currentUser = $request->user();
+        if ($currentUser && !$currentUser->hasRole('Super Admin', 'Administrator')) {
+            return response()->json(['message' => 'Anda tidak memiliki hak akses untuk menambah pengguna.'], 403);
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
@@ -41,6 +46,10 @@ class UserController extends Controller
             'role' => ['required', Rule::in(['Super Admin', 'Administrator', 'Verifier', 'Surveyor'])],
             'status' => ['required', Rule::in(['Aktif', 'Nonaktif'])],
         ]);
+
+        if ($request->role === 'Super Admin' && (!$currentUser || !$currentUser->isSuperAdmin())) {
+            return response()->json(['message' => 'Hanya Super Admin yang dapat membuat akun dengan role Super Admin.'], 403);
+        }
 
         $initials = collect(explode(' ', $request->name))->map(function($word) {
             return strtoupper(substr($word, 0, 1));
@@ -64,6 +73,15 @@ class UserController extends Controller
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
+        $currentUser = $request->user();
+
+        if ($currentUser && !$currentUser->hasRole('Super Admin', 'Administrator')) {
+            return response()->json(['message' => 'Anda tidak memiliki hak akses untuk mengubah data pengguna.'], 403);
+        }
+
+        if ($user->role === 'Super Admin' && (!$currentUser || !$currentUser->isSuperAdmin())) {
+            return response()->json(['message' => 'Hanya Super Admin yang dapat memodifikasi akun Super Admin.'], 403);
+        }
 
         $request->validate([
             'name' => 'required|string|max:255',
@@ -71,6 +89,10 @@ class UserController extends Controller
             'role' => ['required', Rule::in(['Super Admin', 'Administrator', 'Verifier', 'Surveyor'])],
             'status' => ['required', Rule::in(['Aktif', 'Nonaktif'])],
         ]);
+
+        if ($request->role === 'Super Admin' && (!$currentUser || !$currentUser->isSuperAdmin())) {
+            return response()->json(['message' => 'Hanya Super Admin yang dapat menetapkan role Super Admin.'], 403);
+        }
 
         $initials = collect(explode(' ', $request->name))->map(function($word) {
             return strtoupper(substr($word, 0, 1));
@@ -155,8 +177,16 @@ class UserController extends Controller
         $userToUpdate = User::findOrFail($id);
         $currentUser = $request->user();
 
+        if ($currentUser && !$currentUser->hasRole('Super Admin', 'Administrator')) {
+            return response()->json(['message' => 'Anda tidak memiliki hak akses untuk mengubah status pengguna.'], 403);
+        }
+
         if ($currentUser && $currentUser->id === $userToUpdate->id) {
             return response()->json(['message' => 'Anda tidak dapat menonaktifkan akun sendiri.'], 403);
+        }
+
+        if ($userToUpdate->role === 'Super Admin' && (!$currentUser || !$currentUser->isSuperAdmin())) {
+            return response()->json(['message' => 'Hanya Super Admin yang dapat mengubah status akun Super Admin.'], 403);
         }
 
         $request->validate([
@@ -174,6 +204,15 @@ class UserController extends Controller
     public function resetPassword(Request $request, $id)
     {
         $user = User::findOrFail($id);
+        $currentUser = $request->user();
+
+        if ($currentUser && !$currentUser->hasRole('Super Admin', 'Administrator')) {
+            return response()->json(['message' => 'Anda tidak memiliki hak akses untuk mereset password pengguna.'], 403);
+        }
+
+        if ($user->role === 'Super Admin' && $currentUser->id !== $user->id && (!$currentUser || !$currentUser->isSuperAdmin())) {
+            return response()->json(['message' => 'Hanya Super Admin yang dapat mereset password akun Super Admin lain.'], 403);
+        }
         
         $request->validate([
             'old_password' => 'required|string',
@@ -197,7 +236,7 @@ class UserController extends Controller
             'password' => Hash::make($request->new_password)
         ]);
 
-        $this->logActivity('Password pengguna diubah', $request->user());
+        $this->logActivity('Password pengguna diubah: ' . $user->name, $request->user());
 
         return response()->json(['message' => 'Password berhasil diubah.']);
     }

@@ -5,11 +5,15 @@ import { User, Users, Lock, Sun, Bell, Map, Database, Upload, Save, RotateCcw, M
 import { Card, Btn, InputField, SelectField, SectionHeader } from "../components/ui";
 import { useAuth } from "../contexts/AuthContext";
 import PenggunaPage from "./PenggunaPage";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 export default function PengaturanPage({ darkMode, setDarkMode }: any) {
   const location = useLocation();
   const defaultSection = location.hash ? location.hash.replace('#', '') : "profil";
   const [activeSection, setActiveSection] = useState(defaultSection);
+
+  // Dynamic Title: "Manajemen Pengguna" when on users section, otherwise "Pengaturan"
+  useDocumentTitle(activeSection === 'pengguna' ? "Manajemen Pengguna" : "Pengaturan");
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
   

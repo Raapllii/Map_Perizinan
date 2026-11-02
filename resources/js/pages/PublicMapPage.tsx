@@ -8,6 +8,7 @@ import { FeedbackWidget } from "../components/ui/feedback";
 import { useBusinessSearch } from "../hooks/useBusinessSearch";
 import PublicAccessModal from "../components/PublicAccessModal";
 import MapRiskLegend from "../components/ui/MapRiskLegend";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import {
   isFeedbackAlreadySubmitted,
   markFeedbackAsSubmitted,
@@ -44,6 +45,15 @@ export default function PublicMapPage() {
     }
   });
   const [isAccessModalOpen, setIsAccessModalOpen] = useState(!visitor);
+
+  // Dynamic Page Title: "Verifikasi Identitas" when modal is open, or Business Name, or "Map Public"
+  const currentTitle = isAccessModalOpen
+    ? "Verifikasi Identitas"
+    : selectedBusiness?.nama_perusahaan
+    ? selectedBusiness.nama_perusahaan
+    : "Map Public";
+
+  useDocumentTitle(currentTitle);
 
   const handleAccessSuccess = (visitorData: any) => {
     setVisitor(visitorData);
@@ -325,6 +335,7 @@ export default function PublicMapPage() {
         {/* Side Panel (Desktop overlay) or Bottom Sheet (Mobile fixed drawer) */}
         <BusinessSidePanel 
           business={selectedBusiness}
+          isAdmin={false}
           isMobile={isMobile}
           accessLogId={visitor?.access_log_id || visitor?.id}
           onClose={() => {

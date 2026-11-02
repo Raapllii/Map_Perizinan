@@ -16,6 +16,13 @@ class DummyDataSeeder extends Seeder
 {
     public function run()
     {
+        // Guard: Prevent accidental dummy seeding in non-local environments
+        if (!app()->environment('local', 'testing')) {
+            if ($this->command) {
+                $this->command->warn('DummyDataSeeder tidak dapat dijalankan di luar environment development/testing.');
+            }
+            return;
+        }
         // 1. Users
         $users = [
             ['name' => 'Dr. Andi Kurniawan', 'email' => 'andi.k@pemkab.go.id', 'role' => 'Super Admin', 'status' => 'Aktif', 'avatar' => 'AK', 'actions' => 342],
@@ -146,7 +153,10 @@ class DummyDataSeeder extends Seeder
 
         foreach ($businesses as $business) {
             Business::updateOrCreate(
-                ['nib' => $business['nib']],
+                [
+                    'nib' => $business['nib'],
+                    'id_proyek' => $business['id_proyek'] ?? null,
+                ],
                 $business
             );
         }

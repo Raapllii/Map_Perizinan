@@ -47,13 +47,14 @@ class SettingController extends Controller
         try {
             ActivityLog::create([
                 'user_id' => $user->id,
+                'user_name' => $user->name,
                 'action' => 'Update Settings',
-                'description' => 'Memperbarui pengaturan sistem',
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent()
+                'name' => 'Pengaturan Sistem',
+                'status_type' => 'system',
+                'note' => 'Memperbarui pengaturan sistem',
             ]);
         } catch (\Exception $e) {
-            // Ignore if ActivityLog fails
+            \Illuminate\Support\Facades\Log::warning('Failed to log settings activity: ' . $e->getMessage());
         }
 
         return response()->json([

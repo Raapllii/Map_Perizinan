@@ -41,6 +41,7 @@ export interface BusinessSidePanelProps {
   onDetailClick?: () => void;
   onEditClick?: () => void;
   accessLogId?: number | null;
+  isAdmin?: boolean;
 }
 
 const DetailItem = ({ 
@@ -81,11 +82,16 @@ export function BusinessSidePanel({
   onDirectionsClick,
   onEditClick,
   accessLogId,
+  isAdmin = false,
 }: BusinessSidePanelProps) {
   const [copied, setCopied] = useState(false);
   const [detailBusiness, setDetailBusiness] = useState<any>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [isSurveyModalOpen, setIsSurveyModalOpen] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  // Check if we are in admin context (explicit isAdmin flag or presence of onEditClick which is only provided in admin)
+  const isPanelAdmin = Boolean(isAdmin || onEditClick);
 
   // Fetch full business details when selected business changes
   useEffect(() => {
@@ -162,6 +168,54 @@ export function BusinessSidePanel({
       console.error('Gagal menyalin koordinat:', err);
     }
   }, [hasCoordinates, formattedString]);
+
+  // Admin direct PDF file download (bypasses survey requirement)
+  const handleAdminDownload = useCallback(async () => {
+    if (!activeBusiness?.id || isDownloading) return;
+    setIsDownloading(true);
+    try {
+      const response = await axios.get(`/api/admin/businesses/${activeBusiness.id}/download`, {
+        responseType: 'blob',
+      });
+
+      const cleanName = (activeBusiness.nama_perusahaan || 'usaha')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || `usaha-${activeBusiness.id}`;
+      let filename = `detail-usaha-${cleanName}.pdf`;
+
+      const disposition = response.headers['content-disposition'];
+      if (disposition && disposition.includes('filename=')) {
+        const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+        if (matches && matches[1]) {
+          filename = matches[1].replace(/['"]/g, '');
+        }
+      }
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (err) {
+      console.error('Gagal mengunduh dokumen detail usaha admin:', err);
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [activeBusiness?.id, activeBusiness?.nama_perusahaan, isDownloading]);
+
+  // Context-aware download click: direct for Admin, SKM survey modal for Public
+  const handleDownloadClick = useCallback(() => {
+    if (isPanelAdmin) {
+      handleAdminDownload();
+    } else {
+      setIsSurveyModalOpen(true);
+    }
+  }, [isPanelAdmin, handleAdminDownload]);
 
   if (!business || !activeBusiness) return null;
 
@@ -440,16 +494,25 @@ export function BusinessSidePanel({
   // FOOTER PRIMARY ACTION (Unduh Detail Usaha & Lihat Rute)
   const renderPanelFooter = () => (
     <div className="p-3.5 sm:p-4 border-t border-border/60 bg-card shrink-0 flex flex-col gap-2 min-w-0">
-      {/* Button: Unduh Detail Usaha - Triggers Survey Modal */}
+      {/* Button: Unduh Detail Usaha - Direct download for Admin, Survey modal for Public */}
       <button
         type="button"
-        disabled={!activeBusiness?.id}
-        onClick={() => setIsSurveyModalOpen(true)}
+        disabled={!activeBusiness?.id || isDownloading}
+        onClick={handleDownloadClick}
         className="w-full h-11 min-h-[44px] px-3 sm:px-4 rounded-xl font-semibold text-xs tracking-wide uppercase inline-flex items-center justify-center gap-2 transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 min-w-0 border bg-background hover:bg-muted/80 text-foreground border-border/80 active:scale-[0.99] cursor-pointer"
         aria-label={`Unduh Dokumen Detail Usaha ${activeBusiness.nama_perusahaan || ''}`}
       >
-        <Download size={15} className="text-primary shrink-0" />
-        <span className="truncate min-w-0">Unduh Detail Usaha</span>
+        {isDownloading ? (
+          <>
+            <Loader2 size={15} className="animate-spin text-primary shrink-0" />
+            <span className="truncate min-w-0">Mengunduh Dokumen...</span>
+          </>
+        ) : (
+          <>
+            <Download size={15} className="text-primary shrink-0" />
+            <span className="truncate min-w-0">Unduh Detail Usaha</span>
+          </>
+        )}
       </button>
 
       {/* Button: Lihat Rute */}
@@ -597,13 +660,15 @@ export function BusinessSidePanel({
         )}
       </AnimatePresence>
 
-      {/* Public Service Satisfaction Survey Modal before Download */}
-      <ServiceSurveyModal
-        isOpen={isSurveyModalOpen}
-        onClose={() => setIsSurveyModalOpen(false)}
-        business={activeBusiness}
-        accessLogId={accessLogId || getVisitorSession()?.access_log_id || getVisitorSession()?.id || undefined}
-      />
+      {/* Public Service Satisfaction Survey Modal before Download (Public Map Only) */}
+      {!isPanelAdmin && (
+        <ServiceSurveyModal
+          isOpen={isSurveyModalOpen}
+          onClose={() => setIsSurveyModalOpen(false)}
+          business={activeBusiness}
+          accessLogId={accessLogId || getVisitorSession()?.access_log_id || getVisitorSession()?.id || undefined}
+        />
+      )}
     </>
   );
 }

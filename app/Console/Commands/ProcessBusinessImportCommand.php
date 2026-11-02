@@ -89,8 +89,13 @@ class ProcessBusinessImportCommand extends Command
             Cache::put('import_progress_' . $importId, $progress, 3600);
 
             // Invalidate cached statistics & markers
+            Cache::forget('dashboard_overview_v2');
             Cache::forget('dashboard_data');
             Cache::forget('map_markers_all');
+            $currentYear = (int) date('Y');
+            for ($y = $currentYear - 5; $y <= $currentYear + 1; $y++) {
+                Cache::forget("dashboard_data_v2_{$y}");
+            }
 
             // Log activity
             if ($userId) {
@@ -100,12 +105,12 @@ class ProcessBusinessImportCommand extends Command
                         'user_id' => $userId,
                         'user_name' => $user ? $user->name : 'Administrator',
                         'action' => 'Import Data',
-                        'description' => "Import data selesai: {$import->importedCount} data baru, {$import->updatedCount} diupdate.",
-                        'ip_address' => '127.0.0.1',
-                        'user_agent' => 'CLI'
+                        'name' => 'Data Perizinan Usaha',
+                        'status_type' => 'imported',
+                        'note' => "Import data selesai: {$import->importedCount} data baru, {$import->updatedCount} diupdate.",
                     ]);
                 } catch (\Exception $e) {
-                    // Ignore activity log error
+                    \Illuminate\Support\Facades\Log::warning('Failed to log import activity: ' . $e->getMessage());
                 }
             }
 

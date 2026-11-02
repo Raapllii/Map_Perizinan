@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import axios from 'axios';
 import { Filter, RefreshCw, FileText, Check, Edit, X, CheckCircle, Search, Inbox, Loader2 } from "lucide-react";
 import { Card, Btn, StatusBadge, InputField } from "../components/ui";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 export default function VerifikasiIzinPage() {
+  useDocumentTitle("Verifikasi Izin");
   const [queue, setQueue] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 

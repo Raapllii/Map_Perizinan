@@ -19,10 +19,22 @@ class AuthController extends Controller
         ]);
 
         if (Auth::attempt($request->only('email', 'password'))) {
+            $user = Auth::user();
+
+            if ($user->status !== 'Aktif') {
+                Auth::guard('web')->logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return response()->json([
+                    'message' => 'Akun Anda berstatus nonaktif. Silakan hubungi Administrator.'
+                ], 403);
+            }
+
             $request->session()->regenerate();
 
             return response()->json([
-                'user' => Auth::user(),
+                'user' => $user,
                 'message' => 'Login success'
             ]);
         }

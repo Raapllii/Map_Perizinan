@@ -32,7 +32,13 @@ Route::post('/public-map-access', [PublicMapAccessLogController::class, 'store']
 Route::post('/public-map-feedback', [PublicMapFeedbackController::class, 'store']);
 Route::post('/public-map-survey', [PublicMapServiceSurveyController::class, 'store']);
 Route::middleware('throttle:nik-verify')->group(function () {
-    Route::get('/captcha-challenge', [CaptchaController::class, 'challenge']);
+    // SEC-07: Legacy math captcha disabled in favor of Google reCAPTCHA v2 Checkbox
+    Route::get('/captcha-challenge', function () {
+        return response()->json([
+            'status' => 'deprecated',
+            'message' => 'Legacy math captcha has been disabled in favor of Google reCAPTCHA v2 Checkbox.',
+        ], 410);
+    });
     Route::post('/verify-nik', [DukcapilVerificationController::class, 'verify']);
 });
 Route::get('/businesses/search', [BusinessController::class, 'search']);

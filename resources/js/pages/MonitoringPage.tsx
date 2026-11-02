@@ -1,14 +1,35 @@
-import React, { useState, lazy, Suspense } from "react";
-import { Layers, RefreshCw, MapPinOff } from "lucide-react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
+import { useNavigate } from "react-router";
+import axios from "axios";
+import { Layers, RefreshCw, MapPinOff, CheckCircle2, Loader2 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Card, Btn, SectionHeader } from "../components/ui";
 import { Table, TableBody, TableRow, TableCell } from "../components/ui/Table";
 import { Checkbox } from "../components/ui/checkbox";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 const CityMapLeaflet = lazy(() => import('../components/CityMapLeaflet'));
 
+interface NoCoordBusiness {
+  name: string;
+  nib: string;
+  district: string;
+}
+
+interface AreaDataPoint {
+  time: string;
+  usaha: number;
+  aktif: number;
+}
+
 export default function MonitoringPage() {
+  useDocumentTitle("Monitoring");
+  const navigate = useNavigate();
   const [selectedNoCoords, setSelectedNoCoords] = useState<string[]>([]);
+  const [noCoords, setNoCoords] = useState<NoCoordBusiness[]>([]);
+  const [totalNoCoords, setTotalNoCoords] = useState<number>(0);
+  const [isLoadingNoCoords, setIsLoadingNoCoords] = useState<boolean>(true);
+  const [areaData, setAreaData] = useState<AreaDataPoint[]>([]);
 
   const toggleSelection = (nib: string) => {
     setSelectedNoCoords(prev => 
@@ -16,23 +37,63 @@ export default function MonitoringPage() {
     );
   };
 
+  const loadData = () => {
+    setIsLoadingNoCoords(true);
 
-  const noCoords = [
-    { name: "Bengkel Rapi Motor", nib: "220599001122", district: "Kec. Tenggara" },
-    { name: "Toko Kelontong Pak Amin", nib: "220588112233", district: "Kec. Barat" },
-    { name: "Laundry Bersih Sejahtera", nib: "220577223344", district: "Kec. Utara" },
-  ];
+    // Fetch unmapped businesses
+    axios.get('/api/businesses?status_pemetaan=Belum+Dipetakan&per_page=10')
+      .then(res => {
+        const rawItems = res.data?.data || [];
+        const items: NoCoordBusiness[] = rawItems.map((b: any) => ({
+          name: b.nama_perusahaan || "Tidak Ada Nama",
+          nib: b.nib || "-",
+          district: b.kecamatan_usaha || "Samarinda",
+        }));
+        setNoCoords(items);
+        setTotalNoCoords(res.data?.total ?? items.length);
+      })
+      .catch(err => {
+        console.error("Gagal memuat usaha tanpa koordinat:", err);
+      })
+      .finally(() => {
+        setIsLoadingNoCoords(false);
+      });
 
-  const areaData = [
-    { time: "07:00", usaha: 2830, aktif: 1890 },
-    { time: "08:00", usaha: 2833, aktif: 1895 },
-    { time: "09:00", usaha: 2838, aktif: 1905 },
-    { time: "10:00", usaha: 2840, aktif: 1910 },
-    { time: "11:00", usaha: 2843, aktif: 1915 },
-    { time: "12:00", usaha: 2844, aktif: 1918 },
-    { time: "13:00", usaha: 2845, aktif: 1920 },
-    { time: "14:00", usaha: 2847, aktif: 1923 },
-  ];
+    // Fetch real trend statistics from dashboard
+    axios.get('/api/admin/dashboard')
+      .then(res => {
+        const monthly = res.data?.monthly || [];
+        const totalVal = res.data?.kpi?.total?.value ?? 0;
+        const activeVal = res.data?.kpi?.active?.value ?? totalVal;
+
+        if (Array.isArray(monthly) && monthly.length > 0) {
+          setAreaData(monthly.map((m: any) => ({
+            time: m.month || "-",
+            usaha: Number(m.registrasi) || 0,
+            aktif: Number(m.terverifikasi) || 0,
+          })));
+        } else {
+          const hours = ["08:00", "10:00", "12:00", "14:00", "16:00"];
+          setAreaData(hours.map(h => ({
+            time: h,
+            usaha: totalVal,
+            aktif: activeVal,
+          })));
+        }
+      })
+      .catch(err => {
+        console.error("Gagal memuat tren dashboard:", err);
+        setAreaData([
+          { time: "08:00", usaha: 0, aktif: 0 },
+          { time: "12:00", usaha: 0, aktif: 0 },
+          { time: "16:00", usaha: 0, aktif: 0 },
+        ]);
+      });
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -41,45 +102,70 @@ export default function MonitoringPage() {
         <div className="xl:col-span-5 flex flex-col gap-5 min-w-0">
           <Card padding="p-4 sm:p-5" className="flex-1 min-w-0">
             <SectionHeader title="Usaha Tanpa Koordinat" subtitle="Perlu penandaan lokasi">
-              <span className="text-[10px] font-bold bg-info/15 text-info px-2 py-1 rounded-full uppercase tracking-wider shrink-0">23 Usaha</span>
+              <span className="text-[10px] font-bold bg-info/15 text-info px-2 py-1 rounded-full uppercase tracking-wider shrink-0">
+                {totalNoCoords} Usaha
+              </span>
             </SectionHeader>
-            <div className="mt-4 border border-border rounded-lg overflow-hidden">
-              <Table>
-                <TableBody>
-                  {noCoords.map((n) => {
-                    const isSelected = selectedNoCoords.includes(n.nib);
-                    return (
-                      <TableRow 
-                        key={n.nib} 
-                        data-state={isSelected && "selected"} 
-                        onClick={() => toggleSelection(n.nib)}
-                        className="cursor-pointer"
-                      >
-                        <TableCell className="w-[40px] pl-3 sm:pl-4 py-3 align-middle">
-                          <Checkbox checked={isSelected} onCheckedChange={() => toggleSelection(n.nib)} />
-                        </TableCell>
-                        <TableCell className="py-3 pr-3 sm:pr-4 align-middle">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex flex-col gap-0.5 min-w-0">
-                              <div className="text-sm font-medium text-foreground truncate">{n.name}</div>
-                              <div className="text-xs text-muted-foreground truncate">
-                                {n.nib} &middot; {n.district}
+
+            {isLoadingNoCoords ? (
+              <div className="py-12 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                <Loader2 size={24} className="animate-spin text-primary" />
+                <span className="text-xs">Memuat data usaha...</span>
+              </div>
+            ) : noCoords.length === 0 ? (
+              <div className="mt-4 p-8 border border-border rounded-lg text-center flex flex-col items-center justify-center gap-2 bg-muted/5">
+                <div className="w-10 h-10 rounded-full bg-success/10 text-success flex items-center justify-center mb-1">
+                  <CheckCircle2 size={20} />
+                </div>
+                <p className="text-sm font-semibold text-foreground">Semua usaha telah memiliki titik koordinat</p>
+                <p className="text-xs text-muted-foreground">Tidak ada usaha yang membutuhkan penandaan lokasi di peta.</p>
+              </div>
+            ) : (
+              <>
+                <div className="mt-4 border border-border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableBody>
+                      {noCoords.map((n) => {
+                        const isSelected = selectedNoCoords.includes(n.nib);
+                        return (
+                          <TableRow 
+                            key={n.nib} 
+                            data-state={isSelected && "selected"} 
+                            onClick={() => toggleSelection(n.nib)}
+                            className="cursor-pointer"
+                          >
+                            <TableCell className="w-[40px] pl-3 sm:pl-4 py-3 align-middle">
+                              <Checkbox checked={isSelected} onCheckedChange={() => toggleSelection(n.nib)} />
+                            </TableCell>
+                            <TableCell className="py-3 pr-3 sm:pr-4 align-middle">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex flex-col gap-0.5 min-w-0">
+                                  <div className="text-sm font-medium text-foreground truncate">{n.name}</div>
+                                  <div className="text-xs text-muted-foreground truncate">
+                                    {n.nib} &middot; {n.district}
+                                  </div>
+                                </div>
+                                <div className="text-[11px] text-warning flex items-center gap-1 font-medium bg-warning/10 px-2 py-0.5 rounded-full shrink-0">
+                                  <MapPinOff size={10} strokeWidth={2} /> Belum
+                                </div>
                               </div>
-                            </div>
-                            <div className="text-[11px] text-warning flex items-center gap-1 font-medium bg-warning/10 px-2 py-0.5 rounded-full shrink-0">
-                              <MapPinOff size={10} strokeWidth={2} /> Belum
-                            </div>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-            <div className="pt-3">
-              <button className="text-xs font-bold text-primary hover:underline hover:text-primary/80 transition-colors">Lihat semua 23 usaha &rarr;</button>
-            </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="pt-3">
+                  <button 
+                    onClick={() => navigate('/admin/data-usaha?status_pemetaan=Belum+Dipetakan')}
+                    className="text-xs font-bold text-primary hover:underline hover:text-primary/80 transition-colors"
+                  >
+                    Lihat semua {totalNoCoords} usaha &rarr;
+                  </button>
+                </div>
+              </>
+            )}
           </Card>
         </div>
 
@@ -92,7 +178,7 @@ export default function MonitoringPage() {
             </div>
             <div className="flex gap-2 flex-wrap">
               <Btn variant="secondary" size="sm" Icon={Layers} className="flex-1 sm:flex-none justify-center">Heatmap</Btn>
-              <Btn variant="outline" size="sm" Icon={RefreshCw} className="flex-1 sm:flex-none justify-center">Refresh</Btn>
+              <Btn variant="outline" size="sm" Icon={RefreshCw} onClick={loadData} className="flex-1 sm:flex-none justify-center">Refresh</Btn>
             </div>
           </div>
           <div className="flex-1 bg-muted/10 relative min-h-[300px]">
@@ -105,7 +191,6 @@ export default function MonitoringPage() {
             </Suspense>
           </div>
         </Card>
-
       </div>
 
       {/* Trend chart */}
@@ -127,7 +212,12 @@ export default function MonitoringPage() {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="time" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} dy={10} />
-                <YAxis tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} domain={['dataMin - 5', 'dataMax + 5']} />
+                <YAxis 
+                  tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} 
+                  axisLine={false} 
+                  tickLine={false} 
+                  domain={[0, (dataMax: number) => Math.max(dataMax + 1, 5)]} 
+                />
                 <Tooltip contentStyle={{ borderRadius: "12px", border: "1px solid var(--border)", fontSize: "12px", backgroundColor: "var(--card)" }} />
                 <Area type="monotone" dataKey="usaha" name="Total Usaha" stroke="var(--primary)" fill="url(#gradTotal)" strokeWidth={2.5} />
                 <Area type="monotone" dataKey="aktif" name="Usaha Aktif" stroke="var(--success)" fill="url(#gradAktif)" strokeWidth={2.5} />

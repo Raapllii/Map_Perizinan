@@ -10,9 +10,7 @@ class CaptchaControllerTest extends TestCase
     {
         $response = $this->getJson('/api/captcha-challenge');
 
-        $response->assertStatus(200)
-                 ->assertJsonStructure(['question', 'token']);
-
-        $this->assertMatchesRegularExpression('/^\d+ [+\-] \d+ = \?$/', $response->json('question'));
+        $response->assertStatus(410)
+                 ->assertJson(['status' => 'deprecated']);
     }
 }

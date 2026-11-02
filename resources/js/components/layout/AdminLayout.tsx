@@ -5,6 +5,7 @@ import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import { Btn } from "../ui";
 import { PAGE_TITLES } from "../../constants";
+import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 
 import DashboardPage from "../../pages/DashboardPage";
 import PetaUsahaPage from "../../pages/PetaUsahaPage";
@@ -21,6 +22,9 @@ export default function AdminLayout({ darkMode, setDarkMode, setUser }: any) {
   const location = useLocation();
   const activePage = location.pathname.split('/').pop() || 'dashboard';
   const pageInfo = PAGE_TITLES[activePage as keyof typeof PAGE_TITLES] || PAGE_TITLES['dashboard'];
+
+  // Dynamically synchronize browser tab title for all admin routes
+  useDocumentTitle(pageInfo?.title || "Dashboard");
 
   const renderPage = () => {
     switch (activePage) {

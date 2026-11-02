@@ -132,13 +132,18 @@ class DashboardService
     {
         $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
         
+        $driver = DB::connection()->getDriverName();
+        $monthExpr = $driver === 'sqlite'
+            ? "CAST(strftime('%m', tanggal_terbit_oss) AS INTEGER)"
+            : "EXTRACT(MONTH FROM tanggal_terbit_oss)";
+
         $monthlyQuery = Business::select(
-                DB::raw('EXTRACT(MONTH FROM tanggal_terbit_oss) as month'), 
+                DB::raw("{$monthExpr} as month"), 
                 'status', 
                 DB::raw('count(*) as total')
             )
             ->whereYear('tanggal_terbit_oss', $year)
-            ->groupBy(DB::raw('EXTRACT(MONTH FROM tanggal_terbit_oss)'), 'status')
+            ->groupBy(DB::raw($monthExpr), 'status')
             ->get();
             
         $monthly = [];
@@ -261,9 +266,14 @@ class DashboardService
 
     private function getTrendData()
     {
-        $trendQuery = Business::select(DB::raw('EXTRACT(YEAR FROM tanggal_terbit_oss) as year'), 'status', DB::raw('count(*) as total'))
+        $driver = DB::connection()->getDriverName();
+        $yearExpr = $driver === 'sqlite'
+            ? "CAST(strftime('%Y', tanggal_terbit_oss) AS INTEGER)"
+            : "EXTRACT(YEAR FROM tanggal_terbit_oss)";
+
+        $trendQuery = Business::select(DB::raw("{$yearExpr} as year"), 'status', DB::raw('count(*) as total'))
             ->whereNotNull('tanggal_terbit_oss')
-            ->groupBy(DB::raw('EXTRACT(YEAR FROM tanggal_terbit_oss)'), 'status')
+            ->groupBy(DB::raw($yearExpr), 'status')
             ->orderBy('year', 'asc')
             ->get();
             
@@ -302,6 +312,11 @@ class DashboardService
      */
     private function countUnmapped($year): int
     {
+        $driver = DB::connection()->getDriverName();
+        $yearFilter = $driver === 'sqlite'
+            ? "AND CAST(strftime('%Y', tanggal_terbit_oss) AS INTEGER) = ?"
+            : "AND EXTRACT(YEAR FROM tanggal_terbit_oss) = ?";
+
         if ($year) {
             $result = DB::selectOne(
                 "SELECT COUNT(*) AS cnt
@@ -310,7 +325,7 @@ class DashboardService
                     OR longitude IS NULL
                     OR latitude = 0
                     OR longitude = 0)
-                    AND EXTRACT(YEAR FROM tanggal_terbit_oss) = ?", [$year]
+                    {$yearFilter}", [$year]
             );
         } else {
             $result = DB::selectOne(

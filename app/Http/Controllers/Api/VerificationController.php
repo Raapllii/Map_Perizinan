@@ -18,6 +18,10 @@ class VerificationController extends Controller
 
     public function verify(Request $request, $id)
     {
+        if ($request->user() && !$request->user()->hasRole('Super Admin', 'Administrator', 'Verifier')) {
+            return response()->json(['message' => 'Anda tidak memiliki hak akses untuk memverifikasi izin.'], 403);
+        }
+
         $request->validate([
             'status' => ['required', Rule::in(['Aktif', 'Ditolak', 'Revision', 'Pending', 'Kadaluarsa'])],
             'note' => 'nullable|string'

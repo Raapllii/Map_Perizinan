@@ -255,10 +255,12 @@ class BusinessService
                     'user_id' => $user->id,
                     'user_name' => $user->name,
                     'action' => 'Hapus Massal',
-                    'description' => "Menghapus {$count} data usaha secara massal",
+                    'name' => "{$count} Data Usaha",
+                    'status_type' => 'deleted',
+                    'note' => "Menghapus {$count} data usaha secara massal",
                 ]);
             } catch (\Exception $e) {
-                // Ignore activity log failure
+                \Illuminate\Support\Facades\Log::warning('Failed to log bulk destroy activity: ' . $e->getMessage());
             }
         }
 
@@ -267,10 +269,16 @@ class BusinessService
         return $count;
     }
 
-    private function clearCaches()
+    public function clearCaches()
     {
+        Cache::forget('dashboard_overview_v2');
         Cache::forget('dashboard_data');
         Cache::forget('map_markers_all');
+
+        $currentYear = (int) date('Y');
+        for ($y = $currentYear - 5; $y <= $currentYear + 1; $y++) {
+            Cache::forget("dashboard_data_v2_{$y}");
+        }
     }
 
     public function updateStatus(int $id, string $status, ?string $note, $user = null)

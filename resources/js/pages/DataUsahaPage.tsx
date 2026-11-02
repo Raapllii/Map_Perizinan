@@ -60,6 +60,7 @@ import { Button } from "../components/ui/button";
 import DataUsahaDetailModal from "../components/DataUsahaDetailModal";
 import DataUsahaFormModal from "../components/DataUsahaFormModal";
 import DataUsahaImportModal from "../components/DataUsahaImportModal";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 // Custom UI
 import { Card, StatusBadge, Btn, InputField, SelectField } from "../components/ui";
@@ -200,6 +201,17 @@ export default function DataUsahaPage() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
+
+  // Dynamic Title: Business name if viewing detail, action if modal open, else "Data Usaha"
+  const currentTitle = isDetailOpen && selectedBusiness?.nama_perusahaan
+    ? selectedBusiness.nama_perusahaan
+    : isFormOpen
+    ? (selectedBusiness ? "Edit Usaha" : "Tambah Usaha")
+    : isImportOpen
+    ? "Import Data Usaha"
+    : "Data Usaha";
+
+  useDocumentTitle(currentTitle);
 
   const [isDeleting, setIsDeleting] = useState<string | number | null>(null);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
